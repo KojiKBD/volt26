@@ -79,6 +79,7 @@ The source scan records what the inherited implementation does before the projec
 | Scan group | Upstream baseline | Coverage | Result |
 | --- | --- | --- | --- |
 | Core runtime | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `CORE-01` through `CORE-05` | Source scan complete; owner decisions and runtime verification pending |
+| Profiles and options | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `PROFILE-01`, `OPTIONS-01`, and `OPTIONS-02` | Source scan complete; owner decisions and runtime verification pending |
 
 ## Core runtime assessment
 
@@ -132,6 +133,40 @@ The source scan records what the inherited implementation does before the projec
 - **Recommended decision:** `Adapt` — keep proven UTF-8/text behavior where needed, replace broad globals with namespaced VOLT26 helpers, and assign domain-specific functions to their owning inventory items before pruning.
 - **Verification pending:** run Lua syntax/loading checks in the target engine; cover UTF-8 length/substrings, emoji attributes, Japanese wrapping, truncation, ranges in both directions, table lookup/deduplication, and system-message formatting.
 
+## Profiles and options assessment
+
+### PROFILE-01 — Player profile discovery, selection, and profile-derived state
+
+- **Behavioral responsibility:** enumerates local profiles and their display metadata, reads recent theme modifiers for profile previews, discovers profile avatars, and coordinates guest, local-profile, and memory-card selection. The profile screen also handles joining and unjoining, coin consumption and refunds, duplicate-profile prevention for two players, default-profile selection, and the fast profile switch used from music selection.
+- **Load and save contract:** the engine calls `LoadProfileCustom()` and `SaveProfileCustom()` through the `[Profile]` metrics. Loading resets player options and transient `SL[pn]` state while preserving the current session's stage history, validates stored keys by datatype and valid option-row values, restores engine modifiers, resets disabled timing windows, and reapplies the operator-defined fail type. Saving writes the permitted custom modifiers and the engine `PlayerOptionsString`.
+- **Important dependencies:** `PROFILEMAN`, `GAMESTATE`, `MEMCARDMAN`, `FILEMAN`, `PREFSMAN`, `IniFile`, `ActorUtil`, `ThemePrefs`, `CustomOptionRow()`, `GetDefaultFailType()`, `SL[pn]`, profile-screen engine index conventions, corresponding `metrics.ini` routes, and the GrooveStats and ITL read/write helpers.
+- **Persistent data:** each persistent profile receives `<theme display name> UserPrefs.ini`, with a section also named from the theme display name. GrooveStats and ITL data are read and written as side effects of the same lifecycle. Engine-level default local-profile IDs and coin preferences also affect selection behavior. Guest state is transient, although stage history is deliberately retained across an in-session profile switch.
+- **VOLT26 delta:** the reviewed scripts and behavioral profile actors are source-equivalent to the upstream baseline apart from line-ending differences. The current storage filename and section still inherit the Simply Love theme identity, and the profile UI dynamically loads the selected visual-style assets rather than a VOLT26-owned profile contract.
+- **Mixed responsibilities:** profile persistence is coupled to online-service and tournament files; profile selection is coupled to arcade credit policy, player joining, visual previews, and music-screen fast switching. These need explicit boundaries even if the existing screen behavior is retained initially.
+- **Recommended decision:** `Adapt` — retain local, guest, and memory-card profile support plus validated per-profile modifiers, move persistence to an explicit VOLT26 schema with a documented Simply Love migration path, and make GrooveStats/ITL hooks optional integrations rather than mandatory profile side effects.
+- **Verification pending:** select guest, local, default, and memory-card profiles; test one and two players, duplicate selection, late join, fast switching, coin consumption/refund, and cancel paths; restart the engine and verify valid modifiers persist while invalid keys, types, and unavailable assets fail safely.
+
+### OPTIONS-01 — Player option construction and persistence
+
+- **Behavioral responsibility:** builds custom option rows for speed, noteskin and variant, judgments, combo and hold graphics, notefield placement, music rate, chart selection, visibility, life display, score targets, timing feedback, gameplay statistics, and edit/attack modifiers. It translates selections between localized choices, `SL[pn].ActiveModifiers`, and the engine's preferred or stage `PlayerOptions`, then chooses the next options, music, or gameplay screen.
+- **Application contract:** `CustomOptionRow()` exposes Lua option-row definitions to `metrics.ini`; generic load/save behavior is overridden where an option must mutate engine state or broadcast a preview/update message. `ApplyMods()` replays all rows after profile loading and on late join so saved settings apply even when the player never opens the options screen.
+- **Important dependencies:** `SL[pn].ActiveModifiers`, `SL.Global.ScreenAfter`, `GAMESTATE`, `SCREENMAN`, `NOTESKIN`, `ThemePrefs`, `MESSAGEMAN`, chart/course APIs, gameplay-layout helpers, GrooveStats availability, localized strings, the three `ScreenPlayerOptions` metric groups, preview actors, and `PROFILE-01` for persistence.
+- **State and persistence:** option changes update engine preferred/stage modifiers and in-memory theme state. Per-profile persistence is performed later by `SaveProfileCustom()`; music rate, current steps/trail, evaluation-pane defaults, and next-screen targets also mutate shared game-cycle state.
+- **VOLT26 delta:** `SL-PlayerOptions.lua` is source-identical to the reviewed upstream baseline. VOLT26 assets are discovered through existing noteskin, judgment, hold-judgment, and combo-font enumeration, but the behavior remains owned by Simply Love names, shared state, metrics, and screen actors.
+- **Mixed responsibilities and inventory routing:** the option framework currently embeds policy for tournament restrictions, online scoreboxes, chart selection, gameplay scoring displays, timing windows, course behavior, and screen navigation. The underlying feature decisions belong to their respective `GAME-*`, `ONLINE-01`, `EVENT-02`, `SELECT-*`, and `CORE-04` inventory items rather than being decided implicitly by the options UI.
+- **Recommended decision:** `Adapt` — retain the proven per-player option lifecycle and profile application behavior, define a VOLT26-owned option registry, and include rows only for features accepted elsewhere in the inventory. Replace screen-specific actor manipulation with explicit update messages or interfaces where practical.
+- **Verification pending:** load saved options without visiting the screen, change every retained row on all three pages, test localized values and unavailable assets, confirm live previews and engine modifiers, and repeat for one player, two players, routine, course, edit, late-join, and restart scenarios.
+
+### OPTIONS-02 — Operator/service options and active option-row behavior
+
+- **Behavioral responsibility:** defines the service-menu hierarchy and helper rows for theme selection, editor noteskin, default fail type, long/marathon thresholds, wheel speed, video renderer, global and visual offsets, memory cards, and custom-song limits. The service overlay supplies contextual help, remembers the active row when returning from child screens, saves theme preferences, rebuilds localized preference rows, and revalidates engine/game compatibility when leaving.
+- **Important dependencies:** `PREFSMAN`, `ThemePrefs`, `ThemePrefsRows`, `SL_CustomPrefs`, `SL.Global.PrevScreenOptionsServiceRow`, `SCREENMAN`, `GAMESTATE`, `IniFile`, theme and engine metadata, compatibility helpers, localized strings, and the `ScreenOptionsService*` hierarchy in `metrics.ini`.
+- **Persistent data:** engine preferences include default modifiers/fail type, editor noteskins, song-length thresholds, wheel speed, renderer order, timing offsets, memory-card behavior, and custom-song limits. Theme-owned rows persist through `ThemePrefs.Save()`. The remembered active option row is transient session state.
+- **VOLT26 delta:** `SL-OperatorMenuOptions.lua` and the assessed service actors are source-equivalent to the upstream baseline. The inherited hierarchy still exposes Simply Love visual-style and optional-feature preferences; VOLT26 currently enters it as one selectable visual style rather than owning a curated operator menu.
+- **Mixed responsibilities:** engine-wide configuration, VOLT26 preferences, optional online/tournament features, theme switching, compatibility validation, and service-menu presentation share one hierarchy. Theme switching and renderer changes also have wider installation or restart consequences than ordinary theme preferences.
+- **Recommended decision:** `Adapt` — keep the engine settings that VOLT26 operators need, create a smaller VOLT26-owned service hierarchy, separate machine preferences from theme and optional-integration settings, and remove visual-style selection from the standalone runtime.
+- **Verification pending:** enter every retained child screen, change and persist each custom row, return and confirm active-row restoration, restart where required for renderer/theme changes, and verify invalid compatibility choices redirect safely with an actionable message.
+
 ## Explicitly out of scope for this inventory
 
 The following are tracked elsewhere unless they contain behavior required by an item above:
@@ -148,3 +183,4 @@ The following are tracked elsewhere unless they contain behavior required by an 
 | Pending | Pending baseline identification | `codex/standalone-migration-plan` | Initial inventory structure created; detailed audit not started |
 | 2026-08-24 | Pending baseline identification | `codex/baseline-runtime-stabilization` | Reviewed mixed runtime/presentation blockers in the local prototype; no standalone feature-adoption decision finalized |
 | 2026-08-24 | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `codex/simply-love-functional-scan-core` | Completed the source-level scan for `CORE-01` through `CORE-05`; retention decisions and runtime verification remain pending |
+| 2026-08-24 | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `codex/simply-love-functional-scan-profile-options` | Completed the source-level scan for `PROFILE-01`, `OPTIONS-01`, and `OPTIONS-02`; retention decisions and runtime verification remain pending |
