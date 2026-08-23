@@ -40,7 +40,7 @@ This is a first-pass map based on the current inherited tree. Source-level depen
 | ID | Non-visual capability | Primary source landmarks | Decision | Status |
 | --- | --- | --- | --- | --- |
 | CORE-01 | Theme initialization and shared runtime state | `Scripts/SL_Init.lua`, `Scripts/06 SL-Utilities.lua` | Assess | Not started |
-| CORE-02 | ITGmania compatibility validation and startup failure handling | `BGAnimations/ScreenInit overlay/CompatibilityChecks.lua`, `BGAnimations/ScreenInit overlay/default.lua` | Assess | Not started |
+| CORE-02 | ITGmania compatibility validation and startup failure handling | `Scripts/SL-SupportHelpers.lua`, `BGAnimations/ScreenInit overlay/CompatibilityChecks.lua`, `BGAnimations/ScreenInit overlay/default.lua` | Assess | Not started |
 | CORE-03 | Theme preference definitions, defaults, loading, and saving | `Scripts/99 SL-ThemePrefs.lua` | Assess | Not started |
 | CORE-04 | Screen branching and navigation decisions | `Scripts/SL-Branches.lua`, screen metrics in `metrics.ini` | Assess | Not started |
 | CORE-05 | Shared helper, text, UTF-8, and support utilities | `Scripts/SL-Helpers.lua`, `Scripts/SL-Helpers-Text.lua`, `Scripts/utf8.lua`, `Scripts/SL-SupportHelpers.lua` | Assess | Not started |
@@ -72,6 +72,66 @@ This is a first-pass map based on the current inherited tree. Source-level depen
 | SERVICE-02 | Download-view navigation and item handling | `BGAnimations/ScreenViewDownloads overlay/` | Assess | Not started |
 | SESSION-01 | Gameplay/session duration and game-over player statistics | `BGAnimations/ScreenGameplay overlay/TrackTimeSpentInGameplay.lua`, `BGAnimations/ScreenGameOver overlay/` | Assess | Not started |
 
+## Phase 1 source scan progress
+
+The source scan records what the inherited implementation does before the project owner makes a retention decision. A completed source scan does not change an item's implementation status.
+
+| Scan group | Upstream baseline | Coverage | Result |
+| --- | --- | --- | --- |
+| Core runtime | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `CORE-01` through `CORE-05` | Source scan complete; owner decisions and runtime verification pending |
+
+## Core runtime assessment
+
+### CORE-01 — Theme initialization and shared runtime state
+
+- **Behavioral responsibility:** creates the global `SL` namespace, per-player state, per-game-cycle state, timing/scoring/life constants, EX weights, GrooveStats service state, request/download caches, and reset behavior. `InitializeSimplyLove()` resets both players and the game-cycle globals at script load and again when the title menu is entered.
+- **Important dependencies:** `ThemePrefs`; `PREFSMAN`; `Branch.GameplayScreen()`; `CreateGrooveStatsPlayerOptionKeys()` from the GrooveStats helper; `LoadUnlocksCache()` from the GrooveStats helper; engine globals and enum helpers. Script load order is therefore part of the contract.
+- **State boundaries:** player option selections, parsed chart caches, evaluation pane choices, API-session data, favorites, stage statistics, active rate, stage/continue counters, screen-return targets, timers, screenshot texture, and session timing are held in memory. Theme preferences and the GrooveStats unlock cache are read from persistent storage by dependencies; `SL_Init.lua` does not save them directly.
+- **VOLT26 delta:** `Scripts/SL_Init.lua` is source-identical to the reviewed upstream baseline. VOLT26 currently consumes this broad shared object without an owned interface.
+- **Mixed responsibilities:** visual color tables live beside scoring constants, online state, navigation state, and player/session data. These responsibilities should be separated during the standalone foundation work even if compatibility aliases are temporarily retained.
+- **Recommended decision:** `Adapt` — retain reset semantics and the state required by accepted features, move it behind VOLT26-owned runtime modules, and remove state belonging to omitted features.
+- **Verification pending:** start the theme, return to the title menu after a completed game cycle, and confirm that transient player/session/stage state resets while persistent theme/profile settings remain intact; repeat for one and two players.
+
+### CORE-02 — Compatibility validation and startup failure handling
+
+- **Behavioral responsibility:** parses the engine version, accepts only ITGmania `1.3.0` or newer, accepts the `dance`, `pump`, `techno`, `para`, and `kb7` game types, and redirects unsupported configurations to `ScreenSystemOptions` with a localized system message. It also prevents the Thonk visual style from running under the Windows D3D render path that lacks render-to-texture support.
+- **Important dependencies:** `ProductFamily()`, `ProductVersion()`, `GAMESTATE`, `HOOKS`, `PREFSMAN`, `SCREENMAN`, localized `ScreenInit`/theme-option strings, the `SM()` system-message utility, and `ScreenSystemOptions`/`ScreenThemeOptions` metrics.
+- **State and persistence:** no direct persistence. The result depends on engine preferences such as the active game and video renderer.
+- **VOLT26 delta:** `SL-SupportHelpers.lua` and `CompatibilityChecks.lua` are source-equivalent to upstream. The VOLT26 `ScreenInit` intro is presentation-specific but still loads the upstream compatibility actor. Its `_G.Volt26InitHandoff` flag is a separate transient navigation/presentation handoff and is not part of the compatibility behavior.
+- **Mixed responsibilities:** the Thonk render-to-texture guard is visual-style-specific and should not move into standalone VOLT26 unless VOLT26 adopts a feature with the same renderer requirement. Theme-version and author readers in `SL-SupportHelpers.lua` are metadata helpers, not compatibility checks.
+- **Recommended decision:** `Adapt` — retain the early engine/game guard, replace Simply Love wording and supported-version policy with a VOLT26-owned compatibility contract, and omit the Thonk-only branch unless independently required.
+- **Verification pending:** boot on the minimum supported ITGmania version and one newer version; simulate an older version and unsupported game; confirm one actionable message and a safe redirect without a Lua error.
+
+### CORE-03 — Theme preferences
+
+- **Behavioral responsibility:** defines theme-wide defaults and option-row values, initializes fallback `ThemePrefs`/`ThemePrefsRows`, validates saved values by type and allowed-value membership, removes unknown keys, and saves the current theme section to `Save/ThemePrefs.ini`.
+- **Important dependencies:** fallback-theme `ThemePrefs.InitAll()`, `ThemePrefsRows`, `IniFile`, date functions, localized strings, `range()`, `map()`, and `FindInTable()` from `06 SL-Utilities.lua`.
+- **Persistent data:** navigation toggles; game/style/sort defaults; menu timers; color and visual-style choices; sampling, banner, keyboard, scoring, tournament, GrooveStats, unlock, QR-login, and lobby settings; edit-mode history; event state. VOLT26 adds `VOLT26MementosDashHighScore` and the `VOLT26` visual-style choice.
+- **VOLT26 delta:** the current file differs from upstream only by registering the VOLT26 visual style and persisting the Mementos Dash high score. The current storage section is derived from `THEME:GetCurThemeName()`, so changing standalone theme identity also changes preference ownership.
+- **Mixed responsibilities:** a single registry couples core navigation and timing preferences to visual styles, optional online services, tournament behavior, an event unlock, and a minigame score. `VisualStyle` becomes obsolete when VOLT26 is no longer a Simply Love visual style.
+- **Recommended decision:** `Adapt` — create a VOLT26-owned preference registry, preserve accepted keys with an explicit migration/default policy, split optional-feature preferences by domain, and retire `VisualStyle` checks from runtime branching.
+- **Verification pending:** load valid legacy values, invalid types, invalid enum values, and unknown keys; restart ITGmania; verify accepted values persist under the VOLT26 section and invalid/retired values migrate or reset as documented.
+
+### CORE-04 — Screen branching and navigation decisions
+
+- **Behavioral responsibility:** selects profile/login/color/style/play-mode screens; applies game-mode preferences and reloads metrics; routes music/course selection, options, gameplay, evaluation, profile save, name entry, continues, game over, and title return; reconciles stage cost with music rate; and checks available credits for continues.
+- **Important dependencies:** `ThemePrefs`, `SL.Global`, `GAMESTATE`, `PREFSMAN`, `PROFILEMAN`, `STATSMAN`, `SCREENMAN`, `THEME`, `MESSAGEMAN`, `GetCredits()`, `SetGameModePreferences()`, and fallback `Branch.AfterInit()`, `Branch.TitleMenu()`, and `Branch.GameplayScreen()` functions. Corresponding `metrics.ini` `PrevScreen`/`NextScreen` values form part of the route graph.
+- **State and persistence:** mutates joined players/current style, `SL.Global.GameMode`, stage and continue counters, and player-option return targets. It reads persistent theme and engine preferences but does not save them.
+- **VOLT26 delta:** VOLT26 adds one branch: when `VisualStyle == "VOLT26"`, Casual/ITG selection is skipped, `SL.Global.GameMode` is forced to `ITG`, and normal post-selection preference/metric setup continues. All other branch behavior is upstream.
+- **Mixed responsibilities:** optional-screen UX, coin-op policy, online login, stage accounting, profile persistence, gameplay mode selection, and end-of-session policy are combined in one module. Stage accounting belongs with session/gameplay behavior even though it currently controls navigation.
+- **Recommended decision:** `Adapt` — define a VOLT26 route graph and explicit supported modes, retain only accepted coin/profile/session policies, and replace the temporary `VisualStyle` condition with standalone defaults.
+- **Verification pending:** exercise the complete startup-to-title-to-profile-to-music-to-options-to-gameplay-to-evaluation route for one and two players, plus course, event, cancel, fail, continue, name-entry, and game-over branches.
+
+### CORE-05 — Shared helpers, text, UTF-8, and support utilities
+
+- **Behavioral responsibility:** provides generic table/system-message helpers (`TableToString`, `SM`, `range`, `map`, `deduplicate`, and lookup/string conversion), UTF-8 string primitives, emoji diffusion, multilingual wrapping/truncation, engine/metadata support helpers, and a large inherited `SL-Helpers.lua` collection.
+- **Important dependencies:** Lua string/table APIs; StepMania actor types and global managers; fallback utility functions; `SL`, `ThemePrefs`, `Branch`, and theme asset/metric lookup. `SL-Helpers-Text.lua` monkey-patches `BitmapText`, so its load order and global effect are part of the contract.
+- **State and persistence:** generic utilities are stateless. Several functions in `SL-Helpers.lua` read or mutate engine preferences and runtime player state; `ResetPreferencesToStockSM5()` is state-changing and must not be treated as a harmless formatting helper.
+- **VOLT26 delta:** `SL-Helpers.lua` and `SL-SupportHelpers.lua` are source-identical to upstream. Utility, text, and UTF-8 files are source-equivalent apart from line-ending differences.
+- **Mixed responsibilities and inventory routing:** timing-window and worst-judgment helpers belong with `GAME-02`; EX counts and score calculation with `GAME-01`/`GAME-03`; game-mode preference application and stock-reset behavior with `CORE-03`; notefield geometry and asset lookup with implementation/presentation; course duration and stage helpers with `GAME-05`/session behavior. CORE-05 should retain only genuinely cross-cutting primitives.
+- **Recommended decision:** `Adapt` — keep proven UTF-8/text behavior where needed, replace broad globals with namespaced VOLT26 helpers, and assign domain-specific functions to their owning inventory items before pruning.
+- **Verification pending:** run Lua syntax/loading checks in the target engine; cover UTF-8 length/substrings, emoji attributes, Japanese wrapping, truncation, ranges in both directions, table lookup/deduplication, and system-message formatting.
+
 ## Explicitly out of scope for this inventory
 
 The following are tracked elsewhere unless they contain behavior required by an item above:
@@ -87,3 +147,4 @@ The following are tracked elsewhere unless they contain behavior required by an 
 | --- | --- | --- | --- |
 | Pending | Pending baseline identification | `codex/standalone-migration-plan` | Initial inventory structure created; detailed audit not started |
 | 2026-08-24 | Pending baseline identification | `codex/baseline-runtime-stabilization` | Reviewed mixed runtime/presentation blockers in the local prototype; no standalone feature-adoption decision finalized |
+| 2026-08-24 | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `codex/simply-love-functional-scan-core` | Completed the source-level scan for `CORE-01` through `CORE-05`; retention decisions and runtime verification remain pending |
