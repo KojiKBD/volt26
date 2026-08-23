@@ -80,6 +80,7 @@ The source scan records what the inherited implementation does before the projec
 | --- | --- | --- | --- |
 | Core runtime | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `CORE-01` through `CORE-05` | Source scan complete; owner decisions and runtime verification pending |
 | Profiles and options | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `PROFILE-01`, `OPTIONS-01`, and `OPTIONS-02` | Source scan complete; owner decisions and runtime verification pending |
+| Music selection | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `SELECT-01` through `SELECT-05` | Source scan complete; owner decisions and runtime verification pending |
 
 ## Core runtime assessment
 
@@ -167,6 +168,53 @@ The source scan records what the inherited implementation does before the projec
 - **Recommended decision:** `Adapt` — keep the engine settings that VOLT26 operators need, create a smaller VOLT26-owned service hierarchy, separate machine preferences from theme and optional-integration settings, and remove visual-style selection from the standalone runtime.
 - **Verification pending:** enter every retained child screen, change and persist each custom row, return and confirm active-row restoration, restart where required for renderer/theme changes, and verify invalid compatibility choices redirect safely with an actionable message.
 
+## Music selection assessment
+
+### SELECT-01 — Music selection state and helper logic
+
+- **Behavioral responsibility:** initializes the standard music screen for a new gameplay entry, restores the selected music rate, reapplies profile or guest modifiers after joins and profile changes, preserves the menu timer across auxiliary screens, and automatically changes style so single, double, and routine charts can coexist in the wheel. Shared helpers start and stop casual-mode samples, position wheel title text, and derive the stage label from continues, song cost, and session progress.
+- **Important dependencies:** `SL.Global`, `SL[pn]`, `GAMESTATE`, `PROFILEMAN`, `SCREENMAN`, `PREFSMAN`, `ThemePrefs`, `SOUND`, `THEME`, `LoadGuest()`, `ApplyMods()`, `generateFavoritesForMusicWheel()`, the option/profile lifecycle, and the `ScreenSelectMusic` metrics and engine music wheel.
+- **State and persistence:** mutates the preferred song music rate, current style, transient gameplay-reload flag, current player modifiers, and preserved menu time. It reads theme and engine preferences but delegates durable player settings to `PROFILE-01` and `OPTIONS-01`.
+- **VOLT26 delta:** the helper, timer, modifier, and auto-style behavior is source-equivalent to upstream. The standard overlay adds a temporary `VisualStyle == "VOLT26"` branch that replaces inherited presentation actors with `ScreenSelectMusic overlay/VOLT26/` while retaining shared sort, search, leaderboard, input-test, profile, and initialization behavior.
+- **Recommended decision:** `Adapt` — retain the initialization and re-entry contracts, expose them through a VOLT26-owned music-selection controller, and replace the visual-style conditional with the standalone screen composition. Route stage accounting and player-option persistence through their owning modules rather than duplicating them here.
+- **Verification pending:** enter music selection for a new session and after evaluation, player options, profile switching, late join, and memory-card reload; confirm music rate, style, chart, modifiers, timer, favorites, and next-screen state remain correct for one and two players.
+
+### SELECT-02 — Song search, filtering, sorting, and wheel behavior
+
+- **Behavioral responsibility:** drives the reusable Lua wheel, opens the sort/action overlay, changes engine sort order and preferred-song lists, switches regular/course play, game mode, and style, and routes to search, practice, profile switching, song reload, downloads, online lobbies, input testing, leaderboards, and evaluation summary. Search filters the current style's songs by title, transliterated title, pack, exact meter, and ten-BPM tier, then focuses the selected result and changes incompatible sort orders back to group sorting.
+- **Important dependencies:** the engine `MusicWheel`, `SONGMAN`, `GAMESTATE`, `PROFILEMAN`, `SCREENMAN`, `MESSAGEMAN`, `PREFSMAN`, `ThemePrefs`, `SL.Global`, `SetGameModePreferences()`, profile playlist and favorites files, GrooveStats availability, localized prompt strings, and `Consensual-sick_wheel.lua` for the casual Lua wheels.
+- **State and persistence:** mutates current sort, preferred-song source, play mode, game mode, style, current song/course, menu timer, and screen-routing flags. Profile switching explicitly saves player and machine profiles; the search query and candidate list are transient, while playlists and favorites are external profile files.
+- **VOLT26 delta:** the search settings, search input, sort-menu behavior, and reusable wheel are semantically equivalent to the reviewed upstream baseline. VOLT26 currently inherits the entire action surface, including optional online and service routes, even when those features have not yet been accepted for the standalone theme.
+- **Recommended decision:** `Adapt` — keep group/difficulty sorting, keyboard search, and the wheel interaction model; define a VOLT26-owned action registry whose entries are enabled only for accepted capabilities. Treat play-mode, profile, download, lobby, leaderboard, and evaluation routes as integrations with their inventory owners.
+- **Verification pending:** exercise every retained sort and action with keyboard and pad input; test empty and multiple search results, transliterated titles, pack/title combinations, meter and BPM filters, locked wheels, timer transitions, regular/course switching, profile playlists, and one- and two-player focus.
+
+### SELECT-03 — Favorite-song persistence and handling
+
+- **Behavioral responsibility:** toggles the current song in a player's favorites, loads favorites when music selection starts or a profile changes, exposes them as an engine preferred-song list, and supports named sections in the text file while rewriting entries into a normalized, title-sorted form. Missing songs remain representable in the file but resolve to no song object at runtime.
+- **Important dependencies:** `PROFILEMAN`, `GAMESTATE`, `SONGMAN`, `FILEMAN`, `RageFileUtil`, `SL[pn].Favorites`, profile-slot and player-number enum mappings, shared file/string/table helpers, system messages, theme sounds, and the sort menu.
+- **State and persistence:** persistent profiles store `favorites.txt` directly in the profile directory. The per-player resolved song list is also cached in `SL[pn].Favorites`; guest players do not retain favorites.
+- **VOLT26 delta:** `SL-FavoritesHandler.lua` and its sort-menu integration are source-identical to upstream. The file name is not tied to the theme identity, so VOLT26 would share this data with other themes using the same profile convention unless it deliberately migrates to a namespaced store.
+- **Recommended decision:** `Adapt` — retain per-profile favorites and import the existing text format, but wrap parsing and writes in a VOLT26-owned persistence interface with explicit handling for malformed sections, missing songs, duplicate entries, write failures, and cross-theme ownership.
+- **Verification pending:** add and remove favorites for both players; restart and reload profiles; test guests, empty and legacy files, multiple named sections, duplicates, missing songs, CRLF/LF inputs, unwritable storage, and the preferred-sort fallback when no valid favorites remain.
+
+### SELECT-04 — Chart metadata parsing and derived chart information
+
+- **Behavioral responsibility:** reads inexpensive engine-provided density, peak-NPS, and technical counts while browsing; parses `.sm` and `.ssc` note data only when needed for GrooveStats-compatible hashes and equal-spacing analysis; caches chart identity and results per player; reuses the opposite player's hash when safe; and derives column cues and human-readable stream/break sequences.
+- **Important dependencies:** `Steps` engine APIs, `RageFileUtil`, `CRYPTMAN:SHA1String()`, difficulty and step-type enum helpers, `SL[pn].Streams`, `SL.Global.ColumnCueMinTime`, `SL-ChartParserHelpers.lua`, and consumers in music selection, gameplay statistics, evaluation, column cues, and GrooveStats submission.
+- **State and persistence:** parsed density, technique, hash, spacing, file identity, and column-cue data live only in per-player runtime state. Simfiles are read but never modified. Hashing deliberately caches by filename, step type, difficulty, and description to avoid repeated decompression.
+- **VOLT26 delta:** `SL-ChartParser.lua` is source-identical and `SL-ChartParserHelpers.lua` is semantically equivalent to the reviewed upstream baseline. VOLT26 has not yet separated general chart metadata from GrooveStats hashing or downstream gameplay/evaluation formatting.
+- **Recommended decision:** `Adapt` — retain engine-backed density and technique data for accepted displays, isolate optional hashing behind `ONLINE-01`, and expose immutable VOLT26 chart-analysis results rather than writing broad shared state. Keep stream and column-cue derivation only where an accepted consumer requires it.
+- **Verification pending:** compare hashes with known `.sm` and `.ssc` fixtures, including edits, split BPMs, couples/routine charts, comments, mixed-case tags, unsupported formats, and duplicate charts for two players; verify cache invalidation, malformed-file failure, density values, stream breakdowns, and column-cue mine flags.
+
+### SELECT-05 — Casual mode group, song, and option selection
+
+- **Behavioral responsibility:** implements a separate group/song/options wheel for novice play, forces regular mode, filters configured groups to unlocked short songs with a chart at or below `CasualMaxMeter`, chooses a configured or fallback starting song, previews sample music, permits supported late joins, and lets each player choose chart, speed, and noteskin before both confirm gameplay.
+- **Important dependencies:** `Other/CasualMode-Groups.txt`, `Other/CasualMode-DefaultSong.txt`, `SONGMAN`, `GAMESTATE`, `UNLOCKMAN`, `PREFSMAN`, `ThemePrefs`, `FILEMAN`, `RageFileUtil`, `SOUND`, `MESSAGEMAN`, `Branch.SSMCancel()`, player option objects, noteskin enumeration, credits/premium policy, and `Consensual-sick_wheel.lua`.
+- **State and persistence:** mutates current play mode, song, steps, joined players, preferred speed modifier, and ready/focus state. Group and default-song policy is installation configuration; speed and noteskin persistence follows the normal player-option/profile lifecycle rather than being saved by the casual screen itself.
+- **VOLT26 delta:** the assessed casual scripts and configuration are semantically equivalent to upstream apart from line endings. Standalone VOLT26 currently bypasses Casual/ITG selection when its visual style is active, so this complete inherited path remains installed but is not part of the default VOLT26 route.
+- **Recommended decision:** `Omit` from the first standalone vertical slice — retain the source only until the owner decides whether VOLT26 needs a separate novice UX. If adopted later, treat it as its own product mode with curated content policy rather than an implicit Simply Love branch.
+- **Verification pending:** if adopted, test missing, empty, invalid, and valid configuration files; no eligible groups; locked, long, and over-meter songs; default-song fallback; timer-driven selection; sample playback; pad navigation; late join and credit rules; independent two-player options; cancel; and both-player confirmation.
+
 ## Explicitly out of scope for this inventory
 
 The following are tracked elsewhere unless they contain behavior required by an item above:
@@ -184,3 +232,4 @@ The following are tracked elsewhere unless they contain behavior required by an 
 | 2026-08-24 | Pending baseline identification | `codex/baseline-runtime-stabilization` | Reviewed mixed runtime/presentation blockers in the local prototype; no standalone feature-adoption decision finalized |
 | 2026-08-24 | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `codex/simply-love-functional-scan-core` | Completed the source-level scan for `CORE-01` through `CORE-05`; retention decisions and runtime verification remain pending |
 | 2026-08-24 | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `codex/simply-love-functional-scan-profile-options` | Completed the source-level scan for `PROFILE-01`, `OPTIONS-01`, and `OPTIONS-02`; retention decisions and runtime verification remain pending |
+| 2026-08-24 | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `codex/simply-love-functional-scan-select` | Completed the source-level scan for `SELECT-01` through `SELECT-05`; retention decisions and runtime verification remain pending |
