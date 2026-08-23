@@ -12,6 +12,8 @@ function GetHexColor( n, decorative )
 	end
 	if style == "SRPG10" then
 		colorTable = SL.SRPG10.Colors
+	elseif style == "VOLT26" and SL.VOLT26 and SL.VOLT26.Colors then
+		colorTable = SL.VOLT26.Colors
 	end
 
 	-- use the number passed in to lookup a color in the corresponding color table

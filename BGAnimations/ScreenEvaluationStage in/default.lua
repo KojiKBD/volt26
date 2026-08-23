@@ -9,7 +9,13 @@ for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 	end
 end
 
-if ThemePrefs.Get("VisualStyle") ~= "SRPG10" then
+local style = ThemePrefs.Get("VisualStyle")
+
+if style == "VOLT26" then
+	return LoadActor("VOLT26.lua", failed)
+end
+
+if style ~= "SRPG10" then
 	local img = failed and "failed text.png" or "cleared text.png"
 
 	return Def.ActorFrame{

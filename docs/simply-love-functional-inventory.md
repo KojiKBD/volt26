@@ -86,4 +86,4 @@ The following are tracked elsewhere unless they contain behavior required by an 
 | Review date | Simply Love tag/commit | VOLT26 branch | Result |
 | --- | --- | --- | --- |
 | Pending | Pending baseline identification | `codex/standalone-migration-plan` | Initial inventory structure created; detailed audit not started |
-
+| 2026-08-24 | Pending baseline identification | `codex/baseline-runtime-stabilization` | Reviewed mixed runtime/presentation blockers in the local prototype; no standalone feature-adoption decision finalized |

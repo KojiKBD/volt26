@@ -22,7 +22,9 @@ if GAMESTATE:IsCourseMode() then
 
 elseif not PREFSMAN:GetPreference("EventMode") then
 	text = THEME:GetString("Stage", "Stage") .. " " .. tostring(SL.Global.Stages.PlayedThisGame + 1)
-
+elseif style == "VOLT26" then
+	local song = GAMESTATE:GetCurrentSong()
+	text = song and song:GetGroupName() or THEME:GetString("Stage", "Event")
 else
 	text = THEME:GetString("Stage", "Event")
 end
