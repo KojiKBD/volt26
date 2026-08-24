@@ -35,9 +35,6 @@ return Def.ActorFrame{
 			if SL.Global.GameMode ~= "Casual" then
 				self:y(14)
 			end
-			if ThemePrefs.Get("VisualStyle") == "Technique" then
-				self:diffusealpha(0.5)
-			end
 		end
 	},
 

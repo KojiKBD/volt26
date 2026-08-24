@@ -5,28 +5,20 @@ local InitializeMeasureCounterAndModsLevel = LoadActor("./MeasureCounterAndModsL
 local text = ""
 local SongNumberInCourse = 0
 local SongsInCourse
-local style = ThemePrefs.Get("VisualStyle")
 local assets = {
 	splode     = THEME:GetPathG("", "VOLT26/GameplayIn splode"),
 	minisplode = THEME:GetPathG("", "VOLT26/GameplayIn minisplode")
 }
-
-if IsSpooky() then
-	assets.splode     = THEME:GetPathG("", "_VisualStyles/Spooky/ExtraSpooky/Bats")
-	assets.minisplode = THEME:GetPathG("", "_VisualStyles/Spooky/ExtraSpooky/Bats")
-end
 
 if GAMESTATE:IsCourseMode() then
 	SongsInCourse = #GAMESTATE:GetCurrentCourse():GetCourseEntries()
 	text = ("%s 1 / %d"):format(THEME:GetString("Stage", "Stage"), SongsInCourse)
 
 elseif not PREFSMAN:GetPreference("EventMode") then
-	text = THEME:GetString("Stage", "Stage") .. " " .. tostring(SL.Global.Stages.PlayedThisGame + 1)
-elseif style == "VOLT26" then
+	text = THEME:GetString("Stage", "Stage") .. " " .. tostring(VOLT26.Gameplay.GetCurrentStageIndex())
+else
 	local song = GAMESTATE:GetCurrentSong()
 	text = song and song:GetGroupName() or THEME:GetString("Stage", "Event")
-else
-	text = THEME:GetString("Stage", "Event")
 end
 
 InitializeMeasureCounterAndModsLevel(SongNumberInCourse)
@@ -38,7 +30,7 @@ local af = Def.ActorFrame{}
 af[#af+1] = Def.ActorFrame{
 	-- no need to keep drawing these during gameplay; set visible(false) once they're done and save a few clock cycles
 	OnCommand=function(self)
-		if SL.Global.GameplayReloadCheck then
+		if VOLT26.Gameplay.IsReload() then
 			-- don't bother animating these visuals if ScreenGameplay was just reloaded by a mod chart
 			-- just jump directly to hiding this lead in
 			self:playcommand("Hide")
@@ -48,10 +40,10 @@ af[#af+1] = Def.ActorFrame{
 	end,
 	HideCommand=function(self)
 		self:visible(false)
-		SL.Global.GameplayReloadCheck = true
+		VOLT26.Gameplay.MarkIntroComplete()
 	end,
 	OffCommand=function(self)
-		SL.Global.GameplayReloadCheck = false
+		VOLT26.Gameplay.LeaveScreen()
 	end,
 
 	Def.Quad{
@@ -78,7 +70,7 @@ af[#af+1] = LoadFont("Common Bold")..{
 	InitCommand=function(self) self:Center():diffusealpha(0):shadowlength(1) end,
 	OnCommand=function(self)
 		-- don't animate the text tweening to the bottom of the screen if ScreenGameplay was just reloaded by a mod chart
-		if not SL.Global.GameplayReloadCheck then
+		if not VOLT26.Gameplay.IsReload() then
 			self:accelerate(0.5):diffusealpha(1):sleep(0.66):accelerate(0.33)
 		end
 		self:zoom(0.4):y(_screen.h-30)

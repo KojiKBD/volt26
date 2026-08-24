@@ -8,9 +8,6 @@ return Def.ActorFrame{
 	Def.Quad{
 		InitCommand=function(self) 
 			self:diffuse( color("#1E282F") ):setsize(418,16):zoom(0.7)
-			if ThemePrefs.Get("VisualStyle") == "Technique" then
-				self:diffusealpha(0.5)
-			end
 		end,
 	},
 

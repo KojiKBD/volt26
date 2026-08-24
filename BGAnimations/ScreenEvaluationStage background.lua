@@ -3,7 +3,7 @@ local bg = LoadActor(THEME:GetPathB("","_shared background"))
 
 -- don't bother adding support for animated faux screenshot textures to ScreenEval
 -- in Casual mode because Casual mode doesn't allow screenshots at all.
-if SL.Global.GameMode ~= "Casual"
+if not VOLT26.Gameplay.IsCasual()
 -- SupportsRenderToTexture() is defined in ./Scripts/SL-Helpers.lua; read more details there.
 and SupportsRenderToTexture()
 then

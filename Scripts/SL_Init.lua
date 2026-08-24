@@ -575,6 +575,66 @@ function VOLT26.MusicSelection.RefreshPlayer(player, rebuildFavorites)
 	ApplyMods(player)
 end
 
+VOLT26.Gameplay = {}
+
+function VOLT26.Gameplay.GetMode()
+	return VOLT26.State.Global.GameMode
+end
+
+function VOLT26.Gameplay.IsCasual()
+	return VOLT26.Gameplay.GetMode() == "Casual"
+end
+
+function VOLT26.Gameplay.GetCurrentStageIndex()
+	return VOLT26.State.Global.Stages.PlayedThisGame + 1
+end
+
+function VOLT26.Gameplay.GetPlayerStageState(player)
+	local state = VOLT26.Core.GetPlayerState(player)
+	return state.Stages.Stats[VOLT26.Gameplay.GetCurrentStageIndex()]
+end
+
+function VOLT26.Gameplay.BeginPlayerStage(player)
+	local state = VOLT26.Core.GetPlayerState(player)
+	state.Stages.Stats[VOLT26.Gameplay.GetCurrentStageIndex()] = {}
+	return VOLT26.Gameplay.GetPlayerStageState(player)
+end
+
+function VOLT26.Gameplay.StorePlayerOptions(player)
+	VOLT26.Core.GetPlayerState(player).PlayerOptionsString =
+		GAMESTATE:GetPlayerState(player):GetPlayerOptionsString("ModsLevel_Preferred")
+end
+
+function VOLT26.Gameplay.StoreDuration(player, seconds)
+	local stage = VOLT26.Gameplay.GetPlayerStageState(player)
+	if stage then stage.duration = seconds end
+end
+
+function VOLT26.Gameplay.IsReload()
+	return VOLT26.State.Global.GameplayReloadCheck == true
+end
+
+function VOLT26.Gameplay.MarkIntroComplete()
+	VOLT26.State.Global.GameplayReloadCheck = true
+end
+
+function VOLT26.Gameplay.LeaveScreen()
+	VOLT26.State.Global.GameplayReloadCheck = false
+end
+
+VOLT26.Evaluation = {}
+
+function VOLT26.Evaluation.StoreStageContext()
+	VOLT26.State.Global.Stages.Stats[VOLT26.Gameplay.GetCurrentStageIndex()] = {
+		song = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentCourse() or GAMESTATE:GetCurrentSong(),
+		MusicRate = VOLT26.MusicSelection.GetMusicRate(),
+	}
+end
+
+function VOLT26.Evaluation.CompleteStage()
+	VOLT26.State.Global.Stages.PlayedThisGame = VOLT26.State.Global.Stages.PlayedThisGame + 1
+end
+
 VOLT26.Navigation = {
 	SelectMusicOrCourse = function()
 		return SelectMusicOrCourse()

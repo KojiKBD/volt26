@@ -1,5 +1,5 @@
 local Players = GAMESTATE:GetHumanPlayers()
-local NumPanes = SL.Global.GameMode=="Casual" and 1 or 8
+local NumPanes = VOLT26.Gameplay.IsCasual() and 1 or 8
 
 local InputHandler = nil
 local EventOverlayInputHandler = nil
@@ -10,7 +10,7 @@ end
 
 local t = Def.ActorFrame{Name="ScreenEval Common"}
 
-if SL.Global.GameMode ~= "Casual" then
+if not VOLT26.Gameplay.IsCasual() then
 	-- add a lua-based InputCalllback to this screen so that we can navigate
 	-- through multiple panes of information; pass a reference to this ActorFrame
 	-- and the number of panes there are to InputHandler.lua
