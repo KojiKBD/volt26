@@ -17,6 +17,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.Failure`: failure-position records and gameplay-exit reconciliation policy.
 - `VOLT26.Evaluation`: result-context storage and completed-stage lifecycle.
 - `VOLT26.Options`: player-modifier access, options-screen routing, and return policy.
+- `VOLT26.TitleMenu`: title-menu behavior and inactivity policy.
 - `VOLT26.Navigation`: route decisions and supported-mode policy.
 - `VOLT26.Brand`: theme identity, colors, and presentation-neutral brand data.
 
