@@ -11,6 +11,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.ThemePrefs`: persistent theme configuration.
 - `VOLT26.Profile`: guest/profile lifecycle, persistence callbacks, avatar lookup, and profile-flow state.
 - `VOLT26.MusicSelection`: music-screen initialization, active-rate access, and player refresh behavior.
+- `VOLT26.SongBrowsing`: search parsing, song filtering, result selection, and the accepted Sort Menu action policy.
 - `VOLT26.Gameplay`: stage lifecycle, reload state, player-stage storage, and gameplay duration.
 - `VOLT26.Telemetry`: normalized EX, timing-offset, and per-column judgment capture for the current stage.
 - `VOLT26.Scoring`: score calculations over telemetry snapshots and chart radar data.

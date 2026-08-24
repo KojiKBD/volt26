@@ -19,22 +19,7 @@ local input = function(event)
 			local focus = candidatesScroller:get_actor_item_at_focus_pos()
 			local songOrExit = focus.song_name.songOrExit
 			if type(songOrExit) ~= "string" then
-				GAMESTATE:SetPreferredSong(songOrExit)
-				local screen = SCREENMAN:GetTopScreen()
-
-				-- some SortOrders reduce the number of songs currently displayed in the MusicWheel.
-				-- GAMESTATE:SetPreferredSong() will correctly set the preferred song, but the MusicWheel
-				-- may not currently have that song to display after screen reload.
-				-- if we're in one of those SortOrders, change the SortOrder to Group as a workaround
-				local current_sort_order = GAMESTATE:GetSortOrder()
-				if (current_sort_order == "SortOrder_Preferred")
-				or (current_sort_order == "SortOrder_Popularity")
-				or (current_sort_order == "SortOrder_Recent") then
-					screen:GetMusicWheel():ChangeSort("SortOrder_Group")
-				end
-
-				screen:SetNextScreenName("ScreenReloadSSM")
-				screen:StartTransitioningScreen("SM_GoToNextScreen")
+				VOLT26.SongBrowsing.SelectSearchResult(songOrExit, SCREENMAN:GetTopScreen())
 			end
 			overlay:queuecommand("DirectInputToEngine")
 		elseif event.GameButton == "Back" or event.GameButton == "Select" then

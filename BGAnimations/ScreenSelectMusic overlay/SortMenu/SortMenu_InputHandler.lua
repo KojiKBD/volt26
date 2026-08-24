@@ -23,26 +23,21 @@ local input = function(event)
 			sortmenu:GetChild("start_sound"):play()
 			local focus = sort_wheel:get_actor_item_at_focus_pos()
 			if focus.kind == "SortBy" then
-				MESSAGEMAN:Broadcast('Sort', { order = focus.sort_by })
-				MESSAGEMAN:Broadcast('ResetHeaderText')
+				VOLT26.SongBrowsing.ChangeSort(focus.sort_by)
 				overlay:queuecommand("DirectInputToEngine")
 			elseif focus.kind == "PersonalPlaylist" then
 				local profileDir = PROFILEMAN:GetProfileDir(ProfileSlot[PlayerNumber:Reverse()[event.PlayerNumber] + 1])
-				SONGMAN:SetPreferredSongs(profileDir .."Playlists/" .. focus.new_overlay .. ".txt", --[[isAbsolute=]]true);
-				if SONGMAN:GetPreferredSortSongs() then
+				if VOLT26.SongBrowsing.UsePlaylist(profileDir .."Playlists/" .. focus.new_overlay .. ".txt", screen) then
 					overlay:queuecommand("DirectInputToEngine")
-					SCREENMAN:GetTopScreen():GetMusicWheel():ChangeSort("SortOrder_Preferred")
 				end
 			elseif focus.kind == "MachinePlaylist" then
 				local path = THEME:GetPathO("", "Playlists/" .. focus.new_overlay .. ".txt")
-				SONGMAN:SetPreferredSongs(path, --[[isAbsolute=]]true);
-				if SONGMAN:GetPreferredSortSongs() then
+				if VOLT26.SongBrowsing.UsePlaylist(path, screen) then
 					overlay:queuecommand("DirectInputToEngine")
-					SCREENMAN:GetTopScreen():GetMusicWheel():ChangeSort("SortOrder_Preferred")
 				end
 			-- the player wants to change modes, for example from ITG to Casual
 			elseif focus.kind == "ChangeMode" then
-				SL.Global.GameMode = focus.change
+				VOLT26.State.Global.GameMode = focus.change
 				for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 					ApplyMods(player)
 				end
@@ -140,9 +135,7 @@ local input = function(event)
 					-- fast enough, when the Switch Profiles button is highlighted, that causes
 					-- two SelectProfile screens to be present. This softlocks the game
 					-- due to the first screen not able to receive inputs.
-					if SL.Global.FastProfileSwitchInProgress then return false end
-
-					SL.Global.FastProfileSwitchInProgress = true
+					if not VOLT26.Profile.BeginFastSwitch() then return false end
 					-- If a memory card is inserted we can't be on that profile's songs when switching profiles
 					-- as the profile is temporarily unloaded when finishing the screen.
 					if MEMCARDMAN:GetCardState(PLAYER_1) ~= 'MemoryCardState_none' or MEMCARDMAN:GetCardState(PLAYER_2) ~= 'MemoryCardState_none' then
@@ -167,14 +160,12 @@ local input = function(event)
 					SCREENMAN:GetTopScreen():StartTransitioningScreen("SM_GoToNextScreen")
 				elseif focus.new_overlay == "Preferred" then
 					-- Only allow sorting by favorites if there are favorites available
-					if (#SL[ToEnumShortString(event.PlayerNumber)].Favorites > 0) then
+					if (#VOLT26.Core.GetPlayerState(event.PlayerNumber).Favorites > 0) then
 						-- The 2nd argument, isAbsolute, is ITGmania 0.6.0 specific. It
 						-- allows absolute paths to be used for the favorites file which is
 						-- how it works to load from the profile directory.
-						SONGMAN:SetPreferredSongs(getFavoritesPath(event.PlayerNumber), --[[isAbsolute=]]true);
-						if SONGMAN:GetPreferredSortSongs() then
+						if VOLT26.SongBrowsing.UsePlaylist(getFavoritesPath(event.PlayerNumber), screen) then
 							overlay:queuecommand("DirectInputToEngine")
-							SCREENMAN:GetTopScreen():GetMusicWheel():ChangeSort("SortOrder_Preferred")
 						else 
 							SM(ToEnumShortString(event.PlayerNumber).." has no favorites!")
 						end

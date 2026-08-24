@@ -23,7 +23,7 @@ local sortmenu_dimensions = { w=210, h=204 }
 -- metatables in Lua are a useful construct when designing reusable components.
 -- For example, I'm using them here to define a generic definition of any choice within the SortMenu.
 -- The file WheelItemMT.lua contains a metatable definition; the "MT" is my own personal convention
--- in Simply Love.
+-- in this inherited wheel implementation.
 --
 -- Unfortunately, many online tutorials and guides on Lua metatables are
 -- *incredibly* obtuse and unhelpful for non-computer-science people (like me).
@@ -40,123 +40,7 @@ local sortmenu_dimensions = { w=210, h=204 }
 local wheel_item_mt = LoadActor("WheelItemMT.lua", {sortmenu_dimensions})
 local lastCategory = ""
 local openCategory = nil
-
-local FilterTable = function(arr, func)
-	local new_index = 1
-	local size_orig = #arr
-	for v in ivalues(arr) do
-		if func(v) then
-			arr[new_index] = v
-			new_index = new_index + 1
-		end
-	end
-	for i = new_index, size_orig do arr[i] = nil end
-end
-
-local GetBpmTier = function(bpm)
-	return math.floor((bpm + 0.5) / 10) * 10
-end
-
-local SongSearchSettings = {
-	Question="'pack/song' format will search for songs in specific packs\n'[###]' format will search for BPMs/Difficulties",
-	InitialAnswer="",
-	MaxInputLength=30,
-	OnOK=function(input)
-		if #input == 0 then return end
-
-		-- Lowercase the input text for comparison
-		local searchText = input:lower()
-
-		-- First extract out the "numbers".
-		-- Anything <= 35 is considered a difficulty, otherwise it's a bpm.
-		local difficulty = nil
-		local bpmTier = nil
-
-		for match in searchText:gmatch("%[(%d+)]") do
-			local value = tonumber(match)
-			if value <= 35 then
-				difficulty = value
-			else
-				-- Determine the "tier".
-				bpmTier = GetBpmTier(value)
-			end
-		end
-
-		-- Remove the parsed atoms, and then strip leading/trailing whitespace.
-		searchText = searchText:gsub("%[%d+]", ""):gsub("^%s*(.-)%s*$", "%1")
-
-		-- The we separate out the pack and song into their own search terms.
-		local packName = nil
-		local songName = nil
-
-		local forwardSlashIdx = searchText:find('/')
-		if not forwardSlashIdx then
-			songName = searchText
-		else
-			packName = searchText:sub(1, forwardSlashIdx - 1)
-			songName = searchText:sub(forwardSlashIdx + 1)
-		end
-
-		-- Normalize empty strings to nil.
-		if packName and #packName == 0 then packName = nil end
-		if songName and #songName == 0 then songName = nil end
-
-		-- If we have no search criteria, then return early.
-		if not (packName or songName or difficulty or bpmTier) then return end
-
-		-- Start with the complete song list.
-		local candidates = SONGMAN:GetAllSongs()
-		local stepsType = GAMESTATE:GetCurrentStyle():GetStepsType()
-
-		-- Only add valid candidates if there are steps in the current mode.
-		FilterTable(candidates, function(song) return song:HasStepsType(stepsType) end)
-
-		if songName then
-			FilterTable(candidates, function(song)
-				return (song:GetDisplayFullTitle():lower():find(songName) ~= nil or
-						song:GetTranslitFullTitle():lower():find(songName) ~= nil)
-			end)
-		end
-
-		if packName then
-			FilterTable(candidates, function(song) return song:GetGroupName():lower():find(packName) end)
-		end
-
-		if difficulty then
-			FilterTable(candidates, function(song)
-				local allSteps = song:GetStepsByStepsType(stepsType)
-				for steps in ivalues(allSteps) do
-					-- Don't consider edits.
-					if steps:GetDifficulty() ~= "Difficulty_Edit" then
-						if steps:GetMeter() == difficulty then
-							return true
-						end
-					end
-				end
-				return false
-			end)
-		end
-
-		if bpmTier then
-			FilterTable(candidates, function(song)
-				-- NOTE(teejusb): Not handling split bpms now, sorry.
-				local bpms = song:GetDisplayBpms()
-				if bpms[2]-bpms[1] == 0 then
-					-- If only one BPM, then check to see if it's in the same tier.
-					return bpmTier == GetBpmTier(bpms[1])
-				else
-					-- Otherwise check and see if the bpm is in the span of the tier.
-					local lowTier = GetBpmTier(bpms[1])
-					local highTier = GetBpmTier(bpms[2])
-					return lowTier <= bpmTier and bpmTier <= highTier
-				end
-			end)
-		end
-
-		-- Even if we don't have any results, we want to show that to the player.
-		MESSAGEMAN:Broadcast("DisplaySearchResults", {searchText=input, candidates=candidates})
-	end,
-}
+local IsActionEnabled = VOLT26.SongBrowsing.IsActionEnabled
 
 -- General purpose function to redirect input back to the engine.
 -- "self" here should refer to the SortMenu ActorFrame.
@@ -179,7 +63,7 @@ end
 ------------------------------------------------------------
 
 local function AddFavorites()
-	if GAMESTATE:IsCourseMode() then return false end
+	if not IsActionEnabled("Preferred") or GAMESTATE:IsCourseMode() then return false end
 
     for player in ivalues(GAMESTATE:GetHumanPlayers()) do
         local path = getFavoritesPath(player)
@@ -190,30 +74,13 @@ local function AddFavorites()
 	return false
 end
 
--- Only display the View Downloads option if we're connected to
--- GrooveStats and Auto-Downloads are enabled.
-local function DownloadsExist()
-    return SL.GrooveStats.IsConnected and ThemePrefs.Get("AutoDownloadUnlocks")
-end
-
-local function PracticeModeAvailable()
-	-- Don't allow practice mode if we're using online lobbies
-	local onlineHandler = GetOnlineHandlerInstance()
-	if onlineHandler and onlineHandler.connected then
-		return false
-	end
-
-	return GAMESTATE:IsEventMode() and GAMESTATE:GetCurrentSong() ~= nil and ThemePrefs.Get("KeyboardFeatures")
-end
-
 local function ChangePlayModeAvailable()
-	local onlineHandler = GetOnlineHandlerInstance()
 	return GAMESTATE:IsEventMode() and
-		ThemePrefs.Get("AllowScreenSelectPlayMode2") and
-		not (onlineHandler and onlineHandler.connected)
+		ThemePrefs.Get("AllowScreenSelectPlayMode2")
 end
 
 local function AddSorts()
+	if not IsActionEnabled("SortBy") then return {} end
 	-- Most sort orders don't currently work in course mode, they cause the
 	-- wheel to change to song mode instead. The ones that seem work are
 	-- AllCourses, Nonstop, Oni, and Endless. I don't know if those are useful
@@ -239,7 +106,7 @@ local function AddProfileEntries()
 	if GAMESTATE:IsCourseMode() then return {} end
 
 	return {
-		{ {"NextPlease", "SwitchProfile"}, ThemePrefs.Get("AllowScreenSelectProfile") },
+		{ {"NextPlease", "SwitchProfile"}, IsActionEnabled("SwitchProfile") and ThemePrefs.Get("AllowScreenSelectProfile") },
 		{ {"SortBy", "PopularityP1"}, function() return PROFILEMAN:IsPersistentProfile(PLAYER_1) end },
 		{ {"SortBy", "RecentP1"}, function() return PROFILEMAN:IsPersistentProfile(PLAYER_1) end },
 		{ {"SortBy", "TopP1Grades"}, function() return PROFILEMAN:IsPersistentProfile(PLAYER_1) end },
@@ -251,7 +118,8 @@ local function AddProfileEntries()
 end
 
 local function AddPlaylists()
-	if GAMESTATE:IsCourseMode() then return {} end
+	if not (IsActionEnabled("MachinePlaylist") or IsActionEnabled("PersonalPlaylist"))
+		or GAMESTATE:IsCourseMode() then return {} end
 
 	-- First add the machine playlists
 	local player_sort_options = {}
@@ -292,6 +160,7 @@ end
 
 
 local function GetChangeableStyles()
+	if not IsActionEnabled("ChangeStyle") then return {} end
 	local style = GAMESTATE:GetCurrentStyle():GetName():gsub("8", "")
 	local available_styles = {}
 	-- Allow players to switch from single to double and from double to single
@@ -409,14 +278,14 @@ local t = Def.ActorFrame {
 			--
 			-- Only show GoBack if we're in 3 key navigation mode, as it's redundant in 5 key.
 			{ { "", "GoBack" }, PREFSMAN:GetPreference("ThreeKeyNavigation") },
-			{ {"NextPlease", "SwitchProfile"}, ThemePrefs.Get("AllowScreenSelectProfile") },
-			{ {"GrooveStats", "Leaderboard"}, function() return GAMESTATE:GetCurrentSong() ~= nil end },
-			{ {"WhereforeArtThou", "SongSearch"}, not GAMESTATE:IsCourseMode() and ThemePrefs.Get("KeyboardFeatures") },
-			{ {"ImLovinIt", "AddFavorite"}, function() return GAMESTATE:GetCurrentSong() ~= nil end},
+			{ {"NextPlease", "SwitchProfile"}, IsActionEnabled("SwitchProfile") and ThemePrefs.Get("AllowScreenSelectProfile") },
+			{ {"GrooveStats", "Leaderboard"}, function() return IsActionEnabled("Leaderboard") and GAMESTATE:GetCurrentSong() ~= nil end },
+			{ {"WhereforeArtThou", "SongSearch"}, IsActionEnabled("SongSearch") and not GAMESTATE:IsCourseMode() and ThemePrefs.Get("KeyboardFeatures") },
+			{ {"ImLovinIt", "AddFavorite"}, function() return IsActionEnabled("AddFavorite") and GAMESTATE:GetCurrentSong() ~= nil end},
 			{ {"MixTape", "Preferred"}, AddFavorites },
-			{ {"ChangeMode", "Casual"}, SL.Global.Stages.PlayedThisGame == 0 and SL.Global.GameMode ~= "Casual" },
-			{ {"ChangePlayMode", "Nonstop"}, not GAMESTATE:IsCourseMode() and ChangePlayModeAvailable() },
-			{ {"ChangePlayMode", "Regular"}, GAMESTATE:IsCourseMode() and ChangePlayModeAvailable() },
+			{ {"ChangeMode", "Casual"}, IsActionEnabled("CasualMode") and VOLT26.State.Global.Stages.PlayedThisGame == 0 and VOLT26.State.Global.GameMode ~= "Casual" },
+			{ {"ChangePlayMode", "Nonstop"}, IsActionEnabled("ChangePlayMode") and not GAMESTATE:IsCourseMode() and ChangePlayModeAvailable() },
+			{ {"ChangePlayMode", "Regular"}, IsActionEnabled("ChangePlayMode") and GAMESTATE:IsCourseMode() and ChangePlayModeAvailable() },
 			{
 
 				{"", "CategorySorts"},
@@ -429,14 +298,14 @@ local t = Def.ActorFrame {
 			{
 				{"", "CategoryAdvanced"},
 				{
-					{ {"FeelingSalty", "TestInput"}, GAMESTATE:IsEventMode() },
-					{ {"HardTime", "PracticeMode"}, PracticeModeAvailable },
+					{ {"FeelingSalty", "TestInput"}, IsActionEnabled("TestInput") and GAMESTATE:IsEventMode() },
+					{ {"HardTime", "PracticeMode"}, IsActionEnabled("PracticeMode") },
 					-- Loading songs doesn't work from course mode because it invalidates autogen courses,
 					-- which could delete the currently selected course.
-					{ {"TakeABreather", "LoadNewSongs"}, not GAMESTATE:IsCourseMode() },
-					{ {"NeedMoreRam", "ViewDownloads"}, DownloadsExist },
-					{ {"SetSummaryText", "SetSummary"}, SL.Global.Stages.PlayedThisGame > 0 },
-					{ {"BottomText", "OnlineLobbies"}, ThemePrefs.Get("EnableOnlineLobbies") and GAMESTATE:IsEventMode() and not GAMESTATE:IsCourseMode() },
+					{ {"TakeABreather", "LoadNewSongs"}, IsActionEnabled("LoadNewSongs") and not GAMESTATE:IsCourseMode() },
+					{ {"NeedMoreRam", "ViewDownloads"}, IsActionEnabled("ViewDownloads") },
+					{ {"SetSummaryText", "SetSummary"}, IsActionEnabled("SetSummary") and VOLT26.State.Global.Stages.PlayedThisGame > 0 },
+					{ {"BottomText", "OnlineLobbies"}, IsActionEnabled("OnlineLobbies") and ThemePrefs.Get("EnableOnlineLobbies") and GAMESTATE:IsEventMode() and not GAMESTATE:IsCourseMode() },
 				}
 			},
 			{
