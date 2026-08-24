@@ -66,10 +66,9 @@ local function AddFavorites()
 	if not IsActionEnabled("Preferred") or GAMESTATE:IsCourseMode() then return false end
 
     for player in ivalues(GAMESTATE:GetHumanPlayers()) do
-        local path = getFavoritesPath(player)
-        if FILEMAN:DoesFileExist(path) then
+		if VOLT26.Favorites.HasAny(player) then
 			return true
-        end
+		end
     end
 	return false
 end
@@ -149,8 +148,7 @@ local function AddPlaylists()
 
 	-- Favorites are basically a playlist so include those too
 	for player in ivalues(GAMESTATE:GetHumanPlayers()) do
-		local path = getFavoritesPath(player)
-		if FILEMAN:DoesFileExist(path) then
+		if VOLT26.Favorites.HasAny(player) then
 			table.insert(player_sort_options, {{"MixTape", "Preferred"}})
 			break
 		end

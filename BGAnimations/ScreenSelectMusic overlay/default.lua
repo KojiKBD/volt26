@@ -16,7 +16,7 @@ local af = Def.ActorFrame{
 	end,
 	CodeMessageCommand=function(self, params)
 		if params.Name == "Favorite1" or params.Name == "Favorite2" then
-			addOrRemoveFavorite(params.PlayerNumber)
+			VOLT26.Favorites.ToggleCurrent(params.PlayerNumber)
 		elseif params.Name == "EscapeFromEventMode" then
 			SCREENMAN:GetTopScreen():Cancel()
 		end

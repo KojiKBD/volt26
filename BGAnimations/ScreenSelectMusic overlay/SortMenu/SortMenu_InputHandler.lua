@@ -148,7 +148,7 @@ local input = function(event)
 
 					overlay:queuecommand("DirectInputToEngineForSelectProfile")
 				elseif focus.new_overlay == "AddFavorite" then
-					addOrRemoveFavorite(event.PlayerNumber)
+					VOLT26.Favorites.ToggleCurrent(event.PlayerNumber)
 					-- Nudge the wheel a bit so that that the icon is correctly updated.
 					overlay:queuecommand("DirectInputToEngine")
 					local screen = SCREENMAN:GetTopScreen()
@@ -160,17 +160,17 @@ local input = function(event)
 					SCREENMAN:GetTopScreen():StartTransitioningScreen("SM_GoToNextScreen")
 				elseif focus.new_overlay == "Preferred" then
 					-- Only allow sorting by favorites if there are favorites available
-					if (#VOLT26.Core.GetPlayerState(event.PlayerNumber).Favorites > 0) then
+					if VOLT26.Favorites.HasAny(event.PlayerNumber) then
 						-- The 2nd argument, isAbsolute, is ITGmania 0.6.0 specific. It
 						-- allows absolute paths to be used for the favorites file which is
 						-- how it works to load from the profile directory.
-						if VOLT26.SongBrowsing.UsePlaylist(getFavoritesPath(event.PlayerNumber), screen) then
+						if VOLT26.SongBrowsing.UsePlaylist(VOLT26.Favorites.GetPath(event.PlayerNumber), screen) then
 							overlay:queuecommand("DirectInputToEngine")
 						else 
-							SM(ToEnumShortString(event.PlayerNumber).." has no favorites!")
+							SM(THEME:GetString("ScreenSelectMusic", "NoFavoritesAvailable"))
 						end
 					else
-						SM("No Favorites Available")
+						SM(THEME:GetString("ScreenSelectMusic", "NoFavoritesAvailable"))
 					end
 				elseif focus.new_overlay == "SetSummary" then
 					SCREENMAN:GetTopScreen():SetNextScreenName("ScreenEvaluationSummarySet")

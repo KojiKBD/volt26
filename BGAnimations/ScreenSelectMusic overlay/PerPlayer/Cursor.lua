@@ -71,7 +71,7 @@ return Def.Sprite{
 		if song then
 			local playable_steps = SongUtil.GetPlayableSteps( song )
 			local current_steps = GAMESTATE:GetCurrentSteps(player)
-			if song and FindInTable(song, SL[pn].Favorites) then 
+			if VOLT26.Favorites.HasSong(player, song) then
 				self:diffuse(color("#ffc0cb"))
 			else
 				self:diffuse(1,1,1,1) 
