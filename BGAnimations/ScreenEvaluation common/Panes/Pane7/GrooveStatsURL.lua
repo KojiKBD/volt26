@@ -41,9 +41,8 @@ local rate = tonumber(string.format("%.0f", SL.Global.ActiveModifiers.MusicRate 
 
 local steps = GAMESTATE:GetCurrentSteps(player)
 
--- ComputeChartHash will do no work if we've already hashed this chart.
-ComputeChartHash(steps, pn)
-local hash = SL[pn].Streams.Hash
+-- Optional online consumers request hashing explicitly; normal browsing does not.
+local hash = VOLT26.ChartHash.Compute(steps, player)
 local hash_version = SL.GrooveStats.ChartHashVersion
 
 local rescored = {
@@ -93,4 +92,3 @@ return ("HTTPS://GROOVESTATS.COM/QR/%s/T%xG%xH%xI%xJ%xK%sL%sM%xH%xT%xR%xT%xM%xT%
         hash, total_steps, fantastic_plus, fantastic, excellent, great, decent, wayOff, miss,
         holds_held, total_holds, rolls_held, total_rolls, mines_hit, total_mines, rescored_str,
         failed, rate, used_cmod, hash_version):upper()
-

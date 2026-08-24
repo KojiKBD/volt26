@@ -83,23 +83,8 @@ af[#af+1] = Def.ActorFrame{
 	["CurrentSteps"..pn.."ChangedMessageCommand"]=function(self)
 		local steps = GAMESTATE:GetCurrentSteps(player)
 		if steps then
-			ParseChartInfo(steps, pn)
+			VOLT26.ChartData.Refresh(steps, player)
 			self:playcommand("Show")
-		end
-
-		-- Computing the GrooveStats hash requires parsing the simfile, which is
-		-- expensive. Debounce it so that scrolling through the wheel doesn't
-		-- parse every chart we pass over, only the one we settle on.
-		-- Only needed for GrooveStats score/leaderboard lookups.
-		self:stoptweening()
-		self:sleep(0.4)
-		self:queuecommand("ComputeHash")
-	end,
-	ComputeHashCommand=function(self)
-		local steps = GAMESTATE:GetCurrentSteps(player)
-		if steps then
-			ComputeChartHash(steps, pn)
-			MESSAGEMAN:Broadcast("ChartParsed")
 		end
 	end,
 	ShowCommand=function(self)
@@ -154,8 +139,9 @@ af2[#af2+1] = LoadFont("Common Normal")..{
 		self:visible(false)
 	end,
 	RedrawCommand=function(self)
-		if SL[pn].Streams.PeakNPS ~= 0 then
-			self:settext((peakNPSText..": %.1f"):format(SL[pn].Streams.PeakNPS * SL.Global.ActiveModifiers.MusicRate))
+		local data = VOLT26.ChartData.Get(player)
+		if data and data.PeakNPS ~= 0 then
+			self:settext((peakNPSText..": %.1f"):format(data.PeakNPS * SL.Global.ActiveModifiers.MusicRate))
 			self:visible(not showPatternInfo)
 		end
 	end,
@@ -199,10 +185,11 @@ af2[#af2+1] = Def.ActorFrame{
 		end,
 		RedrawCommand=function(self)
 			local textZoom = 0.8
-			self:settext(GenerateBreakdownText(pn, 0))
+			local data = VOLT26.ChartData.Get(player)
+			self:settext(VOLT26.ChartAnalysis.GetBreakdownText(data.NotesPerMeasure, 0))
 			local minimization_level = 1
 			while self:GetWidth() > (width/textZoom) and minimization_level < 4 do
-				self:settext(GenerateBreakdownText(pn, minimization_level))
+				self:settext(VOLT26.ChartAnalysis.GetBreakdownText(data.NotesPerMeasure, minimization_level))
 				minimization_level = minimization_level + 1
 			end
 		end,
@@ -288,10 +275,11 @@ for i, row in ipairs(layout) do
 				end
 			end,
 			RedrawCommand=function(self)
+				local data = VOLT26.ChartData.Get(player)
 				if col ~= "Total Stream" then
-					self:settext(SL[pn].Streams[col])
+					self:settext(data[col])
 				else
-					local streamMeasures, breakMeasures = GetTotalStreamAndBreakMeasures(pn)
+					local streamMeasures, breakMeasures = VOLT26.ChartAnalysis.GetMeasureTotals(data.NotesPerMeasure)
 					local totalMeasures = streamMeasures + breakMeasures
 					if streamMeasures == 0 then
 						self:settext(noneText.." (0.0%)")

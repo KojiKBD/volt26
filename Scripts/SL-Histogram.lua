@@ -16,9 +16,9 @@ local function gen_vertices(player, width, height, Steps, desaturation)
 	if not Steps or not Song then return {} end
 
 	-- This function does no work if we already have the data in SL.Streams cache.
-	ParseChartInfo(Steps, pn)
-	PeakNPS = SL[pn].Streams.PeakNPS
-	NPSperMeasure = SL[pn].Streams.NPSperMeasure 
+	local chartData = VOLT26.ChartData.Refresh(Steps, player)
+	PeakNPS = chartData.PeakNPS
+	NPSperMeasure = chartData.NPSperMeasure
 	-- store the PeakNPS in GAMESTATE:Env()[pn.."PeakNPS"] in case both players are joined
 	-- their charts may have different peak densities, and if they both want histograms,
 	-- we'll need to be able to compare densities and scale one of the graphs vertically
