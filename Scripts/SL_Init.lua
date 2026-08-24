@@ -1517,7 +1517,124 @@ function VOLT26.Results.ApplyNameEntryEligibility(player)
 	return status
 end
 
+VOLT26.Analysis = {
+	MaxScatterVerticesPerBatch = 16000,
+}
+
+function VOLT26.Analysis.GetTimingOffsets(player)
+	local telemetry = VOLT26.Telemetry.GetSnapshot(player)
+	return DeepCopy(telemetry and telemetry.offsets or {})
+end
+
+function VOLT26.Analysis.GetWorstJudgment(offsets)
+	local worst = 1
+	for _, sample in ipairs(offsets or {}) do
+		if sample.offset ~= "Miss" then
+			worst = math.max(worst, DetermineTimingWindow(sample.offset))
+		end
+	end
+	return worst
+end
+
+function VOLT26.Analysis.AnalyzeTiming(offsets)
+	local valid = {}
+	local distribution = {}
+	local signedSum, absoluteSum, maxError = 0, 0, 0
+	for _, sample in ipairs(offsets or {}) do
+		local value = sample.offset
+		if value ~= "Miss" and not sample.is_autohit then
+			valid[#valid + 1] = value
+			signedSum = signedSum + value
+			absoluteSum = absoluteSum + math.abs(value)
+			maxError = math.max(maxError, math.abs(value))
+			local bucket = round(value, 3)
+			distribution[bucket] = (distribution[bucket] or 0) + 1
+		end
+	end
+
+	local count = #valid
+	local meanSeconds = count > 0 and signedSum / count or 0
+	local sigmaSeconds = 0
+	if count > 1 then
+		local squaredDifferenceSum = 0
+		for _, value in ipairs(valid) do
+			squaredDifferenceSum = squaredDifferenceSum + math.pow(value - meanSeconds, 2)
+		end
+		sigmaSeconds = math.sqrt(squaredDifferenceSum / (count - 1))
+	end
+
+	return {
+		count = count,
+		meanAbsoluteMs = count > 0 and absoluteSum / count * 1000 or 0,
+		meanOffsetMs = meanSeconds * 1000,
+		sigmaMs = sigmaSeconds * 1000,
+		threeSigmaMs = sigmaSeconds * 3000,
+		maxErrorMs = maxError * 1000,
+		worstOffsetSeconds = maxError,
+		distribution = distribution,
+	}
+end
+
+function VOLT26.Analysis.SmoothDistribution(distribution, worstWindow)
+	local smoothed = {}
+	local weights = {0.045, 0.090, 0.180, 0.370, 0.180, 0.090, 0.045}
+	local highestCount = 0
+	for _, count in pairs(distribution or {}) do highestCount = math.max(highestCount, count) end
+	local millisecondLimit = math.floor(worstWindow * 1000 + 0.5)
+	for millisecond=-millisecondLimit,millisecondLimit do
+		local value = 0
+		for offset=-3,3 do
+			local source = round(clamp(millisecond + offset, -millisecondLimit, millisecondLimit) / 1000, 3)
+			value = value + (distribution[source] or 0) * weights[offset + 4]
+		end
+		smoothed[round(millisecond / 1000, 3)] = value
+	end
+	return {values=smoothed, highestCount=highestCount}
+end
+
+function VOLT26.Analysis.GetTimeline(player)
+	if GAMESTATE:IsCourseMode() then
+		local segments, elapsed = {}, 0
+		local trail = GAMESTATE:GetCurrentTrail(player)
+		for _, entry in ipairs(trail and trail:GetTrailEntries() or {}) do
+			local duration = entry:GetSong():GetLastSecond()
+			segments[#segments + 1] = {startSecond=elapsed, endSecond=elapsed + duration}
+			elapsed = elapsed + duration
+		end
+		return {firstSecond=0, lastSecond=elapsed, segments=segments}
+	end
+
+	local steps = GAMESTATE:GetCurrentSteps(player)
+	local song = GAMESTATE:GetCurrentSong()
+	local firstSecond = steps and math.min(steps:GetTimingData():GetElapsedTimeFromBeat(0), 0) or 0
+	return {firstSecond=firstSecond, lastSecond=song and song:GetLastSecond() or 0, segments={}}
+end
+
+function VOLT26.Analysis.BuildScatterBatches(offsets, timeline, width, height, worstWindow)
+	local batches = {{}}
+	local maxPoints = math.floor(VOLT26.Analysis.MaxScatterVerticesPerBatch / 4)
+	local lastSecond = math.max(timeline.lastSecond, timeline.firstSecond + 0.001)
+	for _, sample in ipairs(offsets or {}) do
+		local batch = batches[#batches]
+		if #batch >= maxPoints then batch = {}; batches[#batches + 1] = batch end
+		local isMiss = sample.offset == "Miss"
+		local noteSecond = sample.position - (isMiss and worstWindow or sample.offset)
+		batch[#batch + 1] = {
+			x = clamp(scale(noteSecond, timeline.firstSecond, lastSecond + 0.05, 0, width), 0, width),
+			y = isMiss and 0 or clamp(scale(sample.offset, worstWindow, -worstWindow, 0, height), 0, height),
+			offset = sample.offset,
+			isMiss = isMiss,
+		}
+	end
+	return batches
+end
+
 VOLT26.Failure = {}
+
+function VOLT26.Failure.GetSnapshot(player)
+	local stage = VOLT26.Gameplay.GetPlayerStageState(player)
+	return DeepCopy(stage and stage.failure or nil)
+end
 
 function VOLT26.Failure.GetCourseCumulativeLengths(player)
 	if not GAMESTATE:IsCourseMode() then return nil end

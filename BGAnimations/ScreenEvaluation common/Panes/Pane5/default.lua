@@ -1,18 +1,16 @@
--- Pane5 displays an aggregate histogram of judgment offsets
--- as well as the mean timing error, median, and mode of those offsets.
+-- Pane5 displays an aggregate histogram of judgment offsets together with
+-- mean absolute error, signed mean offset, sample standard deviation, and max error.
 
 local player, _, ComputedData = unpack(...)
-local pn = ToEnumShortString(player)
+local modifiers = VOLT26.Options.GetPlayerModifiers(player)
 
--- table of offset values obtained during this song's playthrough
--- obtained via ./BGAnimations/ScreenGameplay overlay/JudgmentOffsetTracking.lua
-local sequential_offsets = SL[pn].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1].sequential_offsets
+local timingOffsets = VOLT26.Analysis.GetTimingOffsets(player)
 local pane_width, pane_height = 300, 180
 local topbar_height = 26
 local bottombar_height = 13
 
 -- Determine timing windows that need to be covered in the histogram based on worst judgment hit during gameplay
-local num_judgments_available = math.max(3, GetWorstJudgment(sequential_offsets))
+local num_judgments_available = math.max(3, VOLT26.Analysis.GetWorstJudgment(timingOffsets))
 local worst_window = GetTimingWindow(num_judgments_available)
 
 -- ---------------------------------------------
@@ -24,7 +22,7 @@ local abbreviations = {
 
 local colors = {}
 for w=num_judgments_available,1,-1 do
-	if SL[pn].ActiveModifiers.TimingWindows[w]==true then
+	if modifiers.TimingWindows[w] then
 		colors[w] = DeepCopy(SL.JudgmentColors[SL.Global.GameMode][w])
 	else
 		abbreviations[SL.Global.GameMode][w] = abbreviations[SL.Global.GameMode][w+1]
@@ -32,70 +30,7 @@ for w=num_judgments_available,1,-1 do
 	end
 end
 
--- ---------------------------------------------
--- sequential_offsets is a table of all timing offsets in the order they were earned.
--- The sequence is important for the Scatter Plot, but irrelevant here; we are only really
--- interested in how many +0.001 offsets were earned, how many -0.001, how many +0.002, etc.
--- So, we loop through sequential_offsets, and tally offset counts into a new offsets table.
-local offsets = {}
-local sum_timing_error = 0
-local avg_timing_error = 0
-local sum_timing_offset = 0
-local avg_offset = 0
-local std_dev = 0
-local max_error = 0
-local count = 0
-
-for t in ivalues(sequential_offsets) do
-	-- the first value in t is CurrentMusicSeconds when the offset occurred, which we don't need here
-	-- the second value in t is the offset value or the string "Miss"
-	-- the third value in t flags auto-judged pump notes (hold heads and ticks);
-	-- we skip those here since they aren't actually timed
-	local val = t[2]
-
-	if val ~= "Miss" and not t[3] then
-		count = count + 1
-
-		-- check if this is the highest error amount
-		-- if higher, it's the new max
-		if math.abs(val) > max_error then
-			max_error = math.abs(val)
-		end
-
-		sum_timing_offset = sum_timing_offset + val
-		sum_timing_error = sum_timing_error + math.abs(val)
-
-		val = (math.floor(val*1000))/1000
-
-		if not offsets[val] then
-			offsets[val] = 1
-		else
-			offsets[val] = offsets[val] + 1
-		end
-	end
-end
-
-if count > 0 then
-	avg_timing_error = sum_timing_error / count
-	avg_offset = sum_timing_offset / count
-	-- standard deviation needs at least two values otherwise we'd divide by 0
-	if count > 1 then
-		local sum_diff_squared = 0
-		for t in ivalues(sequential_offsets) do
-			local val = t[2]
-			if val ~= "Miss" and not t[3] then
-				sum_diff_squared = sum_diff_squared + math.pow((val - avg_offset), 2)
-			end
-		end
-		std_dev = math.sqrt(sum_diff_squared / (count - 1))
-	end
-
-	-- convert seconds to ms
-	avg_timing_error = avg_timing_error * 1000
-	avg_offset = avg_offset * 1000
-	std_dev = std_dev * 1000
-	max_error = max_error * 1000
-end
+local analysis = VOLT26.Analysis.AnalyzeTiming(timingOffsets)
 
 -- ---------------------------------------------
 -- Actors
@@ -230,7 +165,7 @@ pane[#pane+1] = Def.Quad{
 
 -- only bother crunching the numbers and adding extra BitmapText actors if there are
 -- valid offset values to analyze; (MISS has no numerical offset and can't be analyzed)
-if next(offsets) ~= nil then
+if analysis.count > 0 then
 
 	local histogram
 	-- don't re-run the calculations if only one player is joined
@@ -241,18 +176,12 @@ if next(offsets) ~= nil then
 		histogram = LoadActor(
 				"./Calculations.lua",
 				{
-					pn,
-					offsets,
+					player,
+					analysis,
 					worst_window,
 					pane_width,
 					pane_height,
-					colors,
-					sum_timing_error,
-					avg_timing_error,
-					sum_timing_offset,
-					avg_offset,
-					std_dev,
-					max_error
+					colors
 				})
 		if ComputedData then ComputedData.Histogram = histogram end
 	end
