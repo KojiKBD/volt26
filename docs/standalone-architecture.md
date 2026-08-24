@@ -8,7 +8,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 
 - `VOLT26.Core`: bootstrap, lifecycle, and access to runtime state.
 - `VOLT26.State`: global, per-player, per-stage, and per-session state.
-- `VOLT26.Preferences`: persistent theme configuration.
+- `VOLT26.ThemePrefs`: persistent theme configuration.
 - `VOLT26.Navigation`: route decisions and supported-mode policy.
 - `VOLT26.Brand`: theme identity, colors, and presentation-neutral brand data.
 
@@ -28,7 +28,7 @@ Each screen group owns its actors, input callbacks, layout, animation, graphics,
 
 ## Compatibility boundary
 
-The inherited `SL` namespace, `InitializeSimplyLove`, `SL_CustomPrefs`, and remaining `SL-*` source names are temporary migration adapters. New or migrated code must use the `VOLT26` APIs. An adapter may be removed only after repository scans and runtime verification show that no remaining consumer depends on it.
+The inherited `SL` namespace, `InitializeSimplyLove`, `SL_CustomPrefs`, and remaining `SL-*` source names are temporary migration adapters. This includes the inherited `VOLT26.Preferences` game-mode scoring table exposed through the `SL` alias. New or migrated preference code must use `VOLT26.ThemePrefs`. An adapter may be removed only after repository scans and runtime verification show that no remaining consumer depends on it.
 
 The `VisualStyle` preference is retained temporarily as a fixed compatibility value for inherited screens. It is not user-selectable and must not be read by new VOLT26 code.
 

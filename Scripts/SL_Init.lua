@@ -528,7 +528,9 @@ function VOLT26.Core.GetPlayerState(player)
 	return VOLT26.State[key]
 end
 
-VOLT26.Preferences = {
+-- Keep VOLT26.Preferences reserved for the inherited game-mode scoring table
+-- until all compatibility consumers have migrated away from SL.Preferences.
+VOLT26.ThemePrefs = {
 	Get = function(name) return ThemePrefs.Get(name) end,
 	Set = function(name, value) ThemePrefs.Set(name, value) end,
 	Save = function() ThemePrefs.Save() end,

@@ -42,8 +42,17 @@ do
         return THEME:GetPathG("", string.format("VOLT26/Stars/star_%05d.png", n))
     end
 
+    -- Loading a new Full HD PNG on every animation tick stalls the screen's
+    -- input processing. Keep the same artwork and timing, but warm every
+    -- texture before the loop begins so frame changes are cache lookups.
+    local framePaths = {}
+    for frame = startNum, endNum do
+        framePaths[frame] = framePath(frame)
+        if PREFETCHMAN then PREFETCHMAN:Add(framePaths[frame]) end
+    end
+
     local starAnim = Def.Sprite{
-        Texture=framePath(startNum),
+        Texture=framePaths[startNum],
         InitCommand=function(self)
             self:zoomto(_screen.w, _screen.h) 
             self:z(1) 
@@ -62,7 +71,7 @@ do
             end
             
             -- Load the next image and queue the next frame
-            self:Load(framePath(currentFrame))
+            self:Load(framePaths[currentFrame])
             self:sleep(fDelay):queuecommand("Animate")
         end
     }
@@ -447,6 +456,10 @@ do
                     self:stoptweening():sleep(0.21)
                         :queuecommand("PlayKnifeImpactSound")
                 end
+
+                -- ScreenTitleMenu owns directional navigation. This callback
+                -- only synchronizes VOLT26's visual and audio feedback.
+                return false
             end)
         end,
         PlayKnifeImpactSoundCommand=function(self)
