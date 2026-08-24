@@ -25,10 +25,11 @@ return LoadFont("Common Normal")..{
     end,
 	OnCommand=function(self)
         local textZoom = 0.7
-        self:settext(GenerateBreakdownText(pn, 0))
+        local notesPerMeasure = VOLT26.ChartData.Get(player).NotesPerMeasure
+        self:settext(VOLT26.ChartAnalysis.GetBreakdownText(notesPerMeasure, 0))
         local minimization_level = 1
         while self:GetWidth() > (width/textZoom) and minimization_level < 4 do
-            self:settext(GenerateBreakdownText(pn, minimization_level))
+            self:settext(VOLT26.ChartAnalysis.GetBreakdownText(notesPerMeasure, minimization_level))
             minimization_level = minimization_level + 1
         end
     end,

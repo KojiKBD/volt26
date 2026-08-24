@@ -5,15 +5,15 @@ local pn = ToEnumShortString(player)
 local accent = H.Accent(player)
 local graphW, graphH = 270, 42
 
-local function graphVertices(data)
+local function graphVertices(data, graphColor)
 	local vertices = {}
 	if not data or #data.nps == 0 or data.peak <= 0 then return vertices end
 	local count = #data.nps
 	for i, value in ipairs(data.nps) do
 		local x = count == 1 and 0 or (i-1)/(count-1)*graphW
 		local y = -math.min(graphH, graphH*value/data.peak)
-		vertices[#vertices+1] = {{x,0,0}, {accent[1],accent[2],accent[3],0.35}}
-		vertices[#vertices+1] = {{x,y,0}, {accent[1],accent[2],accent[3],0.95}}
+		vertices[#vertices+1] = {{x,0,0}, {graphColor[1],graphColor[2],graphColor[3],0.35}}
+		vertices[#vertices+1] = {{x,y,0}, {graphColor[1],graphColor[2],graphColor[3],0.95}}
 	end
 	return vertices
 end
@@ -28,10 +28,11 @@ local af = Def.ActorFrame{
 		local chart = H.Chart(player)
 		local data = H.ChartData(player)
 		local difficulty = chart and ToEnumShortString(chart:GetDifficulty()):upper() or H.Dash
-		self:GetChild("Difficulty"):settext(difficulty)
-		self:GetChild("Meter"):settext(chart and chart:GetMeter() or H.Dash)
+		local difficultyColor = chart and VOLT26.ChartData.GetDifficultyColor(chart:GetDifficulty()) or accent
+		self:GetChild("Difficulty"):settext(difficulty):diffuse(difficultyColor)
+		self:GetChild("Meter"):settext(chart and chart:GetMeter() or H.Dash):diffuse(difficultyColor)
 		self:GetChild("Peak"):settext(data.peak > 0 and string.format("PEAK %.1f NPS", data.peak * VOLT26.MusicSelection.GetMusicRate()) or "NO DENSITY DATA")
-		local vertices = graphVertices(data)
+		local vertices = graphVertices(data, difficultyColor)
 		self:GetChild("Graph"):SetNumVertices(#vertices):SetVertices(vertices)
 		self:GetChild("Stats"):settext(string.format(
 			"NOTES %d  |  JUMPS %d  |  HOLDS %d  |  MINES %d  |  ROLLS %d  |  HANDS %d  |  %s",

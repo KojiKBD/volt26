@@ -332,29 +332,10 @@ local MaybeCopyHashFromOppositePlayer = function(pn, filename, stepsType, diffic
 	return false
 end
 
--- TODO: we shouldn't hardcode this and instead just pass if col is a mine directly.
-local MINE_NOTE_TYPE = 4
-
--- The chart info shown while browsing the song wheel (density graph, NPS,
--- tech counts) all comes from cheap, cached engine data, so this is safe to
--- call on every chart change without parsing the simfile.
-ParseChartInfo = function(steps, pn)
-	local player = pn == "P1" and PLAYER_1 or PLAYER_2
-
-	SL[pn].Streams.NotesPerMeasure = steps:GetNotesPerMeasure(player)
-	SL[pn].Streams.NPSperMeasure = steps:GetNpsPerMeasure(player)
-	SL[pn].Streams.PeakNPS = steps:GetPeakNps(player)
-
-	local techCounts = steps:GetTechCounts(player)
-	SL[pn].Streams.Crossovers = techCounts:GetValue("TechCountsCategory_Crossovers")
-	SL[pn].Streams.Footswitches = techCounts:GetValue("TechCountsCategory_Footswitches")
-	SL[pn].Streams.Sideswitches = techCounts:GetValue("TechCountsCategory_Sideswitches")
-	SL[pn].Streams.Jacks = techCounts:GetValue("TechCountsCategory_Jacks")
-	SL[pn].Streams.Brackets = techCounts:GetValue("TechCountsCategory_Brackets")
-end
-
 -- Computing the GrooveStats hash requires decompressing the chart's NoteData, which is expensive.
-ComputeChartHash = function(steps, pn)
+-- Keep this implementation hook separate from the public VOLT26.ChartHash API so
+-- normal chart browsing cannot accidentally trigger simfile parsing.
+VOLT26ComputeChartHash = function(steps, pn)
 	if not steps then return end
 
 	-- The filename for these steps in the StepMania cache
@@ -368,7 +349,7 @@ ComputeChartHash = function(steps, pn)
 
 	-- If we've copied from the other player then we're done.
 	if MaybeCopyHashFromOppositePlayer(pn, filename, stepsType, difficulty, description) then
-		return
+		return SL[pn].Streams.Hash
 	end
 
 	-- Only parse the file if it's not the chart we've already hashed.
@@ -406,16 +387,6 @@ ComputeChartHash = function(steps, pn)
 		SL[pn].Streams.Difficulty = difficulty
 		SL[pn].Streams.Description = description
 	end
-end
 
--- Column cues require decompressing the chart's NoteData, which is expensive.
-ParseColumnCues = function(steps, pn)
-	local columnCues = steps:GetColumnCues(SL.Global.ColumnCueMinTime)
-	for _, cue in ipairs(columnCues) do
-		for _, col in ipairs(cue.columns) do
-			col.isMine = (col.noteType == MINE_NOTE_TYPE)
-			col.noteType = nil
-		end
-	end
-	SL[pn].Streams.ColumnCues = columnCues
+	return SL[pn].Streams.Hash
 end

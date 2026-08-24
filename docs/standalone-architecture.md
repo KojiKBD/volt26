@@ -13,6 +13,9 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.MusicSelection`: music-screen initialization, active-rate access, and player refresh behavior.
 - `VOLT26.SongBrowsing`: search parsing, song filtering, result selection, and the accepted Sort Menu action policy.
 - `VOLT26.Favorites`: legacy import, VOLT26-owned favorite persistence, normalized membership state, and toggling.
+- `VOLT26.ChartData`: immutable snapshots of engine-backed density, NPS, technique counts, and column cues.
+- `VOLT26.ChartAnalysis`: pure stream-sequence, breakdown-text, and measure-total derivation over chart snapshots.
+- `VOLT26.ChartHash`: explicit access to cached GrooveStats-compatible hashing for optional online consumers; ordinary song browsing must not invoke it.
 - `VOLT26.Gameplay`: stage lifecycle, reload state, player-stage storage, and gameplay duration.
 - `VOLT26.Telemetry`: normalized EX, timing-offset, and per-column judgment capture for the current stage.
 - `VOLT26.Scoring`: score calculations over telemetry snapshots and chart radar data.
@@ -23,7 +26,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.Navigation`: route decisions and supported-mode policy.
 - `VOLT26.Brand`: theme identity, colors, and presentation-neutral brand data.
 
-Result analysis and optional-service APIs will be added as their feature groups are migrated.
+Additional result-analysis and optional-service APIs will be added as their feature groups are migrated.
 
 ## SCREEN groups
 

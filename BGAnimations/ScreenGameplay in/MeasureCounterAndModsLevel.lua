@@ -24,12 +24,12 @@ return function(SongNumberInCourse)
 
 			-- This will parse out and set all the required info for the chart in the SL.Streams cache,
 			-- The function will only do work iff we're parsing a chart different than what's in the cache.
-			ParseChartInfo(steps, pn)
+			local chartData = VOLT26.ChartData.Refresh(steps, player)
 
 			if (mods.MeasureCounter and mods.MeasureCounter ~= "None") then
 				-- Set the actual stream information for the player based on their selected notes threshold.
 				local notesThreshold = tonumber(mods.MeasureCounter:match("%d+"))
-				SL[pn].Streams.Measures = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, notesThreshold)
+				SL[pn].Streams.Measures = VOLT26.ChartAnalysis.GetStreamSequences(chartData.NotesPerMeasure, notesThreshold)
 			end
 		end
 	end

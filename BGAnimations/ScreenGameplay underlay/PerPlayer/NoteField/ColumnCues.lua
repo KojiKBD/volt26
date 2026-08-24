@@ -11,7 +11,7 @@ local columnMapping = GetColumnMapping(player)
 if columnMapping == nil then return end
 
 local playerState = GAMESTATE:GetPlayerState(player)
-local columnCues = SL[pn].Streams.ColumnCues
+local columnCues = {}
 
 local numColumns = GAMESTATE:GetCurrentStyle():ColumnsPerPlayer()
 local style = GAMESTATE:GetCurrentStyle(player)
@@ -97,10 +97,9 @@ local af = Def.ActorFrame{
 			steps = GAMESTATE:GetCurrentSteps(player)
 		end
 
-		ParseColumnCues(steps, pn)
+		columnCues = VOLT26.ChartData.GetColumnCues(steps, player)
 
 		playerState = GAMESTATE:GetPlayerState(player)
-		columnCues = SL[pn].Streams.ColumnCues
 		curIndex = 1
 		updatedFirstTime = false
 	end,
