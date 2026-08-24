@@ -1,7 +1,7 @@
 local player, controller = unpack(...)
 
 local pn = ToEnumShortString(player)
-local stats = STATSMAN:GetCurStageStats():GetPlayerStageStats(pn)
+local result = VOLT26.Results.GetCurrent(player)
 local styletype = ToEnumShortString(GAMESTATE:GetCurrentStyle():GetStyleType())
 local firstToUpper = function(str)
     return (str:gsub("^%l", string.upper))
@@ -62,7 +62,7 @@ end
 -- Shift labels left if any tap note counts exceeded 9999
 -- The positioning logic breaks if we get to 7 digits, please nobody hit a million Fantastics
 local maxCount = 1
-local counts = GetExJudgmentCounts(player)
+local counts = result.exJudgments
 for i=1, #TapNoteScores.Types do
 	local window = TapNoteScores.Types[i]
 	local number = counts[window] or 0
@@ -130,9 +130,6 @@ for index, label in ipairs(RadarCategories) do
 			}
 		end
 	end
-
-	local performance = stats:GetRadarActual():GetValue( "RadarCategory_"..firstToUpper(EnglishRadarCategories[label]) )
-	local possible = stats:GetRadarPossible():GetValue( "RadarCategory_"..firstToUpper(EnglishRadarCategories[label]) )
 
 	t[#t+1] = LoadFont("Common Normal")..{
 		Text=label,

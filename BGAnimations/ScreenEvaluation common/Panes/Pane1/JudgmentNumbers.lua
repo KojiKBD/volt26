@@ -1,7 +1,7 @@
 local player, controller = unpack(...)
 
 local pn = ToEnumShortString(player)
-local pss = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
+local result = VOLT26.Results.GetCurrent(player)
 local styletype = ToEnumShortString(GAMESTATE:GetCurrentStyle():GetStyleType())
 
 local TapNoteScores = {
@@ -30,7 +30,7 @@ local t = Def.ActorFrame{
 -- do "regular" TapNotes first
 for i=1,#TapNoteScores.Types do
 	local window = TapNoteScores.Types[i]
-	local number = pss:GetTapNoteScores( "TapNoteScore_"..window )
+	local number = result.judgments[window]
 
 	-- actual numbers
 	t[#t+1] = Def.RollingNumbers{
@@ -66,8 +66,7 @@ end
 for index, RCType in ipairs(RadarCategories.Types) do
 	-- Replace hands with the Routine Score if we're in routine mode
 	if index == 1 and (styletype == "TwoPlayersSharedSides") then
-		local PercentDP = pss:GetPercentDancePoints()
-		percent = FormatPercentScore(PercentDP)
+		percent = FormatPercentScore(result.percentDP)
 		-- Format the Percentage string, removing the % symbol
 		percent = percent:gsub("%%", "")
 		t[#t+1] = LoadFont("Wendy/_wendy white")..{
@@ -81,8 +80,8 @@ for index, RCType in ipairs(RadarCategories.Types) do
 			end
 		}
 	else
-		local performance = pss:GetRadarActual():GetValue( "RadarCategory_"..RCType )
-		local possible = pss:GetRadarPossible():GetValue( "RadarCategory_"..RCType )
+		local performance = result.radar.actual[RCType]
+		local possible = result.radar.possible[RCType]
 		possible = clamp(possible, 0, 999)
 
 		-- player performance value

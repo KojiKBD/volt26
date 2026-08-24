@@ -10,38 +10,7 @@ local pane = Def.ActorFrame{
 
 -- -----------------------------------------------------------------------
 
-local pss = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
-if (styletype == "TwoPlayersSharedSides") then
-	pss = STATSMAN:GetCurStageStats():GetRoutineStageStats()
-end
-local NumHighScores = math.min(10, PREFSMAN:GetPreference("MaxHighScoresPerListForMachine"))
-
-local HighScoreIndex = {
-	-- Machine HighScoreIndex will always be -1 in EventMode and is effectively useless there
-	Machine =  pss:GetMachineHighScoreIndex(),
-	Personal = pss:GetPersonalHighScoreIndex()
-}
-
--- -----------------------------------------------------------------------
--- custom logic to (try to) assess if a MachineHighScore was achieved when in EventMode
-
-local SongOrCourse = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentCourse() or GAMESTATE:GetCurrentSong()
-local StepsOrTrail = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentTrail(player) or GAMESTATE:GetCurrentSteps(player)
-local MachineHighScores = PROFILEMAN:GetMachineProfile():GetHighScoreList(SongOrCourse,StepsOrTrail):GetHighScores()
-
-local EarnedMachineHighScoreInEventMode = function()
-	-- if no DancePoints were earned, it's not a HighScore
-	if pss:GetPercentDancePoints() <= 0.01 then return false end
-	-- if DancePoints were earned, but no MachineHighScores exist at this point, it's a fail which was not considered a HighScore
-	if #MachineHighScores < 1 then return false end
-	-- otherwise, check if this score is better than the worst current HighScore retrieved from MachineProfile
-	return pss:GetHighScore():GetPercentDP() >= MachineHighScores[math.min(NumHighScores, #MachineHighScores)]:GetPercentDP()
-end
-
--- -----------------------------------------------------------------------
-
-local EarnedMachineRecord = GAMESTATE:IsEventMode() and EarnedMachineHighScoreInEventMode() or HighScoreIndex.Machine  >= 0
-local EarnedTop2Personal  = (HighScoreIndex.Personal >= 0 and HighScoreIndex.Personal < 2)
+local record = VOLT26.Results.GetRecordStatus(player)
 
 -- -----------------------------------------------------------------------
 
@@ -68,7 +37,7 @@ local EarnedTop2Personal  = (HighScoreIndex.Personal >= 0 and HighScoreIndex.Per
 -- 22px RowHeight by default, which works for displaying 10 machine HighScores
 local args = { Player=player, RoundsAgo=1, RowHeight=22}
 
-if (not EarnedMachineRecord and EarnedTop2Personal) then
+if (not record.earnedMachine and record.earnedTopTwoPersonal) then
 
 	-- less line spacing between HighScore rows to fit the horizontal line
 	args.RowHeight = 20.25

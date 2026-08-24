@@ -1,9 +1,8 @@
 local player = ...
 local pn = ToEnumShortString(player)
 
-local stats = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
-
-local judgmentCounts = GetExJudgmentCounts(player)
+local result = VOLT26.Results.GetCurrent(player)
+local judgmentCounts = result.exJudgments
 
 local fantastic_plus = judgmentCounts["W0"]
 local fantastic = judgmentCounts["W1"]
@@ -36,7 +35,7 @@ end
 local cmod = GAMESTATE:GetPlayerState(pn):GetPlayerOptions("ModsLevel_Preferred"):CMod()
 local used_cmod = cmod ~= nil and "1" or "0"
 
-local failed = stats:GetFailed() and "1" or "0"
+local failed = result.failed and "1" or "0"
 local rate = tonumber(string.format("%.0f", SL.Global.ActiveModifiers.MusicRate * 100))
 
 local steps = GAMESTATE:GetCurrentSteps(player)
@@ -58,7 +57,7 @@ local rows = { "W0", "W1", "W2", "W3", "W4", "W5" }
 
 for i=1,GAMESTATE:GetCurrentStyle():ColumnsPerPlayer() do
   for j, judgment in ipairs(rows) do
-    rescored[judgment] = rescored[judgment] + SL[pn].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1].column_judgments[i]["Early"][judgment]
+    rescored[judgment] = rescored[judgment] + result.columnJudgments[i].Early[judgment]
   end
 end
 

@@ -4,10 +4,9 @@
 local player = ...
 local af = Def.ActorFrame{}
 
-local stats = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
-local failed = stats:GetFailed()
-local PercentDP = stats:GetPercentDancePoints()
-local percent = FormatPercentScore(PercentDP):gsub("%%", "")
+local result = VOLT26.Results.GetCurrent(player)
+local failed = result.failed
+local percent = FormatPercentScore(result.percentDP):gsub("%%", "")
 
 -- for iterating
 local TapNoteScores = { 'W1', 'W2', 'W3', 'W4', 'W5', 'Miss' }
@@ -24,7 +23,7 @@ local IsNice = function()
 	-- check timing ratings (W1..W5, miss)
 	local scores_table = {}
 	for index, window in ipairs(TapNoteScores) do
-		local number = stats:GetTapNoteScores( "TapNoteScore_"..window )
+		local number = result.judgments[window]
 		scores_table[window] = number
 	end
 
@@ -34,8 +33,8 @@ local IsNice = function()
 
 	-- check holds mines hands rolls, and their "total possible"
 	for index, RCType in ipairs(RadarCategories) do
-		local performance = stats:GetRadarActual():GetValue( "RadarCategory_"..RCType )
-		local possible = stats:GetRadarPossible():GetValue( "RadarCategory_"..RCType )
+		local performance = result.radar.actual[RCType]
+		local possible = result.radar.possible[RCType]
 
 		if string.match(tostring(performance), "69") ~= nil then return true end
 		if string.match(tostring(possible), "69") ~= nil then return true end

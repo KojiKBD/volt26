@@ -1,14 +1,8 @@
 local player, controller = unpack(...)
 local styletype = ToEnumShortString(GAMESTATE:GetCurrentStyle():GetStyleType())
 
-local stats
-if  styletype == "TwoPlayersSharedSides" then
-	stats = STATSMAN:GetCurStageStats():GetRoutineStageStats()
-else
-	stats = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
-end
-local PercentDP = stats:GetPercentDancePoints()
-local percent = FormatPercentScore(PercentDP)
+local result = VOLT26.Results.GetCurrent(player)
+local percent = FormatPercentScore(result.percentDP)
 
 -- Format the Percentage string, removing the % symbol
 percent = percent:gsub("%%", "")
