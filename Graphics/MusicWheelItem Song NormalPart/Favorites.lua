@@ -5,7 +5,7 @@ local af = Def.ActorFrame {
 	PlayerJoinedMessageCommand=function(self, params)
 		if not PROFILEMAN:IsPersistentProfile(params.Player) then
 			GAMESTATE:ResetPlayerOptions(params.Player)
-			SL[ToEnumShortString(params.Player)]:initialize()
+			VOLT26.Core.GetPlayerState(params.Player):initialize()
 		end
 		if pn == nil then
 			player = params.Player
@@ -28,26 +28,8 @@ local af = Def.ActorFrame {
             end
         end,
         SetCommand=function(self, params)
-            -- VOLT26 deliberately keeps grades/favorites out of the wheel row.
-            -- Its song information belongs in the detail panels instead.
-            if ThemePrefs.Get("VisualStyle") == "VOLT26" then
-                self:visible(false)
-                return
-            end
-            if params.Song then
-                local song = params.Song
-                if song and FindInTable(song, SL[pn].Favorites) then 
-                    self:visible(true)
-                else
-                    self:visible(false)
-                end
-                if #GAMESTATE:GetHumanPlayers() > 1 then
-                    self:zoomto(15,15)
-                    self:y(pn == "P1" and -8 or 8)
-                else
-                    self:zoomto(20,20):y(0)
-                end
-            end
+			-- Favorites are represented in VOLT26's detail UI, not in wheel rows.
+			self:visible(false)
         end,
     }
 }

@@ -42,7 +42,7 @@ local function bpm(song)
 	if not ok or not values then return "" end
 	local low, high = tonumber(values[1]), tonumber(values[2])
 	if not low then return "" end
-	local rate = SL.Global.ActiveModifiers.MusicRate or 1
+	local rate = VOLT26.MusicSelection.GetMusicRate()
 	low = math.floor(low*rate+0.5)
 	high = math.floor((high or low)*rate+0.5)
 	return low == high and tostring(low) or (low.."-"..high)
@@ -58,7 +58,6 @@ local af = Def.ActorFrame{
 	InitCommand=function(self)
 		self:x(12):visible(false)
 		self:SetUpdateFunction(function(frame)
-			if ThemePrefs.Get("VisualStyle") ~= "VOLT26" then frame:visible(false); return end
 			local isFocus = focused(frame)
 			if isFocus ~= frame.wasFocus then frame.wasFocus=isFocus; frame:playcommand("Focus", {Focused=isFocus}) end
 		end)
@@ -67,7 +66,7 @@ local af = Def.ActorFrame{
 		local matches = (kind == "Song" and params.Song)
 			or (kind == "Course" and params.Course)
 			or (kind == "Section" and not params.Song and not params.Course)
-		self:visible(ThemePrefs.Get("VisualStyle") == "VOLT26" and matches and true or false)
+		self:visible(matches and true or false)
 		if not matches then return end
 		self.song, self.course = params.Song, params.Course
 		self.section = (not params.Song and not params.Course) and (params.Text or params.Label) or nil
