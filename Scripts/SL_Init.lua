@@ -1024,6 +1024,14 @@ function VOLT26.Options.SaveReturnChoice(page, selections)
 	end
 end
 
+VOLT26.TitleMenu = {
+	AFKTimeoutSeconds = 5 * 60,
+}
+
+function VOLT26.TitleMenu.GetAFKTimeoutSeconds()
+	return VOLT26.TitleMenu.AFKTimeoutSeconds
+end
+
 VOLT26.Navigation = {
 	SelectMusicOrCourse = function()
 		return SelectMusicOrCourse()

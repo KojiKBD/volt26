@@ -454,6 +454,16 @@ end
 -- ==========================================
 do
     local current_idx = 0
+    local idle_elapsed = 0
+    local afk_armed = false
+    local afk_active = false
+
+    local function RedirectMenuInput(redirected)
+        for player in ivalues(PlayerNumber) do
+            SCREENMAN:set_input_redirected(player, redirected)
+        end
+    end
+
     local controller = Def.ActorFrame{
         Name="VOLT26Menu",
         OnCommand=function(self)
@@ -461,8 +471,22 @@ do
             if not screen then return end
 
             screen:AddInputCallback(function(event)
-                if event.type == "InputEventType_FirstPress"
-                and event.GameButton == "Start" then
+                if not event or event.type ~= "InputEventType_FirstPress" then
+                    return false
+                end
+
+                idle_elapsed = 0
+                if afk_active then
+                    afk_active = false
+                    MESSAGEMAN:Broadcast("VOLT26_HideAFK")
+                    MESSAGEMAN:Broadcast("VOLT26_StartMenuAudio")
+                    -- Keep redirection active for the dismissal press itself;
+                    -- release it on the following actor command/frame.
+                    self:queuecommand("ReleaseAFKInput")
+                    return false
+                end
+
+                if event.GameButton == "Start" then
                     self.ConfirmIndex = current_idx
                     MESSAGEMAN:Broadcast("VOLT26_Confirm", {idx=current_idx})
                     -- The knife reaches its target after 0.03 + 0.18 seconds.
@@ -474,6 +498,35 @@ do
                 -- only synchronizes VOLT26's visual and audio feedback.
                 return false
             end)
+
+            -- ScreenInit is a separate screen and never contributes to this
+            -- timer. When its visual handoff is present, wait for that final
+            -- dissolve before considering the title menu idle.
+            local arrival_delay = _G.Volt26InitHandoff == true and 0.90 or 0
+            self:sleep(arrival_delay):queuecommand("ArmAFKTimer")
+        end,
+        ArmAFKTimerCommand=function(self)
+            idle_elapsed = 0
+            afk_armed = true
+            self:SetUpdateFunction(function(frame, delta)
+                if not afk_armed or afk_active then return end
+                idle_elapsed = idle_elapsed + delta
+                if idle_elapsed >= VOLT26.TitleMenu.GetAFKTimeoutSeconds() then
+                    idle_elapsed = 0
+                    afk_active = true
+                    RedirectMenuInput(true)
+                    MESSAGEMAN:Broadcast("VOLT26_StopMenuAudio")
+                    MESSAGEMAN:Broadcast("VOLT26_ShowAFK")
+                end
+            end)
+        end,
+        ReleaseAFKInputCommand=function(self)
+            RedirectMenuInput(false)
+        end,
+        OffCommand=function(self)
+            afk_armed = false
+            self:SetUpdateFunction(nil)
+            if afk_active then RedirectMenuInput(false) end
         end,
         PlayKnifeImpactSoundCommand=function(self)
             -- The selected image flashes on the exact frame the knife lands.
@@ -532,28 +585,37 @@ do
         local elapsed = 0
         local length = 0
 
+        local function StartPlayback(frame)
+            local sound = frame:GetChild("Playback")
+            if not sound then return end
+            frame:SetUpdateFunction(nil)
+            sound:stop()
+            length = sound:get():get_length()
+            elapsed = 0
+            sound:play()
+            if length and length > 0 then
+                -- Track playback without sleep/tweens, which would make the
+                -- screen wait for the sound before accepting a selection.
+                frame:SetUpdateFunction(function(actor, delta)
+                    elapsed = elapsed + delta
+                    if elapsed >= length then
+                        elapsed = elapsed - length
+                        local playback = actor:GetChild("Playback")
+                        if not playback then return end
+                        playback:stop()
+                        playback:play()
+                    end
+                end)
+            end
+        end
+
         return Def.ActorFrame{
             Name=name,
             OnCommand=function(self)
-                local sound = self:GetChild("Playback")
-                if not sound then return end
-                length = sound:get():get_length()
-                elapsed = 0
-                sound:play()
-                if length and length > 0 then
-                    -- Track playback without sleep/tweens, which would make the
-                    -- screen wait for the sound before accepting a selection.
-                    self:SetUpdateFunction(function(frame, delta)
-                        elapsed = elapsed + delta
-                        if elapsed >= length then
-                            elapsed = elapsed - length
-                            local sound = frame:GetChild("Playback")
-                            if not sound then return end
-                            sound:stop()
-                            sound:play()
-                        end
-                    end)
-                end
+                StartPlayback(self)
+            end,
+            VOLT26_StartMenuAudioMessageCommand=function(self)
+                StartPlayback(self)
             end,
             VOLT26_StopMenuAudioMessageCommand=function(self)
                 self:SetUpdateFunction(nil)
@@ -580,6 +642,91 @@ do
     local menuost_path = THEME:GetPathG("", "VOLT26/menuost.ogg")
     if FILEMAN:DoesFileExist(menuost_path) then
         af[#af+1] = LoopingSound("VOLT26_MenuOSTLoop", menuost_path)
+    end
+end
+
+-- ==========================================
+-- VOLT26 AFK EASTER EGG
+-- ==========================================
+do
+    local video_path = THEME:GetPathG("", "VOLT26/afk.mp4")
+    local audio_path = THEME:GetPathG("", "VOLT26/afk.ogg")
+    local blank_path = THEME:GetPathG("", "_blank.png")
+    if FILEMAN:DoesFileExist(video_path) and FILEMAN:DoesFileExist(audio_path) then
+        local elapsed = 0
+        local length = 0
+
+        local function StartAFK(frame)
+            local video = frame:GetChild("Video")
+            local audio = frame:GetChild("Audio")
+            if not video or not audio then return end
+
+            frame:SetUpdateFunction(nil)
+            video:Load(video_path):loop(true):setsize(_screen.w, _screen.h)
+            audio:stop()
+            length = audio:get():get_length()
+            elapsed = 0
+            audio:play()
+
+            if length and length > 0 then
+                frame:SetUpdateFunction(function(actor, delta)
+                    elapsed = elapsed + delta
+                    if elapsed >= length then
+                        elapsed = elapsed - length
+                        local loop_video = actor:GetChild("Video")
+                        local loop_audio = actor:GetChild("Audio")
+                        if not loop_video or not loop_audio then return end
+                        -- Restart both streams together at the loop boundary
+                        -- so the extracted audio cannot drift from the movie.
+                        loop_video:Load(video_path):loop(true)
+                            :setsize(_screen.w, _screen.h)
+                        loop_audio:stop()
+                        loop_audio:play()
+                    end
+                end)
+            end
+        end
+
+        local function StopAFK(frame)
+            frame:SetUpdateFunction(nil)
+            local video = frame:GetChild("Video")
+            local audio = frame:GetChild("Audio")
+            if audio then audio:stop() end
+            if video then video:Load(blank_path) end
+        end
+
+        af[#af+1] = Def.ActorFrame{
+            Name="VOLT26_AFK",
+            InitCommand=function(self)
+                self:xy(0, 0):draworder(10000)
+                    :visible(false):diffusealpha(0)
+            end,
+            VOLT26_ShowAFKMessageCommand=function(self)
+                StartAFK(self)
+                self:stoptweening():visible(true):diffusealpha(0)
+                    :linear(0.15):diffusealpha(1)
+            end,
+            VOLT26_HideAFKMessageCommand=function(self)
+                StopAFK(self)
+                self:stoptweening():visible(false):diffusealpha(0)
+            end,
+            OffCommand=function(self)
+                StopAFK(self)
+                self:stoptweening():visible(false)
+            end,
+
+            Def.Sprite{
+                Name="Video",
+                Texture=blank_path,
+                InitCommand=function(self)
+                    self:xy(0, 0):setsize(_screen.w, _screen.h)
+                end,
+            },
+            Def.Sound{
+                Name="Audio",
+                File=audio_path,
+            },
+        }
     end
 end
 
