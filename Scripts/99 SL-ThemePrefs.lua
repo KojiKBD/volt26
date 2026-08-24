@@ -300,11 +300,6 @@ SL_CustomPrefs.Get = function()
 		{
 			Default = "",
 		},
-		VOLT26MementosDashHighScore =
-		{
-			Default = 0,
-		},
-		-- - - - - - - - - - - - - - - - - - - -
 		EnableTournamentMode = {
 			Default = false,
 			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
