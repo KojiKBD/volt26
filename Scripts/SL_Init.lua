@@ -1856,6 +1856,7 @@ end
 function VOLT26.EvaluationInput.CreateScreenshotHandler(requestCapture)
 	local held = {MenuLeft=false, MenuRight=false}
 	local chordCaptured = false
+	local selectHeld = false
 	return function(event)
 		if not event or not event.PlayerNumber then return false end
 		if PREFSMAN:GetPreference("ThreeKeyNavigation") then
@@ -1867,8 +1868,13 @@ function VOLT26.EvaluationInput.CreateScreenshotHandler(requestCapture)
 			elseif not held.MenuLeft or not held.MenuRight then
 				chordCaptured = false
 			end
-		elseif event.GameButton == "Select" and event.type == "InputEventType_FirstPress" then
-			requestCapture(event.PlayerNumber)
+		elseif event.GameButton == "Select" then
+			if event.type == "InputEventType_Release" then
+				selectHeld = false
+			elseif event.type == "InputEventType_FirstPress" and not selectHeld then
+				selectHeld = true
+				requestCapture(event.PlayerNumber)
+			end
 		end
 		return false
 	end
