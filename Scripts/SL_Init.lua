@@ -536,6 +536,23 @@ VOLT26.ThemePrefs = {
 	Save = function() ThemePrefs.Save() end,
 }
 
+VOLT26.Profile = {
+	LoadGuest = LoadGuest,
+	LoadCustom = LoadProfileCustom,
+	SaveCustom = SaveProfileCustom,
+	GetAvatarPath = GetAvatarPath,
+	GetPlayerAvatarPath = GetPlayerAvatarPath,
+	GetPreferredStyle = function()
+		return VOLT26.ThemePrefs.Get("PreferredStyle")
+	end,
+	IsFastSwitchInProgress = function()
+		return VOLT26.State.Global.FastProfileSwitchInProgress == true
+	end,
+	FinishFastSwitch = function()
+		VOLT26.State.Global.FastProfileSwitchInProgress = false
+	end,
+}
+
 VOLT26.Navigation = {
 	SelectMusicOrCourse = function()
 		return SelectMusicOrCourse()

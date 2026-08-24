@@ -40,7 +40,7 @@ for profile in ivalues(profile_data) do
 	end
 end
 
-local PreferredStyle = ThemePrefs.Get("PreferredStyle")
+local PreferredStyle = VOLT26.Profile.GetPreferredStyle()
 
 local Handle = {}
 
@@ -64,7 +64,7 @@ Handle.Start = function(event)
 				MESSAGEMAN:Broadcast("InvalidChoice", {PlayerNumber=event.PlayerNumber})
 				return
 			else
-				if (not SL.Global.FastProfileSwitchInProgress and
+				if (not VOLT26.Profile.IsFastSwitchInProgress() and
 						GAMESTATE:GetCoinMode() == "CoinMode_Pay" and
 						(GAMESTATE:GetPremium() ~= "Premium_2PlayersFor1Credit" or
 						GAMESTATE:GetNumPlayersEnabled()==0)) then
@@ -170,7 +170,7 @@ Handle.DownRight = Handle.MenuRight
 
 Handle.Back = function(event)
 	if GAMESTATE:GetNumPlayersEnabled()==0 then
-		if SL.Global.FastProfileSwitchInProgress then
+		if VOLT26.Profile.IsFastSwitchInProgress() then
 			-- Going back to the song wheel without any players connected doesn't
 			-- make much sense; disallow dismissing the ScreenSelectProfile
 			-- top screen until at least one player has joined in
@@ -196,7 +196,7 @@ Handle.Back = function(event)
 		MESSAGEMAN:Broadcast("BackButton", {PlayerNumber=event.PlayerNumber})
 
 		if (GAMESTATE:IsHumanPlayer(event.PlayerNumber) and
-				not SL.Global.FastProfileSwitchInProgress and
+				not VOLT26.Profile.IsFastSwitchInProgress() and
 				GAMESTATE:GetCoinMode() == "CoinMode_Pay" and
 			    (GAMESTATE:GetPremium() ~= "Premium_2PlayersFor1Credit" or
 				 GAMESTATE:GetNumPlayersEnabled()==1)) then
@@ -229,7 +229,7 @@ Handle.Back = function(event)
 
 		-- CurrentStyle has to be explicitly set to single in order to be able to
 		-- unjoin a player from a 2-player setup
-		if SL.Global.FastProfileSwitchInProgress and GAMESTATE:GetNumSidesJoined() == 1 then
+		if VOLT26.Profile.IsFastSwitchInProgress() and GAMESTATE:GetNumSidesJoined() == 1 then
 			GAMESTATE:SetCurrentStyle("single")
 			-- If PreferredStyle is single then someone had joined during gameplay
 			-- We need to explicitly remove this player's join frame

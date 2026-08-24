@@ -1,8 +1,8 @@
--- PreferredStyle is a Simply Love ThemePref that can allow players to always
+-- PreferredStyle is a VOLT26 preference that can allow players to always
 -- automatically have one of [single, double, versus] chosen for them.
 -- If PreferredStyle is either "single" or "double", we don't want to load
 -- SelectProfileFrames for both PLAYER_1 and PLAYER_2, but only the MasterPlayerNumber
-local PreferredStyle = ThemePrefs.Get("PreferredStyle")
+local PreferredStyle = VOLT26.Profile.GetPreferredStyle()
 
 -- retrieve the MasterPlayerNumber now, at initialization, so that if PreferredStyle is set
 -- to "single" or "double" and that singular player unjoins, we still have a handle on
@@ -165,8 +165,8 @@ local t = Def.ActorFrame {
 			end
 		end
 
-		if SL.Global.FastProfileSwitchInProgress then
-			SL.Global.FastProfileSwitchInProgress = false
+		if VOLT26.Profile.IsFastSwitchInProgress() then
+			VOLT26.Profile.FinishFastSwitch()
 			-- Check if one of the players has a memory card
 			-- If so, we need to reload the screen to update the profile data
 			-- Otherwise, we can just finish the screen
@@ -190,7 +190,7 @@ local t = Def.ActorFrame {
 
 		if params.Name == "Select" then
 			if GAMESTATE:GetNumPlayersEnabled()==0 then
-				if SL.Global.FastProfileSwitchInProgress then
+				if VOLT26.Profile.IsFastSwitchInProgress() then
 					-- Going back to the song wheel without any players connected doesn't
 					-- make much sense; disallow dismissing the ScreenSelectProfile
 					-- top screen until at least one player has joined in
@@ -204,7 +204,7 @@ local t = Def.ActorFrame {
 			else
 				-- CurrentStyle has to be explicitly set to single in order to be able to
 				-- unjoin a player from a 2-player setup
-				if SL.Global.FastProfileSwitchInProgress and GAMESTATE:GetNumSidesJoined() == 1 then
+				if VOLT26.Profile.IsFastSwitchInProgress() and GAMESTATE:GetNumSidesJoined() == 1 then
 					GAMESTATE:SetCurrentStyle("single")
 					SCREENMAN:GetTopScreen():playcommand("Update")
 				end
@@ -277,12 +277,12 @@ local t = Def.ActorFrame {
 local avatars = {}
 for profile in ivalues(profile_data) do
 	if profile.dir and profile.displayname then
-		avatars[profile.index] = GetAvatarPath(profile.dir, profile.displayname)
+		avatars[profile.index] = VOLT26.Profile.GetAvatarPath(profile.dir, profile.displayname)
 	end
 end
 
 -- if we're fast profile switching, dim the song wheel in the background
-if SL.Global.FastProfileSwitchInProgress then
+if VOLT26.Profile.IsFastSwitchInProgress() then
 	t[#t+1] = Def.Quad {
 		InitCommand=function(self)
 			self:FullScreen():diffuse(Color.Black):diffusealpha(0.8)
