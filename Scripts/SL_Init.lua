@@ -1778,6 +1778,106 @@ function VOLT26.Evaluation.CompleteStage()
 	VOLT26.State.Global.Stages.PlayedThisGame = VOLT26.State.Global.Stages.PlayedThisGame + 1
 end
 
+VOLT26.EvaluationInput = {}
+
+function VOLT26.EvaluationInput.GetPanePreferences(player)
+	local state = VOLT26.Core.GetPlayerState(player)
+	return state.EvalPanePrimary or 1, state.EvalPaneSecondary or 1
+end
+
+function VOLT26.EvaluationInput.FindPaneIndex(availablePaneNumbers, preferredPane)
+	for index, paneNumber in ipairs(availablePaneNumbers or {}) do
+		if paneNumber == preferredPane then return index end
+	end
+	return #availablePaneNumbers > 0 and 1 or nil
+end
+
+function VOLT26.EvaluationInput.NewCallbackController()
+	local active = {}
+	local controller = {}
+
+	function controller:Activate(name, callback)
+		if not callback or active[name] == callback then return end
+		if active[name] then SCREENMAN:GetTopScreen():RemoveInputCallback(active[name]) end
+		active[name] = callback
+		SCREENMAN:GetTopScreen():AddInputCallback(callback)
+	end
+
+	function controller:Deactivate(name)
+		if not active[name] then return end
+		SCREENMAN:GetTopScreen():RemoveInputCallback(active[name])
+		active[name] = nil
+	end
+
+	function controller:Clear()
+		local names = {}
+		for name in pairs(active) do names[#names + 1] = name end
+		for _, name in ipairs(names) do self:Deactivate(name) end
+	end
+
+	return controller
+end
+
+function VOLT26.EvaluationInput.CanUseReplayPracticeShortcuts()
+	return ThemePrefs.Get("KeyboardFeatures")
+		and PREFSMAN:GetPreference("EventMode")
+		and not GAMESTATE:IsCourseMode()
+end
+
+function VOLT26.EvaluationInput.CreateReplayPracticeHandler()
+	local controlHeld = false
+	return function(event)
+		if not event or not event.DeviceInput then return false end
+		local button = event.DeviceInput.button
+		local isControl = button == "DeviceButton_left ctrl" or button == "DeviceButton_right ctrl"
+		if isControl then
+			if event.type == "InputEventType_FirstPress" then controlHeld = true end
+			if event.type == "InputEventType_Release" then controlHeld = false end
+			return false
+		end
+		if event.type ~= "InputEventType_FirstPress" or not controlHeld then return false end
+
+		local destination, message
+		if button == "DeviceButton_r" then
+			destination, message = Branch.GameplayScreen(), "Replaying Song"
+		elseif button == "DeviceButton_p" then
+			destination, message = "ScreenPractice", "Entering Practice Mode"
+		end
+		if destination then
+			-- The evaluated stage remains complete; replay/practice starts a new route.
+			SM(message)
+			SCREENMAN:GetTopScreen():SetNextScreenName(destination):StartTransitioningScreen("SM_GoToNextScreen")
+		end
+		return false
+	end
+end
+
+function VOLT26.EvaluationInput.BuildScreenshotPrefix(title)
+	local month = ("%02d-%s"):format(
+		MonthOfYear() + 1,
+		THEME:GetString("Months", "Month"..MonthOfYear() + 1)
+	)
+	local safeTitle = (title or "Evaluation"):utf8sub(1, 10):gsub("%W", "_")
+	return "VOLT26/" .. Year() .. "/" .. month .. "/" .. safeTitle .. "_"
+end
+
+function VOLT26.EvaluationInput.CaptureScreenshot(player)
+	local item = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentCourse() or GAMESTATE:GetCurrentSong()
+	local title = item and item:GetDisplayFullTitle() or "Evaluation"
+	local prefix = VOLT26.EvaluationInput.BuildScreenshotPrefix(title)
+	local ok, success, path = pcall(SaveScreenshot, player, false, false, prefix)
+	if not ok then return false, tostring(success) end
+	return success == true, path
+end
+
+function VOLT26.EvaluationInput.SetScreenshotTexture(texture)
+	VOLT26.Core.GetGlobalState().ScreenshotTexture = texture
+end
+
+function VOLT26.EvaluationInput.GetScreenshotTexture()
+	return VOLT26.Core.GetGlobalState().ScreenshotTexture
+end
+
 VOLT26.Options = {}
 
 function VOLT26.Options.GetPlayerModifiers(player)

@@ -1,8 +1,8 @@
 local Players = GAMESTATE:GetHumanPlayers()
 local NumPanes = VOLT26.Gameplay.IsCasual() and 1 or 8
 
-local InputHandler = nil
-local EventOverlayInputHandler = nil
+local callbackController = VOLT26.EvaluationInput.NewCallbackController()
+local inputHandler, diagnosticInputHandler, eventOverlayInputHandler, shortcutInputHandler
 
 if ThemePrefs.Get("WriteCustomScores") then
 	WriteScores()
@@ -11,30 +11,44 @@ end
 local t = Def.ActorFrame{Name="ScreenEval Common"}
 
 if not VOLT26.Gameplay.IsCasual() then
-	-- add a lua-based InputCalllback to this screen so that we can navigate
-	-- through multiple panes of information; pass a reference to this ActorFrame
-	-- and the number of panes there are to InputHandler.lua
+	local function redirectPlayers(redirected)
+		for player in ivalues(PlayerNumber) do
+			SCREENMAN:set_input_redirected(player, redirected)
+		end
+	end
+
+	local function activateStandardInput()
+		callbackController:Deactivate("event")
+		callbackController:Activate("panes", inputHandler)
+		callbackController:Activate("diagnostics", diagnosticInputHandler)
+		callbackController:Activate("shortcuts", shortcutInputHandler)
+		redirectPlayers(false)
+	end
+
 	t.OnCommand=function(self)
-		InputHandler = LoadActor("./InputHandler.lua", {self, NumPanes})
-		EventOverlayInputHandler = LoadActor("./Shared/EventInputHandler.lua")
-		SCREENMAN:GetTopScreen():AddInputCallback(InputHandler)
+		inputHandler = LoadActor("./InputHandler.lua", {self, NumPanes})
+		diagnosticInputHandler = LoadActor("./Shared/DiagnosticInputHandler.lua")
+		eventOverlayInputHandler = LoadActor("./Shared/EventInputHandler.lua")
+		if VOLT26.EvaluationInput.CanUseReplayPracticeShortcuts() then
+			shortcutInputHandler = VOLT26.EvaluationInput.CreateReplayPracticeHandler()
+		end
+		activateStandardInput()
 		PROFILEMAN:SaveMachineProfile()
 	end
 	t.DirectInputToEngineCommand=function(self)
-		SCREENMAN:GetTopScreen():RemoveInputCallback(EventOverlayInputHandler)
-		SCREENMAN:GetTopScreen():AddInputCallback(InputHandler)
-
-		for player in ivalues(PlayerNumber) do
-			SCREENMAN:set_input_redirected(player, false)
-		end
+		activateStandardInput()
 	end
 	t.DirectInputToEventOverlayHandlerCommand=function(self)
-		SCREENMAN:GetTopScreen():RemoveInputCallback(InputHandler)
-		SCREENMAN:GetTopScreen():AddInputCallback(EventOverlayInputHandler)
-
-		for player in ivalues(PlayerNumber) do
-			SCREENMAN:set_input_redirected(player, true)
-		end
+		if not eventOverlayInputHandler then return end
+		callbackController:Deactivate("panes")
+		callbackController:Deactivate("diagnostics")
+		callbackController:Deactivate("shortcuts")
+		callbackController:Activate("event", eventOverlayInputHandler)
+		redirectPlayers(true)
+	end
+	t.OffCommand=function(self)
+		callbackController:Clear()
+		redirectPlayers(false)
 	end
 else
 	t.OnCommand=function(self)
@@ -48,8 +62,8 @@ end
 -- code for triggering a screenshot and animating a "screenshot" texture
 t[#t+1] = LoadActor("./Shared/ScreenshotHandler.lua")
 
--- code for non-normal exits, such as restarting the song or entering practice mode
-t[#t+1] = LoadActor("./Shared/ExitHandler.lua")
+-- favorite shortcuts are independent from screenshot capture
+t[#t+1] = LoadActor("./Shared/FavoriteHandler.lua")
 
 -- the title of the song and its graphical banner, if there is one
 t[#t+1] = LoadActor("./Shared/TitleAndBanner.lua")
