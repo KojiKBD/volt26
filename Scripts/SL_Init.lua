@@ -653,6 +653,56 @@ function VOLT26.Evaluation.CompleteStage()
 	VOLT26.State.Global.Stages.PlayedThisGame = VOLT26.State.Global.Stages.PlayedThisGame + 1
 end
 
+VOLT26.Options = {}
+
+function VOLT26.Options.GetPlayerModifiers(player)
+	return VOLT26.Core.GetPlayerState(player).ActiveModifiers
+end
+
+function VOLT26.Options.GetGlobalModifiers()
+	return VOLT26.State.Global.ActiveModifiers
+end
+
+function VOLT26.Options.CanReturnToMusic()
+	return VOLT26.State.Global.MenuTimer.ScreenSelectMusic > 1
+		and VOLT26.State.Global.MusicWheelLocked ~= true
+end
+
+function VOLT26.Options.GetMenuTimer()
+	return VOLT26.State.Global.MenuTimer.ScreenPlayerOptions
+end
+
+function VOLT26.Options.GetNextScreen(page)
+	return VOLT26.State.Global.ScreenAfter["PlayerOptions"..(page == 1 and "" or tostring(page))]
+end
+
+function VOLT26.Options.GetReturnChoices(page)
+	local choices = {
+		[1] = {"Gameplay", "Select Music", "Options2", "Options3"},
+		[2] = {"Gameplay", "Select Music", "Options1", "Options3"},
+		[3] = {"Gameplay", "Select Music", "Options1", "Options2"},
+	}
+	local result = DeepCopy(choices[page])
+	if not VOLT26.Options.CanReturnToMusic() then table.remove(result, 2) end
+	return result
+end
+
+function VOLT26.Options.SaveReturnChoice(page, selections)
+	local destinations = {
+		[1] = {Branch.GameplayScreen(), VOLT26.Navigation.SelectMusicOrCourse(), "ScreenPlayerOptions2", "ScreenPlayerOptions3"},
+		[2] = {Branch.GameplayScreen(), VOLT26.Navigation.SelectMusicOrCourse(), "ScreenPlayerOptions", "ScreenPlayerOptions3"},
+		[3] = {Branch.GameplayScreen(), VOLT26.Navigation.SelectMusicOrCourse(), "ScreenPlayerOptions", "ScreenPlayerOptions2"},
+	}
+	if not VOLT26.Options.CanReturnToMusic() then table.remove(destinations[page], 2) end
+	for index, selected in ipairs(selections) do
+		if selected then
+			local key = "PlayerOptions"..(page == 1 and "" or tostring(page))
+			VOLT26.State.Global.ScreenAfter[key] = destinations[page][index]
+			return
+		end
+	end
+end
+
 VOLT26.Navigation = {
 	SelectMusicOrCourse = function()
 		return SelectMusicOrCourse()

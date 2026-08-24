@@ -15,6 +15,10 @@ local speedmod_def = {
 	M = { upper=2000, increment=5 }
 }
 
+local modifiers = function(player)
+	return VOLT26.Options.GetPlayerModifiers(player)
+end
+
 -- In Routine (couples) mode, default players to the red and blue couples skins
 -- if they aren't already on a couples noteskin.
 if IsRoutine() then
@@ -29,7 +33,7 @@ if IsRoutine() then
 	if couples_noteskin then
 		local already_on_couples = true
 		for player in ivalues(GAMESTATE:GetHumanPlayers()) do
-			local current = SL[ToEnumShortString(player)].ActiveModifiers.NoteSkin or ""
+			local current = modifiers(player).NoteSkin or ""
 			if current:lower() ~= couples_noteskin:lower() then
 				already_on_couples = false
 				break
@@ -41,9 +45,9 @@ if IsRoutine() then
 			local defaults = { P1 = "couples__blue", P2 = "couples__red" }
 			for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 				local pn = ToEnumShortString(player)
-				SL[pn].ActiveModifiers.NoteSkin = couples_noteskin
+				modifiers(pn).NoteSkin = couples_noteskin
 				if defaults[pn] then
-					SL[pn].ActiveModifiers.NoteSkinVariant = defaults[pn]
+					modifiers(pn).NoteSkinVariant = defaults[pn]
 				end
 			end
 		end
@@ -53,7 +57,7 @@ end
 local variants_def = {}
 for player in ivalues( GAMESTATE:GetHumanPlayers() ) do
 	local pn = ToEnumShortString(player)
-	local noteskin_name = SL[pn].ActiveModifiers.NoteSkin
+	local noteskin_name = modifiers(pn).NoteSkin
 	if noteskin_name then
 		if NOTESKIN:HasVariants(noteskin_name) then
 			variants_def[pn] = NOTESKIN:GetVariantNamesForNoteSkin(noteskin_name)
@@ -110,10 +114,10 @@ local CalculateScrollSpeed = function(player)
 		mini = tonumber(miniText:sub(1, -2)) / 100
 	end
 	local StepsOrTrail = (GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentTrail(player)) or GAMESTATE:GetCurrentSteps(player)
-	local MusicRate    = SL.Global.ActiveModifiers.MusicRate or 1
+	local MusicRate    = VOLT26.MusicSelection.GetMusicRate()
 
-	local SpeedModType = SL[pn].ActiveModifiers.SpeedModType
-	local SpeedMod     = SL[pn].ActiveModifiers.SpeedMod
+	local SpeedModType = modifiers(pn).SpeedModType
+	local SpeedMod     = modifiers(pn).SpeedMod
 
 	local bpms = GetDisplayBPMs(player, StepsOrTrail, MusicRate)
 	if not (bpms and bpms[1] and bpms[2]) then return "" end
@@ -146,7 +150,7 @@ end
 --    first argument is either "P1" or "P2"
 --    second argument is either -1 (MenuLeft was pressed) or 1 (MenuRight was pressed)
 local ChangeSpeedMod = function(pn, direction)
-	local mods = SL[pn].ActiveModifiers
+	local mods = modifiers(pn)
 	local speedmod = mods.SpeedMod
 	local increment   = speedmod_def[mods.SpeedModType].increment
 	local upper_bound = speedmod_def[mods.SpeedModType].upper
@@ -159,15 +163,15 @@ local ChangeSpeedMod = function(pn, direction)
 	mods.SpeedMod = speedmod
 	if GAMESTATE:GetCurrentStyle():GetStyleType() == "StyleType_TwoPlayersSharedSides" then
 		local otherPn = pn == "P1" and "P2" or "P1"
-		SL[otherPn].ActiveModifiers.SpeedMod     = SL[pn].ActiveModifiers.SpeedMod
-		SL[otherPn].ActiveModifiers.SpeedModType = SL[pn].ActiveModifiers.SpeedModType
+		modifiers(otherPn).SpeedMod     = modifiers(pn).SpeedMod
+		modifiers(otherPn).SpeedModType = modifiers(pn).SpeedModType
 	end
 end
 
 local ChangeVariant = function(pn, direction)
 	local ScreenOptions = SCREENMAN:GetTopScreen()
 	if direction == 0 then
-		local noteskin_name = SL[pn].ActiveModifiers.NoteSkin
+		local noteskin_name = modifiers(pn).NoteSkin
 		if NOTESKIN:HasVariants(noteskin_name) then
 			variants_def[pn] = NOTESKIN:GetVariantNamesForNoteSkin(noteskin_name)
 			-- Put the current NoteSkin at the front of the list of variants so that it's the default selection when we refresh the OptionRow
@@ -176,13 +180,13 @@ local ChangeVariant = function(pn, direction)
 			variants_def[pn] = {noteskin_name}
 		end
 	end
-	local current_variant = SL[pn].ActiveModifiers.NoteSkinVariant or SL[pn].ActiveModifiers.NoteSkin
+	local current_variant = modifiers(pn).NoteSkinVariant or modifiers(pn).NoteSkin
 	local variants = variants_def[pn] or {current_variant}
 	local current_index = FindInTable(current_variant, variants) or 1
 
 	-- increment/decrement and apply modulo to wrap around if we exceed the number of variants or hit 0
 	local new_index = ((current_index + direction) - 1) % #variants + 1
-	SL[pn].ActiveModifiers.NoteSkinVariant = variants[new_index]
+	modifiers(pn).NoteSkinVariant = variants[new_index]
 end
 
 
@@ -212,8 +216,8 @@ local t = Def.ActorFrame{
 			if GAMESTATE:GetCurrentStyle():GetStyleType() == "StyleType_TwoPlayersSharedSides" then
 				if player == GAMESTATE:GetMasterPlayerNumber() then
 					local otherPn = pn == "P1" and "P2" or "P1"
-					SL[otherPn].ActiveModifiers.SpeedMod     = SL[pn].ActiveModifiers.SpeedMod
-					SL[otherPn].ActiveModifiers.SpeedModType = SL[pn].ActiveModifiers.SpeedModType
+					modifiers(otherPn).SpeedMod     = modifiers(pn).SpeedMod
+					modifiers(otherPn).SpeedModType = modifiers(pn).SpeedModType
 					SpeedModBMTs[pn] = ScreenOptions:GetOptionRow(SpeedModRowIndex):GetChild(""):GetChild("Item")
 				end
 			else
@@ -273,7 +277,7 @@ local t = Def.ActorFrame{
 			local pn = ToEnumShortString(player)
 			local variant_bmt = VariantBMTs[pn]
 			if variant_bmt then
-				local current_variant = SL[pn].ActiveModifiers.NoteSkinVariant or ""
+				local current_variant = modifiers(pn).NoteSkinVariant or ""
 				local screen = SCREENMAN:GetTopScreen()
 				MESSAGEMAN:Broadcast("RefreshActorProxy", {Player=player, Name="NoteSkinVariant", Value=current_variant})
 				screen:RedrawOptions() 
@@ -315,14 +319,14 @@ for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 				if params.Player ~= player  then return end
 			end
 
-			local oldtype = SL[pn].ActiveModifiers.SpeedModType
+			local oldtype = modifiers(pn).SpeedModType
 			local newtype = params.SpeedModType
 
 			-- this should never happen, but hey, might as well check
 			if oldtype == newtype then return end
 
 			local bpms = GetDisplayBPMs(player)
-			local speedmod = SL[pn].ActiveModifiers.SpeedMod
+			local speedmod = modifiers(pn).SpeedMod
 			local increment = speedmod_def[newtype].increment
 
 			-- round to the nearest speed increment in the new mode
@@ -340,12 +344,12 @@ for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 			-- the upper bound of the new Mmod or Cmod; clamp to prevent that
 			speedmod = clamp(speedmod, increment, speedmod_def[newtype].upper)
 
-			SL[pn].ActiveModifiers.SpeedMod     = speedmod
-			SL[pn].ActiveModifiers.SpeedModType = newtype
+			modifiers(pn).SpeedMod     = speedmod
+			modifiers(pn).SpeedModType = newtype
 			if GAMESTATE:GetCurrentStyle():GetStyleType() == "StyleType_TwoPlayersSharedSides" then
 				local otherPn = pn == "P1" and "P2" or "P1"
-				SL[otherPn].ActiveModifiers.SpeedMod     = SL[pn].ActiveModifiers.SpeedMod
-				SL[otherPn].ActiveModifiers.SpeedModType = SL[pn].ActiveModifiers.SpeedModType
+				modifiers(otherPn).SpeedMod     = modifiers(pn).SpeedMod
+				modifiers(otherPn).SpeedModType = modifiers(pn).SpeedModType
 			end
 			self:queuecommand("Set" .. pn)
 		end,
@@ -353,14 +357,14 @@ for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 		["Set" .. pn .. "Command"]=function(self)
 			local text = ""
 			local pn = pn
-			if  SL[pn].ActiveModifiers.SpeedModType == "X" then
-				text = string.format("%.2f" , SL[pn].ActiveModifiers.SpeedMod ) .. "x"
+			if modifiers(pn).SpeedModType == "X" then
+				text = string.format("%.2f", modifiers(pn).SpeedMod) .. "x"
 
-			elseif  SL[pn].ActiveModifiers.SpeedModType == "C" then
-				text = "C" .. tostring(SL[pn].ActiveModifiers.SpeedMod)
+			elseif modifiers(pn).SpeedModType == "C" then
+				text = "C" .. tostring(modifiers(pn).SpeedMod)
 
-			elseif  SL[pn].ActiveModifiers.SpeedModType == "M" then
-				text = "M" .. tostring(SL[pn].ActiveModifiers.SpeedMod)
+			elseif modifiers(pn).SpeedModType == "M" then
+				text = "M" .. tostring(modifiers(pn).SpeedMod)
 			end
 
 			if GAMESTATE:GetCurrentStyle():GetStyleType() == "StyleType_TwoPlayersSharedSides" then
@@ -372,7 +376,7 @@ for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 			self:GetParent():queuecommand("Refresh")
 		end,
 		["Set" .. pn .. "VariantCommand"]=function(self)
-			local current_variant = SL[original_pn].ActiveModifiers.NoteSkinVariant or SL[original_pn].ActiveModifiers.NoteSkin
+			local current_variant = modifiers(original_pn).NoteSkinVariant or modifiers(original_pn).NoteSkin
 			-- Get all text after first _ to get the variant name
 			current_variant = current_variant:match("_(.*)") or current_variant
 			VariantBMTs[original_pn]:settext( current_variant )
@@ -444,7 +448,7 @@ for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 		end,
 		OnCommand=function(self) self:linear(0.4):diffusealpha(1) end,
 		RefreshCommand=function(self)
-			self:settext( ("%s%s"):format(SL[pn].ActiveModifiers.SpeedModType, CalculateScrollSpeed(player)) )
+			self:settext( ("%s%s"):format(modifiers(pn).SpeedModType, CalculateScrollSpeed(player)) )
 		end
 	}
 end
