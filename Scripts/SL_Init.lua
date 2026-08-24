@@ -830,6 +830,126 @@ function VOLT26.Scoring.CalculateExScore(player, ex_counts, use_actual_w0_weight
 	return math.max(0, math.floor(total_points / total_possible * 10000) / 100), total_points, total_possible
 end
 
+VOLT26.Failure = {}
+
+function VOLT26.Failure.GetCourseCumulativeLengths(player)
+	if not GAMESTATE:IsCourseMode() then return nil end
+	local result, seconds = {}, 0
+	local trail = GAMESTATE:GetCurrentTrail(player)
+	if not trail then return result end
+	local rate = VOLT26.MusicSelection.GetMusicRate()
+	for _, entry in ipairs(trail:GetTrailEntries()) do
+		seconds = seconds + entry:GetSong():GetLastSecond() / rate
+		result[#result+1] = seconds
+	end
+	return result
+end
+
+function VOLT26.Failure.GetCurrentPosition(player)
+	local seconds = GAMESTATE:GetPlayerState(player):GetSongPosition():GetMusicSecondsVisible()
+		/ VOLT26.MusicSelection.GetMusicRate()
+	if GAMESTATE:IsCourseMode() then
+		local cumulative = VOLT26.Failure.GetCourseCumulativeLengths(player)
+		local course_index = GAMESTATE:GetCourseSongIndex()
+		if course_index > 0 then seconds = seconds + (cumulative[course_index] or 0) end
+	end
+	return seconds
+end
+
+function VOLT26.Failure.GetTotalLength(player)
+	local seconds = 0
+	if GAMESTATE:IsCourseMode() then
+		local trail = GAMESTATE:GetCurrentTrail(player)
+		if trail then seconds = trail:GetLengthSeconds() end
+	else
+		local song = GAMESTATE:GetCurrentSong()
+		if song then seconds = song:GetLastSecond() end
+	end
+	return math.max(0, seconds) / VOLT26.MusicSelection.GetMusicRate()
+end
+
+function VOLT26.Failure.Record(player)
+	local stage = VOLT26.Gameplay.GetPlayerStageState(player)
+	if not stage then return end
+	local player_state = GAMESTATE:GetPlayerState(player)
+	local death_second = VOLT26.Failure.GetCurrentPosition(player)
+	local total_seconds = VOLT26.Failure.GetTotalLength(player)
+	local graph_denominator = total_seconds
+	local graph_label = total_seconds - death_second
+
+	if GAMESTATE:IsCourseMode() then
+		local cumulative = VOLT26.Failure.GetCourseCumulativeLengths(player)
+		graph_denominator = cumulative[GAMESTATE:GetCourseSongIndex()+1] or total_seconds
+		graph_label = total_seconds > 0 and death_second / total_seconds or 0
+	end
+
+	local failure = {
+		total_seconds=total_seconds,
+		death_second=death_second,
+		graph_percentage=graph_denominator > 0 and death_second / graph_denominator or 0,
+		graph_label=graph_label,
+	}
+
+	local current_measure = math.floor(player_state:GetSongPosition():GetSongBeatVisible() / 4)
+	local streams = VOLT26.Core.GetPlayerState(player).Streams
+	if streams and streams.NotesPerMeasure and (streams.NotesPerMeasure[current_measure+1] or 0) >= 16 then
+		for _, stream in ipairs(streams.Measures or {}) do
+			if current_measure >= stream.streamStart and current_measure < stream.streamEnd then
+				local run = current_measure - stream.streamStart + 1
+				local total = stream.streamEnd - stream.streamStart
+				failure.death_measures = string.format("%s/%s", run, total)
+				break
+			end
+		end
+	end
+
+	stage.failure = failure
+	-- Compatibility fields for the existing Evaluation graph.
+	stage.TotalSeconds = failure.total_seconds
+	stage.DeathSecond = failure.death_second
+	stage.GraphPercentage = failure.graph_percentage
+	stage.GraphLabel = failure.graph_label
+	stage.DeathMeasures = failure.death_measures
+end
+
+function VOLT26.Failure.NewExitGuard()
+	return { used_autoplay = { [PLAYER_1]=false, [PLAYER_2]=false } }
+end
+
+function VOLT26.Failure.ObserveJudgment(guard, params)
+	if params.Player and IsAutoplay(params.Player) then
+		guard.used_autoplay[params.Player] = true
+	end
+end
+
+function VOLT26.Failure.WasPrematureExit()
+	local stage_stats = STATSMAN:GetCurStageStats()
+	local premature
+	if stage_stats.GaveUp then
+		premature = stage_stats:GaveUp()
+	else
+		local song = GAMESTATE:GetCurrentSong()
+		premature = song and GAMESTATE:GetCurMusicSeconds() < song:GetLastSecond() or false
+	end
+
+	if GAMESTATE:IsCourseMode() then
+		local course = GAMESTATE:GetCurrentCourse()
+		if course and GAMESTATE:GetCourseSongIndex() + 1 < course:GetNumCourseEntries() then
+			premature = true
+		end
+	end
+	return premature
+end
+
+function VOLT26.Failure.ReconcileExit(guard)
+	local premature = VOLT26.Failure.WasPrematureExit()
+	for player in ivalues(GAMESTATE:GetEnabledPlayers()) do
+		if premature or guard.used_autoplay[player] then
+			STATSMAN:GetCurStageStats():GetPlayerStageStats(player):FailPlayer()
+		end
+	end
+end
+
 VOLT26.Evaluation = {}
 
 function VOLT26.Evaluation.AllPlayersFailed()

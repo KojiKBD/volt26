@@ -14,6 +14,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.Gameplay`: stage lifecycle, reload state, player-stage storage, and gameplay duration.
 - `VOLT26.Telemetry`: normalized EX, timing-offset, and per-column judgment capture for the current stage.
 - `VOLT26.Scoring`: score calculations over telemetry snapshots and chart radar data.
+- `VOLT26.Failure`: failure-position records and gameplay-exit reconciliation policy.
 - `VOLT26.Evaluation`: result-context storage and completed-stage lifecycle.
 - `VOLT26.Options`: player-modifier access, options-screen routing, and return policy.
 - `VOLT26.Navigation`: route decisions and supported-mode policy.
