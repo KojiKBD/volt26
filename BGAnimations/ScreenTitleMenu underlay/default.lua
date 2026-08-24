@@ -85,7 +85,6 @@ end
 do
     local text_images = {
         THEME:GetPathG("", "VOLT26/gameplay_text.png"),
-        THEME:GetPathG("", "VOLT26/mementos_text.png"),
         THEME:GetPathG("", "VOLT26/edit_text.png"),
         THEME:GetPathG("", "VOLT26/options_text.png"),
         THEME:GetPathG("", "VOLT26/exit_text.png")
@@ -454,6 +453,7 @@ end
 -- ==========================================
 do
     local current_idx = 0
+    local menu_item_count = 4
     local idle_elapsed = 0
     local afk_armed = false
     local afk_active = false
@@ -544,7 +544,7 @@ do
             -- LoseFocus broadcasts -999 immediately before the next item
             -- gains focus. Ignore it so movement and audio occur only once.
             if type(focused_idx) ~= "number"
-            or focused_idx < 0 or focused_idx >= 5 then
+            or focused_idx < 0 or focused_idx >= menu_item_count then
                 return
             end
 
