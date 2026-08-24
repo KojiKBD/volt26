@@ -1,6 +1,7 @@
 local player = ...
 local pn = ToEnumShortString(player)
 local mods = SL[pn].ActiveModifiers
+local result = VOLT26.Results.GetCurrent(player)
 
 -- a string representing the NoteSkin the player was using
 local noteskin = GAMESTATE:GetPlayerState(player):GetCurrentPlayerOptions():NoteSkin()
@@ -79,7 +80,7 @@ for i, column in ipairs( cols ) do
 		if SL[pn].ActiveModifiers.TimingWindows[j] or j==#rows or (mods.ShowFaPlusWindow and mods.ShowFaPlusPane and SL[pn].ActiveModifiers.TimingWindows[j-1]) then
 			-- add a BitmapText actor to be the number for this column
 			local judgementText = 0
-			judgementText =SL[pn].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1].column_judgments[i][judgment]
+			judgementText = result.columnJudgments[i][judgment]
 
 			af[#af+1] = LoadFont("Common Normal")..{
 				Text=judgementText,
@@ -91,7 +92,7 @@ for i, column in ipairs( cols ) do
 			}
 			if judgment == "W4" or judgment == "W5" then
 				af[#af+1] = LoadFont("Common Normal")..{
-					Text=SL[pn].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1].column_judgments[i]["Early"][judgment],
+					Text=result.columnJudgments[i].Early[judgment],
 					InitCommand=function(self)
 						self:xy(_x - 1, j*row_height - 6):zoom(0.65):halign(1)
 					end,
@@ -105,7 +106,7 @@ for i, column in ipairs( cols ) do
 
 	-- the number of MissBecauseHeld judgments for this column
 	af[#af+1] = LoadFont("Common Normal")..{
-		Text=SL[pn].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1].column_judgments[i].MissBecauseHeld,
+		Text=result.columnJudgments[i].MissBecauseHeld,
 		InitCommand=function(self)
 			self:xy(_x - 1, 144):zoom(0.65):halign(1)
 		end,

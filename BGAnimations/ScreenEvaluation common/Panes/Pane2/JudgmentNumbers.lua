@@ -1,7 +1,7 @@
 local player, controller = unpack(...)
 local styletype = ToEnumShortString(GAMESTATE:GetCurrentStyle():GetStyleType())
 local pn = ToEnumShortString(player)
-local pss = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
+local result = VOLT26.Results.GetCurrent(player)
 
 
 local TapNoteScores = {
@@ -25,8 +25,7 @@ local RadarCategories = {
 	x = { P1=-180, P2=218 }
 }
 
--- TODO(Zankoku) - EX judgments are in storage now, so we shouldn't have to calculate this all over again
-local counts = GetExJudgmentCounts(player)
+local counts = result.exJudgments
 
 local t = Def.ActorFrame{
 	InitCommand=function(self)self:zoom(0.8):xy(90,_screen.cy-24) end,
@@ -85,18 +84,16 @@ for index, RCType in ipairs(RadarCategories.Types) do
 	-- Swap to displaying ITG score if we're showing EX score in gameplay.
 	local percent = nil
 	if styletype == "TwoPlayersSharedSides" then
-		local PercentDP = pss:GetPercentDancePoints()
-		percent = FormatPercentScore(PercentDP)
+		percent = FormatPercentScore(result.percentDP)
 		-- Format the Percentage string, removing the % symbol
 		percent = percent:gsub("%%", "")
 	else
-		if SL[pn].ActiveModifiers.ShowExScore then
-			local PercentDP = pss:GetPercentDancePoints()
-			percent = FormatPercentScore(PercentDP):gsub("%%", "")
+		if result.showEx then
+			percent = FormatPercentScore(result.percentDP):gsub("%%", "")
 			-- Format the Percentage string, removing the % symbol
 			percent = tonumber(percent)
 		else
-			percent = CalculateExScore(player)
+			percent = result.exPercent
 		end
 	end
 

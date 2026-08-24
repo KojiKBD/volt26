@@ -1373,6 +1373,150 @@ function VOLT26.Scoring.CalculateExScore(player, ex_counts, use_actual_w0_weight
 	return math.max(0, math.floor(total_points / total_possible * 10000) / 100), total_points, total_possible
 end
 
+VOLT26.Results = {}
+
+local ResultTapWindows = {"W1", "W2", "W3", "W4", "W5", "Miss"}
+local ResultRadarCategories = {"Hands", "Holds", "Mines", "Rolls"}
+
+function VOLT26.Results.GetStageStats(player)
+	local stageStats = STATSMAN:GetCurStageStats()
+	local style = GAMESTATE:GetCurrentStyle()
+	if style and ToEnumShortString(style:GetStyleType()) == "TwoPlayersSharedSides" then
+		return stageStats:GetRoutineStageStats()
+	end
+	return stageStats:GetPlayerStageStats(player)
+end
+
+function VOLT26.Results.GetCurrent(player)
+	local stats = VOLT26.Results.GetStageStats(player)
+	local modifiers = VOLT26.Options.GetPlayerModifiers(player)
+	local telemetry = VOLT26.Telemetry.GetSnapshot(player) or {}
+	local judgments = {}
+	for _, window in ipairs(ResultTapWindows) do
+		judgments[window] = stats:GetTapNoteScores("TapNoteScore_"..window)
+	end
+
+	local capturedExJudgments = VOLT26.Scoring.GetExCounts(player) or {}
+	local exJudgments = DeepCopy(capturedExJudgments)
+	local radar = {actual={}, possible={}}
+	for _, category in ipairs(ResultRadarCategories) do
+		radar.actual[category] = stats:GetRadarActual():GetValue("RadarCategory_"..category)
+		radar.possible[category] = stats:GetRadarPossible():GetValue("RadarCategory_"..category)
+	end
+	if VOLT26.Gameplay.GetMode() == "ITG" then
+		exJudgments.W0 = capturedExJudgments.W0_total or 0
+		exJudgments.W1 = math.max(0, judgments.W1 - exJudgments.W0)
+		for _, window in ipairs({"W2", "W3", "W4", "W5", "Miss"}) do
+			exJudgments[window] = judgments[window]
+		end
+		if not modifiers.TimingWindows[4] then exJudgments.W4 = nil end
+		if not modifiers.TimingWindows[5] then exJudgments.W5 = nil end
+	end
+	local stepsOrTrail = GAMESTATE:IsCourseMode()
+		and GAMESTATE:GetCurrentTrail(player) or GAMESTATE:GetCurrentSteps(player)
+	local chartRadar = stepsOrTrail and stepsOrTrail:GetRadarValues(player) or nil
+	if chartRadar then
+		exJudgments.totalSteps = chartRadar:GetValue("RadarCategory_TapsAndHolds")
+		for _, category in ipairs({"Holds", "Mines", "Rolls"}) do
+			local possible = chartRadar:GetValue("RadarCategory_"..category)
+			exJudgments["total"..category] = possible
+			exJudgments[category] = radar.actual[category]
+		end
+		local options = GAMESTATE:GetPlayerState(player):GetPlayerOptions("ModsLevel_Preferred")
+		if options:NoMines() then
+			exJudgments.Mines, exJudgments.totalMines = 0, 0
+		else
+			exJudgments.Mines = exJudgments.totalMines - radar.actual.Mines
+		end
+	end
+
+	local exPercent = VOLT26.Scoring.CalculateExScore(player)
+	local grade = stats:GetGrade()
+	local song = GAMESTATE:GetCurrentSong()
+	if song and song:GetDisplayFullTitle() == "D" then grade = "Grade_Tier99" end
+	if exPercent == 100 then grade = "Grade_Tier00" end
+
+	return {
+		failed = stats:GetFailed(),
+		percentDP = stats:GetPercentDancePoints(),
+		exPercent = exPercent,
+		grade = grade,
+		judgments = judgments,
+		exJudgments = exJudgments,
+		columnJudgments = DeepCopy(telemetry.column_judgments or {}),
+		radar = radar,
+		showEx = modifiers.ShowExScore == true,
+		timingWindows = DeepCopy(modifiers.TimingWindows),
+	}
+end
+
+local function EventMachineRecordIndex(player, stats, machineHighScores)
+	local current = stats:GetHighScore()
+	local profile = PROFILEMAN:GetProfile(player)
+	local lastUsedName = profile and profile:GetLastUsedHighScoreName() or ""
+	for index, highScore in ipairs(machineHighScores) do
+		local nameMatches = current:GetName() == lastUsedName
+		if #GAMESTATE:GetHumanPlayers() == 1 and current:GetName() == "EVNT" then nameMatches = true end
+		if not nameMatches and #GAMESTATE:GetHumanPlayers() > 1 then
+			local playedStage = STATSMAN:GetPlayedStageStats(1)
+			local otherStats = playedStage and playedStage:GetPlayerStageStats(OtherPlayer[player]) or nil
+			nameMatches = otherStats == nil or highScore:GetScore() ~= otherStats:GetHighScore():GetScore()
+		end
+		if not nameMatches and #GAMESTATE:GetHumanPlayers() > 1 then
+			local playedStage = STATSMAN:GetPlayedStageStats(1)
+			local otherStats = playedStage and playedStage:GetPlayerStageStats(OtherPlayer[player]) or nil
+			nameMatches = otherStats == nil or highScore:GetScore() ~= otherStats:GetHighScore():GetScore()
+		end
+		if current:GetScore() == highScore:GetScore()
+			and current:GetDate() == highScore:GetDate()
+			and nameMatches then
+			return index - 1
+		end
+	end
+	return -1
+end
+
+function VOLT26.Results.GetRecordStatus(player)
+	local stats = VOLT26.Results.GetStageStats(player)
+	local songOrCourse = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentCourse() or GAMESTATE:GetCurrentSong()
+	local stepsOrTrail = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentTrail(player) or GAMESTATE:GetCurrentSteps(player)
+	local machineHighScores = PROFILEMAN:GetMachineProfile():GetHighScoreList(songOrCourse, stepsOrTrail):GetHighScores()
+	local maxMachine = PREFSMAN:GetPreference("MaxHighScoresPerListForMachine")
+	local machineIndex = stats:GetMachineHighScoreIndex()
+	local personalIndex = stats:GetPersonalHighScoreIndex()
+	local eligibleScore = stats:GetPercentDancePoints() >= 0.01
+
+	if GAMESTATE:IsEventMode() then
+		machineIndex = EventMachineRecordIndex(player, stats, machineHighScores)
+	end
+
+	local earnedMachine = eligibleScore and machineIndex >= 0
+	if GAMESTATE:IsEventMode() and eligibleScore then
+		if #machineHighScores == 0 then
+			earnedMachine = true
+		else
+			local cutoff = machineHighScores[math.min(maxMachine, #machineHighScores)]
+			earnedMachine = cutoff ~= nil and stats:GetHighScore():GetPercentDP() >= cutoff:GetPercentDP()
+		end
+	end
+
+	local result = {
+		machineIndex = machineIndex,
+		personalIndex = personalIndex,
+		earnedMachine = earnedMachine,
+		earnedPersonal = eligibleScore and personalIndex >= 0,
+		earnedTopTwoPersonal = personalIndex >= 0 and personalIndex < 2,
+	}
+	result.enteringName = result.earnedMachine or result.earnedPersonal
+	return result
+end
+
+function VOLT26.Results.ApplyNameEntryEligibility(player)
+	local status = VOLT26.Results.GetRecordStatus(player)
+	VOLT26.Core.GetPlayerState(player).HighScores.EnteringName = status.enteringName
+	return status
+end
+
 VOLT26.Failure = {}
 
 function VOLT26.Failure.GetCourseCumulativeLengths(player)

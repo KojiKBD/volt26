@@ -1,8 +1,7 @@
 local pn = ...
 
-local stats = STATSMAN:GetCurStageStats():GetPlayerStageStats(pn)
-local PercentDP = stats:GetPercentDancePoints()
-local percent = FormatPercentScore(PercentDP)
+local result = VOLT26.Results.GetCurrent(pn)
+local percent = FormatPercentScore(result.percentDP)
 -- Format the Percentage string, removing the % symbol
 percent = percent:gsub("%%", "")
 

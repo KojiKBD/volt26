@@ -1,8 +1,7 @@
 local player, controller = unpack(...)
 
 local pn = ToEnumShortString(player)
-local stats = STATSMAN:GetCurStageStats():GetPlayerStageStats(pn)
-local pss = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
+local result = VOLT26.Results.GetCurrent(player)
 local styletype = ToEnumShortString(GAMESTATE:GetCurrentStyle():GetStyleType())
 local tns_string = "TapNoteScore" .. (SL.Global.GameMode=="ITG" and "" or SL.Global.GameMode)
 
@@ -36,7 +35,7 @@ local EnglishRadarCategories = {
 
 local scores_table = {}
 for index, window in ipairs(TapNoteScores.Types) do
-	local number = stats:GetTapNoteScores( "TapNoteScore_"..window )
+	local number = result.judgments[window]
 	scores_table[window] = number
 end
 
@@ -55,7 +54,7 @@ local windows = SL[pn].ActiveModifiers.TimingWindows
 local maxCount = 1
 for i=1, #TapNoteScores.Types do
 	local window = TapNoteScores.Types[i]
-	local number = pss:GetTapNoteScores( "TapNoteScore_"..window )
+	local number = result.judgments[window]
 	if number > maxCount then maxCount = number end
 end
 
@@ -97,8 +96,6 @@ for index, label in ipairs(RadarCategories) do
 			end
 		}
 	else
-		local performance = stats:GetRadarActual():GetValue( "RadarCategory_"..firstToUpper(EnglishRadarCategories[label]) )
-		local possible = stats:GetRadarPossible():GetValue( "RadarCategory_"..firstToUpper(EnglishRadarCategories[label]) )
 		t[#t+1] = LoadFont("Common Normal")..{
 			Text=label,
 			InitCommand=function(self) self:zoom(0.833):horizalign(right) end,
