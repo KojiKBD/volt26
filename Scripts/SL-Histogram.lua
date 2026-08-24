@@ -40,9 +40,8 @@ local function gen_vertices(player, width, height, Steps, desaturation)
 		local FirstSecond = math.min(TimingData:GetElapsedTimeFromBeat(0), 0)
 		local LastSecond = Song:GetLastSecond()
 
-		-- magic numbers obtained from Photoshop's Eyedrop tool in rgba percentage form (0 to 1)
-		local blue   = {0,    0.678, 0.753, 1}
-		local purple = {0.51, 0,     0.631, 1}
+		local graphColor = DeepCopy(DifficultyColor(Steps:GetDifficulty()))
+		local peakColor = LightenColor(DeepCopy(graphColor))
 
 		if desaturation ~= nil then
 			local function Desaturate(color, desaturation)
@@ -52,8 +51,8 @@ local function gen_vertices(player, width, height, Steps, desaturation)
 				color[3] = color[3] + desaturation * (luma - color[3])
 				return color
 			end
-			blue = Desaturate(blue, desaturation)
-			purple = Desaturate(purple, desaturation)
+			graphColor = Desaturate(graphColor, desaturation)
+			peakColor = Desaturate(peakColor, desaturation)
 		end
 
 		local upper
@@ -80,16 +79,10 @@ local function gen_vertices(player, width, height, Steps, desaturation)
 					verts[#verts][1][1] = x
 					verts[#verts-1][1][1] = x
 				else
-					-- lerp_color() is a global function defined by the SM engine that takes three arguments:
-					--    a float between [0,1]
-					--    color1
-					--    color2
-					-- and returns a color that has been linearly interpolated by that percent between the two colors provided
-					-- for example, lerp_color(0.5, yellow, orange) will return the color that is halfway between yellow and orange
-					upper = lerp_color(math.abs(y/height), blue, purple )
+					upper = lerp_color(math.abs(y/height), graphColor, peakColor)
 
-					verts[#verts+1] = {{x, 0, 0}, blue} -- bottom of graph (blue)
-					verts[#verts+1] = {{x, y, 0}, upper}  -- top of graph (somewhere between blue and purple)
+					verts[#verts+1] = {{x, 0, 0}, graphColor}
+					verts[#verts+1] = {{x, y, 0}, upper}
 				end
 			end
 		end
@@ -99,8 +92,8 @@ local function gen_vertices(player, width, height, Steps, desaturation)
 		-- all the other measures but end abruptly at the start of the
 		-- measure.
 		if NPSperMeasure[#NPSperMeasure] ~= 0 then
-			verts[#verts+1] = {{width, 0, 0}, blue}
-			verts[#verts+1] = {{width, 0, 0}, blue}
+			verts[#verts+1] = {{width, 0, 0}, graphColor}
+			verts[#verts+1] = {{width, 0, 0}, graphColor}
 		end
 	end
 
