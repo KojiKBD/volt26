@@ -23,8 +23,6 @@ af[#af+1] = LoadActor("./FailOnHoldStart.lua")
 
 for player in ivalues( GAMESTATE:GetHumanPlayers() ) do
 
-	local pn = ToEnumShortString(player)
-
 	-- Use this opportunity to create an empty table for this player's
 	-- gameplay stats for this stage. We'll store all kinds of data in
 	-- this table that would normally only exist in ScreenGameplay so
@@ -34,7 +32,7 @@ for player in ivalues( GAMESTATE:GetHumanPlayers() ) do
 	--
 	-- Sadly, the full details of this Stages.Stats[stage_index] data structure
 	-- is not documented anywhere. :(
-	SL[pn].Stages.Stats[SL.Global.Stages.PlayedThisGame+1] = {}
+	VOLT26.Gameplay.BeginPlayerStage(player)
 
 	af[#af+1] = LoadActor("./TrackTimeSpentInGameplay.lua", player)
 	af[#af+1] = LoadActor("./JudgmentOffsetTracking.lua", player)

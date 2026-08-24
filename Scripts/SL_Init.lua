@@ -524,7 +524,14 @@ function VOLT26.Core.GetGlobalState()
 end
 
 function VOLT26.Core.GetPlayerState(player)
-	local key = type(player) == "string" and player or ToEnumShortString(player)
+	local key
+	if player == PLAYER_1 or player == "PlayerNumber_P1" or player == "P1" then
+		key = "P1"
+	elseif player == PLAYER_2 or player == "PlayerNumber_P2" or player == "P2" then
+		key = "P2"
+	else
+		key = ToEnumShortString(player)
+	end
 	return VOLT26.State[key]
 end
 
@@ -573,6 +580,77 @@ function VOLT26.MusicSelection.RefreshPlayer(player, rebuildFavorites)
 		generateFavoritesForMusicWheel()
 	end
 	ApplyMods(player)
+end
+
+VOLT26.Gameplay = {}
+
+function VOLT26.Gameplay.GetMode()
+	return VOLT26.State.Global.GameMode
+end
+
+function VOLT26.Gameplay.IsCasual()
+	return VOLT26.Gameplay.GetMode() == "Casual"
+end
+
+function VOLT26.Gameplay.GetCurrentStageIndex()
+	return VOLT26.State.Global.Stages.PlayedThisGame + 1
+end
+
+function VOLT26.Gameplay.GetPlayerStageState(player)
+	local state = VOLT26.Core.GetPlayerState(player)
+	return state.Stages.Stats[VOLT26.Gameplay.GetCurrentStageIndex()]
+end
+
+function VOLT26.Gameplay.BeginPlayerStage(player)
+	local state = VOLT26.Core.GetPlayerState(player)
+	state.Stages.Stats[VOLT26.Gameplay.GetCurrentStageIndex()] = {}
+	return VOLT26.Gameplay.GetPlayerStageState(player)
+end
+
+function VOLT26.Gameplay.StorePlayerOptions(player)
+	VOLT26.Core.GetPlayerState(player).PlayerOptionsString =
+		GAMESTATE:GetPlayerState(player):GetPlayerOptionsString("ModsLevel_Preferred")
+end
+
+function VOLT26.Gameplay.StoreDuration(player, seconds)
+	local stage = VOLT26.Gameplay.GetPlayerStageState(player)
+	if stage then stage.duration = seconds end
+end
+
+function VOLT26.Gameplay.IsReload()
+	return VOLT26.State.Global.GameplayReloadCheck == true
+end
+
+function VOLT26.Gameplay.MarkIntroComplete()
+	VOLT26.State.Global.GameplayReloadCheck = true
+end
+
+function VOLT26.Gameplay.LeaveScreen()
+	VOLT26.State.Global.GameplayReloadCheck = false
+end
+
+VOLT26.Evaluation = {}
+
+function VOLT26.Evaluation.AllPlayersFailed()
+	local players = GAMESTATE:GetHumanPlayers()
+	if #players == 0 then return false end
+	for player in ivalues(players) do
+		if not STATSMAN:GetCurStageStats():GetPlayerStageStats(player):GetFailed() then
+			return false
+		end
+	end
+	return true
+end
+
+function VOLT26.Evaluation.StoreStageContext()
+	VOLT26.State.Global.Stages.Stats[VOLT26.Gameplay.GetCurrentStageIndex()] = {
+		song = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentCourse() or GAMESTATE:GetCurrentSong(),
+		MusicRate = VOLT26.MusicSelection.GetMusicRate(),
+	}
+end
+
+function VOLT26.Evaluation.CompleteStage()
+	VOLT26.State.Global.Stages.PlayedThisGame = VOLT26.State.Global.Stages.PlayedThisGame + 1
 end
 
 VOLT26.Navigation = {

@@ -1,6 +1,8 @@
 local failed = ...
 
-local totalTime = failed and 3 or 1
+-- Keep the transition alive until the frame sequences and title fades finish.
+-- Victory runs for about 2.3 seconds; defeat's main sequence finishes within 3.
+local totalTime = failed and 3 or 2.5
 local af = Def.ActorFrame{
 	InitCommand=function(self)
 		self:Center()
@@ -33,7 +35,6 @@ if failed then
 	local sPath    = "VOLT26/Eval/defeat_animation_res/"
     local startNum = 0
     local endNum   = 38
-	local tytPath    = "VOLT26/Eval/tyt_res/"
     local fFPS     = 24
     local fDelay   = 1 / fFPS
 
@@ -77,50 +78,6 @@ if failed then
 
 
 	af[#af+1] = anim2
-
-
-local function framePath(n)
-    return THEME:GetPathG("", tytPath.."tyt_"..string.format("%05d", n)..".png")
-end
-
-local loopCount = 0
-local maxLoops = 2
-
-	local function frameCommand(n)
-		return function(self)
-			self:Load(framePath(n))
-			local nextN = n + 1
-			if nextN > endNum then
-				loopCount = loopCount + 1
-				if loopCount < maxLoops then
-					nextN = startNum
-				else
-					return -- stop here, animation finished its 2 loops
-				end
-			end
-			self:sleep(fDelay):queuecommand("Frame"..nextN)
-		end
-	end
-
-	local anim = Def.Sprite{
-		Texture=framePath(startNum),
-		InitCommand=function(self)
-			self:zoomto(SCREEN_WIDTH, SCREEN_HEIGHT)
-		end,
-		OnCommand=function(self)
-			self:sleep(fDelay):queuecommand("Frame"..(startNum + 1))
-		end,
-	}
-
-	for n = startNum, endNum do
-		anim["Frame"..n.."Command"] = frameCommand(n)
-	end
-
-
-
-
-
-    af[#af+1] = anim
 
 
 	-- af[#af+1] = Def.Sprite{

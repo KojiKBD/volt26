@@ -1,6 +1,7 @@
 local player = ...
 local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+local playerState = VOLT26.Core.GetPlayerState(player)
+local mods = playerState.ActiveModifiers
 
 local TNSTypes = {
 	'TapNoteScore_W1',
@@ -19,7 +20,7 @@ return Def.Actor{
 		--
 		-- Here, we are storing things like letter grade, percent score, judgment counts, stepchart difficulty, etc.
 		-- so that we can more easily display it on ScreenEvaluationSummary when this game cycle ends.
-		local storage = SL[pn].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1]
+		local storage = VOLT26.Gameplay.GetPlayerStageState(player)
 
 		-- a PlayerStageStats object from the engine
 		-- see: http://quietly-turning.github.io/Lua-For-SM5/LuaAPI#Actors-PlayerStageStats
@@ -64,6 +65,6 @@ return Def.Actor{
 			storage.stepartist = pss:GetPlayedSteps()[1]:GetAuthorCredit()
 		end
 
-		storage.timingwindows = SL[pn].ActiveModifiers.TimingWindows
+		storage.timingwindows = playerState.ActiveModifiers.TimingWindows
 	end
 }

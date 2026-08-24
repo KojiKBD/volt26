@@ -15,7 +15,7 @@ local actor = Def.Actor{
 		start_time = GetTimeSinceStart()
 	end,
 	OffCommand=function(self)
-		SL[ToEnumShortString(player)].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1].duration = GetTimeSinceStart() - start_time
+		VOLT26.Gameplay.StoreDuration(player, GetTimeSinceStart() - start_time)
 	end
 }
 
