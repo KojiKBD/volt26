@@ -13,6 +13,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.MusicSelection`: music-screen initialization, active-rate access, and player refresh behavior.
 - `VOLT26.Gameplay`: stage lifecycle, reload state, player-stage storage, and gameplay duration.
 - `VOLT26.Evaluation`: result-context storage and completed-stage lifecycle.
+- `VOLT26.Options`: player-modifier access, options-screen routing, and return policy.
 - `VOLT26.Navigation`: route decisions and supported-mode policy.
 - `VOLT26.Brand`: theme identity, colors, and presentation-neutral brand data.
 
