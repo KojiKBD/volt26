@@ -56,7 +56,7 @@ spr.CodeMessageCommand=function(self, params)
 		end
 	end
 	if params.Name == "Favorite1" or params.Name == "Favorite2" then
-		addOrRemoveFavorite(params.PlayerNumber)
+		VOLT26.Favorites.ToggleCurrent(params.PlayerNumber)
 	end
 end
 
