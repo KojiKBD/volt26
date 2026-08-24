@@ -1,144 +1,77 @@
--- if we're in CourseMode, then we'll have to collect steps per chart
-local iscourse = GAMESTATE:IsCourseMode()
-
--- arguments passed in from Graphs.lua
 local args = ...
 local player = args.player
-local pn = ToEnumShortString(player)
-local GraphWidth = args.GraphWidth
-local GraphHeight = args.GraphHeight
-local mods = SL[pn].ActiveModifiers
-
--- sequential_offsets gathered in ./BGAnimations/ScreenGameplay overlay/JudgmentOffsetTracking.lua
-local sequential_offsets = SL[pn].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1].sequential_offsets
-
--- a table to store the AMV's vertices
--- this will be a table of tables, to get around ActorMultiVertex limitations on D3D renderer
-local vertsTable= {}
-
-local Steps = GAMESTATE:GetCurrentSteps(player)
-local TimingData = Steps:GetTimingData()
--- FirstSecond and LastSecond are used in scaling the x-coordinates of the AMV's vertices
-local FirstSecond = math.min(TimingData:GetElapsedTimeFromBeat(0), 0)
-local LastSecond = (not iscourse) and GAMESTATE:GetCurrentSong():GetLastSecond() or TotalCourseLength(player) * SL.Global.ActiveModifiers.MusicRate
-
--- variables that will be used and re-used in the loop while calculating the AMV's vertices
-local Offset, CurrentSecond, TimingWindow, x, y, c, r, g, b
-
--- ---------------------------------------------
--- scale worst_window to the worst judgment hit in the song
--- start at Excellent window as the worst window since most quads are
--- hard to make sense of visually
-local worst_window = GetTimingWindow(math.max(2, GetWorstJudgment(sequential_offsets)))
-
--- ---------------------------------------------
+local graphWidth = args.GraphWidth
+local graphHeight = args.GraphHeight
+local modifiers = VOLT26.Options.GetPlayerModifiers(player)
+local timingOffsets = VOLT26.Analysis.GetTimingOffsets(player)
+local timeline = VOLT26.Analysis.GetTimeline(player)
+local worstWindow = GetTimingWindow(math.max(2, VOLT26.Analysis.GetWorstJudgment(timingOffsets)))
 
 local colors = {}
-for w=NumJudgmentsAvailable(),1,-1 do
-	if SL[pn].ActiveModifiers.TimingWindows[w]==true then
-		colors[w] = DeepCopy(SL.JudgmentColors[SL.Global.GameMode][w])
+for window=NumJudgmentsAvailable(),1,-1 do
+	if modifiers.TimingWindows[window] then
+		colors[window] = DeepCopy(SL.JudgmentColors[SL.Global.GameMode][window])
 	else
-		colors[w] = DeepCopy(colors[w+1] or SL.JudgmentColors[SL.Global.GameMode][w+1])
+		colors[window] = DeepCopy(colors[window + 1] or SL.JudgmentColors[SL.Global.GameMode][window + 1])
 	end
 end
 
--- ---------------------------------------------
+local pointBatches = VOLT26.Analysis.BuildScatterBatches(
+	timingOffsets,
+	timeline,
+	graphWidth,
+	graphHeight,
+	worstWindow
+)
 
--- Initialize vertices table of tables and start the stepcount
-vertsTable[#vertsTable+1] = {}
-local stepCount = 0
-
-for t in ivalues(sequential_offsets) do
-	stepCount = stepCount + 1
-	-- If the step-count exceeds the threshold, start a new table within the table.
-	if stepCount >= 16000 then
-		stepCount = 0
-		vertsTable[#vertsTable+1] = {}
-	end
-	local verts = vertsTable[#vertsTable]
-	
-	CurrentSecond = t[1]
-	Offset = t[2]
-
-	if Offset ~= "Miss" then
-		CurrentSecond = CurrentSecond - Offset
-	else
-		CurrentSecond = CurrentSecond - worst_window
-	end
-
-	-- pad the right end because the time measured seems to lag a little...
-	x = scale(CurrentSecond, FirstSecond, LastSecond + 0.05, 0, GraphWidth)
-
-	if Offset ~= "Miss" then
-		-- DetermineTimingWindow() is defined in ./Scripts/SL-Helpers.lua
-		TimingWindow = DetermineTimingWindow(Offset)
-		y = scale(Offset, worst_window, -worst_window, 0, GraphHeight)
-
-		-- get the appropriate color from the global SL table
-		c = colors[TimingWindow]
-
-		if mods.ShowFaPlusWindow and mods.ShowFaPlusPane then
-			abs_offset = math.abs(Offset)
-			if abs_offset > GetTimingWindow(1, "FA+") and abs_offset <= GetTimingWindow(2, "FA+") then
-				c = SL.JudgmentColors["FA+"][2]
-			end
-		end
-
-		-- get the red, green, and blue values from that color
-		r = c[1]
-		g = c[2]
-		b = c[3]
-
-		-- insert four datapoints into the verts tables, effectively generating a single quadrilateral
-		-- top left,  top right,  bottom right,  bottom left
-		table.insert( verts, {{x,y,0}, {r,g,b,0.666}} )
-		table.insert( verts, {{x+1.5,y,0}, {r,g,b,0.666}} )
-		table.insert( verts, {{x+1.5,y+1.5,0}, {r,g,b,0.666}} )
-		table.insert( verts, {{x,y+1.5,0}, {r,g,b,0.666}} )
-	else
-		-- else, a miss should be a quadrilateral that is the height of the entire graph and red
-		table.insert( verts, {{x, 0, 0}, color("#ff000077")} )
-		table.insert( verts, {{x+1, 0, 0}, color("#ff000077")} )
-		table.insert( verts, {{x+1, GraphHeight, 0}, color("#ff000077")} )
-		table.insert( verts, {{x, GraphHeight, 0}, color("#ff000077")} )
-	end
-end
-
--- the scatter plot will use an ActorMultiVertex in "Quads" mode
--- this is more efficient than drawing n Def.Quads (one for each judgment)
--- because the entire AMV will be a single Actor rather than n Actors with n unique Draw() calls.
-
--- Since we've now split the table into multiples, create an ActorMultiVertex for each table and store them into one ActorFrame.
 local af = Def.ActorFrame{}
 
--- if this is the score screen for a course, then iterate through each chart and plot them
-if iscourse then
-	local trailEntries = GAMESTATE:GetCurrentTrail(player):GetTrailEntries()
-	local curSecs = 0
-	
-	for i=1,#trailEntries do
-		local endSec = trailEntries[i]:GetSong():GetLastSecond()
-		local startX = (-GraphWidth/2) + (curSecs / LastSecond) * GraphWidth
-		local endX = (endSec / LastSecond) * GraphWidth
-		af[#af+1] = Def.Quad{
-			InitCommand=function(self)
-				self:x(startX):zoomto(endX, GraphHeight):diffuse(LightenColor(LightenColor(color("#101519")))):diffusealpha(0.5):vertalign(top):horizalign(left)
-				if i%2 == 0 then self:visible(false) end
-			end
-		}
-		curSecs = curSecs + endSec
+if GAMESTATE:IsCourseMode() and timeline.lastSecond > 0 then
+	for index, segment in ipairs(timeline.segments) do
+		if index % 2 == 1 then
+			local startX = -graphWidth / 2 + segment.startSecond / timeline.lastSecond * graphWidth
+			local segmentWidth = (segment.endSecond - segment.startSecond) / timeline.lastSecond * graphWidth
+			af[#af + 1] = Def.Quad{
+				InitCommand=function(self)
+					self:x(startX):zoomto(segmentWidth, graphHeight)
+						:diffuse(LightenColor(LightenColor(color("#101519"))))
+						:diffusealpha(0.5):vertalign(top):horizalign(left)
+				end,
+			}
+		end
 	end
 end
 
-for verts in ivalues(vertsTable) do
-	local amv = Def.ActorMultiVertex{
-		InitCommand=function(self) self:x(-GraphWidth/2) end,
+for _, points in ipairs(pointBatches) do
+	local vertices = {}
+	for _, point in ipairs(points) do
+		if point.isMiss then
+			vertices[#vertices + 1] = {{point.x, 0, 0}, color("#ff000077")}
+			vertices[#vertices + 1] = {{point.x + 1, 0, 0}, color("#ff000077")}
+			vertices[#vertices + 1] = {{point.x + 1, graphHeight, 0}, color("#ff000077")}
+			vertices[#vertices + 1] = {{point.x, graphHeight, 0}, color("#ff000077")}
+		else
+			local tint = colors[DetermineTimingWindow(point.offset)]
+			local absoluteOffset = math.abs(point.offset)
+			if modifiers.ShowFaPlusWindow and modifiers.ShowFaPlusPane
+				and absoluteOffset > GetTimingWindow(1, "FA+")
+				and absoluteOffset <= GetTimingWindow(2, "FA+") then
+				tint = SL.JudgmentColors["FA+"][2]
+			end
+			local vertexColor = {tint[1], tint[2], tint[3], 0.666}
+			vertices[#vertices + 1] = {{point.x, point.y, 0}, vertexColor}
+			vertices[#vertices + 1] = {{point.x + 1.5, point.y, 0}, vertexColor}
+			vertices[#vertices + 1] = {{point.x + 1.5, point.y + 1.5, 0}, vertexColor}
+			vertices[#vertices + 1] = {{point.x, point.y + 1.5, 0}, vertexColor}
+		end
+	end
+
+	af[#af + 1] = Def.ActorMultiVertex{
+		InitCommand=function(self) self:x(-graphWidth / 2) end,
 		OnCommand=function(self)
-			self:SetDrawState({Mode="DrawMode_Quads"})
-				:SetVertices(verts)
+			self:SetDrawState{Mode="DrawMode_Quads"}:SetVertices(vertices)
 		end,
 	}
-	af[#af+1] = amv
 end
 
 return af

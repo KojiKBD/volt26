@@ -1,11 +1,11 @@
 if SL.Global.GameMode == "Casual" then return end
 
 local player = ...
-local pn = ToEnumShortString(player)
 local NumPlayers = #GAMESTATE:GetHumanPlayers()
 
 local GraphWidth  = THEME:GetMetric("GraphDisplay", "BodyWidth")
 local GraphHeight = THEME:GetMetric("GraphDisplay", "BodyHeight")
+local timeline = VOLT26.Analysis.GetTimeline(player)
 
 local af = Def.ActorFrame{
 	Name="JudgeGraph",
@@ -56,7 +56,8 @@ af[#af+1] = LoadActor("./ScatterPlot.lua", {player=player, GraphWidth=GraphWidth
 -- the player's lifemeter during gameplay capped by a white line.
 -- in normal gameplay (non-CourseMode), we hide the solid color but leave the white line.
 -- in CourseMode, we hide the white line (for aesthetic reasons) and leave the solid color
--- as ScatterPlot.lua does not yet support CourseMode.
+-- Course mode keeps the filled life graph while the scatter plot supplies
+-- alternating chart segments on the shared course timeline.
 af[#af+1] = Def.GraphDisplay{
 	Name="GraphDisplay",
 	InitCommand=function(self)
@@ -65,18 +66,14 @@ af[#af+1] = Def.GraphDisplay{
 		self:Load("GraphDisplay" .. ColorIndex )
 
 		if not GAMESTATE:IsCourseMode() then
-			local steps = GAMESTATE:GetCurrentSteps(player)
-			local timingData = steps:GetTimingData()
-			local firstSecond = math.min(timingData:GetElapsedTimeFromBeat(0), 0)
 			local chartStartSecond = GAMESTATE:GetCurrentSong():GetFirstSecond()
-			local lastSecond = GAMESTATE:GetCurrentSong():GetLastSecond()
-			local duration = lastSecond - firstSecond
+			local duration = math.max(timeline.lastSecond - timeline.firstSecond, 0.001)
 
 			-- GraphDisplay starts at chartStartSecond, but the NPS graph
 			-- and the scatter plot start at firstSecond, so we have to
 			-- move the lifebar to the correct offset to align it with the
 			-- NPS graph.
-			local offsetFactor = (chartStartSecond - firstSecond) / duration
+			local offsetFactor = (chartStartSecond - timeline.firstSecond) / duration
 			local offset = GraphWidth * offsetFactor
 			self:addx(offset/2)
 			self:SetWidth(GraphWidth - offset)
@@ -108,21 +105,14 @@ af[#af+1] = Def.Quad{
 	end
 }
 
-local storage = SL[pn].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1]
+local failure = VOLT26.Failure.GetSnapshot(player)
 
-if storage.DeathSecond ~= nil then
-	local seconds = storage.TotalSeconds
-	local deathSecond = storage.DeathSecond
-	local deathMeasures = storage.DeathMeasures
-	local graphPercentage = storage.GraphPercentage
-	local graphLabel = storage.GraphLabel
+if failure then
+	local seconds = failure.total_seconds
+	local deathSecond = failure.death_second
+	local deathMeasures = failure.death_measures
+	local graphPercentage = seconds > 0 and clamp(deathSecond / seconds, 0, 1) or 0
 	local secondsLeft = seconds - deathSecond
-	
-	if GAMESTATE:IsCourseMode() then
-		local duration = TotalCourseLength(player)
-		local liveDuration = TotalCourseLengthPlayed(player)
-		graphPercentage = graphPercentage * liveDuration / duration
-	end
 
 	-- If the player failed, check how much time was remaining
 	af[#af+1] = Def.ActorFrame {
