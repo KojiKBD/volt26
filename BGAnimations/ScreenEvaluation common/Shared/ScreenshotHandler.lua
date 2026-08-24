@@ -3,8 +3,7 @@ if VOLT26.Gameplay.IsCasual() then return end
 local requestingPlayer
 local sprite = Def.Sprite{InitCommand=function(self) self:draworder(200) end}
 
-sprite.CodeMessageCommand=function(self, params)
-	if params.Name ~= "Screenshot" then return end
+sprite.CaptureScreenshotMessageCommand=function(self, params)
 	local success = VOLT26.EvaluationInput.CaptureScreenshot(params.PlayerNumber)
 	if not success then
 		SM(ScreenString("ScreenshotFailed"))

@@ -1853,6 +1853,27 @@ function VOLT26.EvaluationInput.CreateReplayPracticeHandler()
 	end
 end
 
+function VOLT26.EvaluationInput.CreateScreenshotHandler(requestCapture)
+	local held = {MenuLeft=false, MenuRight=false}
+	local chordCaptured = false
+	return function(event)
+		if not event or not event.PlayerNumber then return false end
+		if PREFSMAN:GetPreference("ThreeKeyNavigation") then
+			if held[event.GameButton] == nil then return false end
+			held[event.GameButton] = event.type ~= "InputEventType_Release"
+			if held.MenuLeft and held.MenuRight and not chordCaptured then
+				chordCaptured = true
+				requestCapture(event.PlayerNumber)
+			elseif not held.MenuLeft or not held.MenuRight then
+				chordCaptured = false
+			end
+		elseif event.GameButton == "Select" and event.type == "InputEventType_FirstPress" then
+			requestCapture(event.PlayerNumber)
+		end
+		return false
+	end
+end
+
 function VOLT26.EvaluationInput.BuildScreenshotPrefix(title)
 	local month = ("%02d-%s"):format(
 		MonthOfYear() + 1,
@@ -1867,7 +1888,11 @@ function VOLT26.EvaluationInput.CaptureScreenshot(player)
 	local title = item and item:GetDisplayFullTitle() or "Evaluation"
 	local prefix = VOLT26.EvaluationInput.BuildScreenshotPrefix(title)
 	local ok, success, path = pcall(SaveScreenshot, player, false, false, prefix)
-	if not ok then return false, tostring(success) end
+	if not ok then
+		Trace("VOLT26 screenshot error: "..tostring(success))
+		return false, tostring(success)
+	end
+	Trace(("VOLT26 screenshot %s: %s"):format(success and "saved" or "failed", tostring(path)))
 	return success == true, path
 end
 

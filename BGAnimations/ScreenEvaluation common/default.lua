@@ -2,7 +2,7 @@ local Players = GAMESTATE:GetHumanPlayers()
 local NumPanes = VOLT26.Gameplay.IsCasual() and 1 or 8
 
 local callbackController = VOLT26.EvaluationInput.NewCallbackController()
-local inputHandler, diagnosticInputHandler, eventOverlayInputHandler, shortcutInputHandler
+local inputHandler, diagnosticInputHandler, eventOverlayInputHandler, shortcutInputHandler, screenshotInputHandler
 
 if ThemePrefs.Get("WriteCustomScores") then
 	WriteScores()
@@ -22,6 +22,7 @@ if not VOLT26.Gameplay.IsCasual() then
 		callbackController:Activate("panes", inputHandler)
 		callbackController:Activate("diagnostics", diagnosticInputHandler)
 		callbackController:Activate("shortcuts", shortcutInputHandler)
+		callbackController:Activate("screenshot", screenshotInputHandler)
 		redirectPlayers(false)
 	end
 
@@ -29,6 +30,9 @@ if not VOLT26.Gameplay.IsCasual() then
 		inputHandler = LoadActor("./InputHandler.lua", {self, NumPanes})
 		diagnosticInputHandler = LoadActor("./Shared/DiagnosticInputHandler.lua")
 		eventOverlayInputHandler = LoadActor("./Shared/EventInputHandler.lua")
+		screenshotInputHandler = VOLT26.EvaluationInput.CreateScreenshotHandler(function(player)
+			MESSAGEMAN:Broadcast("CaptureScreenshot", {PlayerNumber=player})
+		end)
 		if VOLT26.EvaluationInput.CanUseReplayPracticeShortcuts() then
 			shortcutInputHandler = VOLT26.EvaluationInput.CreateReplayPracticeHandler()
 		end
@@ -43,6 +47,7 @@ if not VOLT26.Gameplay.IsCasual() then
 		callbackController:Deactivate("panes")
 		callbackController:Deactivate("diagnostics")
 		callbackController:Deactivate("shortcuts")
+		callbackController:Deactivate("screenshot")
 		callbackController:Activate("event", eventOverlayInputHandler)
 		redirectPlayers(true)
 	end
