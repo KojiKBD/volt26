@@ -12,12 +12,14 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.Profile`: guest/profile lifecycle, persistence callbacks, avatar lookup, and profile-flow state.
 - `VOLT26.MusicSelection`: music-screen initialization, active-rate access, and player refresh behavior.
 - `VOLT26.Gameplay`: stage lifecycle, reload state, player-stage storage, and gameplay duration.
+- `VOLT26.Telemetry`: normalized EX, timing-offset, and per-column judgment capture for the current stage.
+- `VOLT26.Scoring`: score calculations over telemetry snapshots and chart radar data.
 - `VOLT26.Evaluation`: result-context storage and completed-stage lifecycle.
 - `VOLT26.Options`: player-modifier access, options-screen routing, and return policy.
 - `VOLT26.Navigation`: route decisions and supported-mode policy.
 - `VOLT26.Brand`: theme identity, colors, and presentation-neutral brand data.
 
-Scoring, result analysis, and optional-service APIs will be added as their feature groups are migrated.
+Result analysis and optional-service APIs will be added as their feature groups are migrated.
 
 ## SCREEN groups
 

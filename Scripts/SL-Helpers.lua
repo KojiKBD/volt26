@@ -722,42 +722,7 @@ end
 -- The W0 weight may have been modified for Tournament mode purposes.
 -- Use the optional boolean argument use_actual_w0_weight to choose to fallback to the proper W0 weight.
 CalculateExScore = function(player, ex_counts, use_actual_w0_weight)
-	-- No EX scores in Casual mode, just return some dummy number early.
-	if SL.Global.GameMode == "Casual" then return 0 end
-	local StepsOrTrail = (GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentTrail(player)) or GAMESTATE:GetCurrentSteps(player)
-
-	local totalSteps = StepsOrTrail:GetRadarValues(player):GetValue( "RadarCategory_TapsAndHolds" )
-	local totalHolds = StepsOrTrail:GetRadarValues(player):GetValue( "RadarCategory_Holds" )
-	local totalRolls = StepsOrTrail:GetRadarValues(player):GetValue( "RadarCategory_Rolls" )
-
-	local W0Weight = use_actual_w0_weight and 3.5 or SL.ExWeights["W0"]
-	local total_possible = totalSteps * W0Weight + (totalHolds + totalRolls) * SL.ExWeights["Held"]
-
-	local total_points = 0
-
-	local po = GAMESTATE:GetPlayerState(player):GetPlayerOptions("ModsLevel_Preferred")
-
-	-- If mines are disabled, they should still be accounted for in EX Scoring based on the weight assigned to it.
-	-- Stamina community does often play with no-mines on, but because EX scoring is more timing centric where mines
-	-- generally have a negative weight, it's a better experience to make sure the EX score reflects that.
-	if po:NoMines() then
-		local totalMines = StepsOrTrail:GetRadarValues(player):GetValue( "RadarCategory_Mines" )
-		total_points = total_points + totalMines * SL.ExWeights["HitMine"];
-	end
-
-	local keys = { "W0", "W1", "W2", "W3", "W4", "W5", "Miss", "Held", "LetGo", "HitMine" }
-	local counts = ex_counts or SL[ToEnumShortString(player)].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1].ex_counts
-	-- Just for validation, but shouldn't happen in normal gameplay.
-	if counts == nil then return 0 end
-
-	for key in ivalues(keys) do
-		local value = counts[key]
-		if value ~= nil then
-			total_points = total_points + value * SL.ExWeights[key]
-		end
-	end
-
-	return math.max(0, math.floor(total_points/total_possible * 10000) / 100), total_points, total_possible
+	return VOLT26.Scoring.CalculateExScore(player, ex_counts, use_actual_w0_weight)
 end
 
 -- -----------------------------------------------------------------------
