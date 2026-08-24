@@ -5,9 +5,15 @@ local num_visible_items = num_items - 2
 
 local item_width = _screen.w / 2.125
 
-return Def.ActorFrame {
+local standard = Def.ActorFrame {
     -- the MusicWheel is centered via metrics under [ScreenSelectMusic]; offset by a slight amount to the right here
-    InitCommand = function(self) self:x(WideScale(28, 33)) end,
+    InitCommand = function(self)
+        self:x(WideScale(28, 33))
+        if ThemePrefs.Get("VisualStyle") == "VOLT26" then self:visible(false) end
+    end,
+	SetCommand = function(self)
+		if ThemePrefs.Get("VisualStyle") == "VOLT26" then self:visible(false) end
+	end,
 
     Def.Quad {
         InitCommand = function(self)
@@ -37,3 +43,12 @@ return Def.ActorFrame {
 		end,
     }
 }
+
+if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+	return Def.ActorFrame{
+		standard,
+		LoadActor(THEME:GetPathG("", "_VisualStyles/VOLT26/SongSelection/MusicWheelItem.lua"), "Course"),
+	}
+end
+
+return standard

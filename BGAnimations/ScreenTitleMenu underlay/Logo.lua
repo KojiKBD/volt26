@@ -31,8 +31,12 @@ af[#af+1] = Def.Sprite{
 	LoadImageCommand=function(self)
 		if ThemePrefs.Get("VisualStyle") == "SRPG10" then
 			self:Load(THEME:GetPathG("", "_VisualStyles/SRPG10/"..SL.SRPG10.GetLogo()))
-			self:zoom(0.07):vertalign(top)
-			self:y(-150):shadowlength(0)
+			self:zoom(0.30):vertalign(top)
+			self:y(-200):shadowlength(0)
+		elseif ThemePrefs.Get("VisualStyle") == "VOLT26" then
+			-- self:Load(THEME:GetPathG("", "_VisualStyles/VOLT26/"..SL.VOLT26.GetLogo()))
+			-- self:zoom(0.30):vertalign(top)
+			-- self:y(-200):shadowlength(0)
 		else
 			local style = ThemePrefs.Get("VisualStyle")
 			local image = THEME:GetPathG("", "_VisualStyles/"..style.."/TitleMenu (doubleres).png")
@@ -49,7 +53,7 @@ af[#af+1] = Def.Sprite{
 }
 
 
-if ThemePrefs.Get("VisualStyle") ~= "SRPG10" then
+if ThemePrefs.Get("VisualStyle") ~= "SRPG10" and ThemePrefs.Get("VisualStyle") ~= "VOLT26" then
 	-- decorative arrows for current game (dance, pump, techno, etc.)
 	af[#af+1] = LoadActor(resolved_path)..{
 		InitCommand=function(self)
@@ -76,7 +80,7 @@ if ThemePrefs.Get("VisualStyle") ~= "SRPG10" then
 		VisualStyleSelectedMessageCommand=function(self)
 			-- In case we auto-switch to SRPG10, then it's possible this actor may have been added to the screen.
 			-- If so, we want to hide the logo as it interferes with the SRPG10 logo.
-			if ThemePrefs.Get("VisualStyle") == "SRPG10" then
+			if ThemePrefs.Get("VisualStyle") == "SRPG10" or ThemePrefs.Get("VisualStyle") == "VOLT26" then
 				self:visible(false)
 			end
 		end

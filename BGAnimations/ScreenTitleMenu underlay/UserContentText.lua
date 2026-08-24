@@ -84,31 +84,58 @@ local GetText = function()
 	return text
 end
 
-return LoadFont("Common Normal")..{
-	Text=GetText(),
-	InitCommand=function(self)
-		self:zoom(0.8):y(-150):diffusealpha(0)
-		self:playcommand("UpdateColor")
-	end,
-	OnCommand=function(self) self:sleep(0.2):linear(0.4):diffusealpha(1) end,
-	UpdateColorCommand=function(self)
-		local textColor = Color.White
-		local shadowLength = 0
-		if ThemePrefs.Get("RainbowMode") and not HolidayCheer() then
-			textColor = Color.Black
-		end
-		if ThemePrefs.Get("VisualStyle") == "SRPG10" then
-			textColor = color(SL.SRPG10.TextColor)
-			shadowLength = 0.4
-			self:y(-190)
-		end
+local GetRText = function()
+    return SL.VOLT26.RandomBullshit()
+end
 
-		self:diffuse(textColor):shadowlength(shadowLength)
-	end,
-	VersionCheckMessageCommand=function(self)
-		self:settext(GetText())
-	end,
-	VisualStyleSelectedMessageCommand=function(self)
-		self:playcommand("UpdateColor")
-	end,
-}
+local style = ThemePrefs.Get("VisualStyle")
+
+if style ~= "VOLT26" and style ~= "SRPG10" then
+    return LoadFont("Common Normal")..{
+        Text=GetText(),
+        InitCommand=function(self)
+            self:zoom(0.8):y(-150):diffusealpha(0)
+            self:playcommand("UpdateColor")
+        end,
+        OnCommand=function(self) self:sleep(0.2):linear(0.4):diffusealpha(1) end,
+        UpdateColorCommand=function(self)
+            local textColor = Color.White
+            local shadowLength = 0
+            if ThemePrefs.Get("RainbowMode") and not HolidayCheer() then
+                textColor = Color.Black
+            end
+            if ThemePrefs.Get("VisualStyle") == "SRPG10" then
+                textColor = color(SL.SRPG10.TextColor)
+                shadowLength = 0.4
+                self:y(-190)
+            end
+
+            self:diffuse(textColor):shadowlength(shadowLength)
+        end,
+        VersionCheckMessageCommand=function(self)
+            self:settext(GetText())
+        end,
+        VisualStyleSelectedMessageCommand=function(self)
+            self:playcommand("UpdateColor")
+        end,
+    }
+else
+    return LoadFont("Persona")..{
+        -- VOLT26 displays this inside the countdown widget instead of as
+        -- uncontained text over the title screen.
+        Text=style == "VOLT26" and "" or GetRText(),
+        InitCommand=function(self)
+            self:zoom(0.8):y(-220):diffusealpha(0)
+            self:playcommand("UpdateColor")
+        end,
+        OnCommand=function(self) self:sleep(0.2):linear(0.4):diffusealpha(1) end,
+        UpdateColorCommand=function(self)
+            local textColor = Color.White
+            local shadowLength = 0
+            self:diffuse(textColor):shadowlength(shadowLength)
+        end,
+        VisualStyleSelectedMessageCommand=function(self)
+            self:playcommand("UpdateColor")
+        end,
+    }
+end

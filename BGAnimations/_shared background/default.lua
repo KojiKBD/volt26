@@ -1,7 +1,7 @@
 -- the best way to spread holiday cheer is singing loud for all to hear
-if HolidayCheer() then
-	return LoadActor( THEME:GetPathB("", "_shared background/Snow.lua") )
-end
+-- if HolidayCheer() then
+-- 	return LoadActor( THEME:GetPathB("", "_shared background/Snow.lua") )
+-- end
 
 local style = ThemePrefs.Get("VisualStyle")
 

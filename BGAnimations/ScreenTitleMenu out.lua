@@ -332,4 +332,66 @@ if IsSpooky() then
 	}
 end
 
+
+-- VOLT26 transition animations
+if style == "VOLT26" then
+	local frame_time = 1/30
+	local knife_delay = 0.35
+	local volt_transitions = {
+		-- switch_screen is a fully-covered frame. Everything after it is
+		-- rendered by "Screen in.lua" over the newly-loaded screen.
+		{ folder="_VisualStyles/VOLT26/TransMenu",  prefix="TransMenu",  frames=16, switch_screen=8  },
+		{ folder="_VisualStyles/VOLT26/TransMenu2", prefix="TransMenu2", frames=28, switch_screen=17 }
+	}
+
+	local selected = volt_transitions[math.random(#volt_transitions)]
+	local paths = {}
+	for i=0, selected.frames-1 do
+		paths[#paths+1] = THEME:GetPathG("",
+			string.format("%s/%s_%05d.png", selected.folder, selected.prefix, i))
+	end
+
+	if PREFETCHMAN then
+		for _, path in ipairs(paths) do PREFETCHMAN:Add(path) end
+	end
+
+	-- Let the press animation land before the covering frames begin.
+	timing.duration = knife_delay + selected.switch_screen * frame_time
+
+	-- Store the selected sequence when the menu actually exits. The table
+	-- survives the screen swap; the generic Screen "in" actor consumes it.
+	t.OffCommand=function(self)
+		SL.Global.Volt26TransData = {
+			paths=paths,
+			next_frame=selected.switch_screen+1,
+			frame_time=frame_time
+		}
+		self:sleep(timing.duration)
+	end
+
+	local transition = Def.Sprite{
+		InitCommand=function(self)
+			self:Center():scaletoclipped(_screen.w, _screen.h)
+				:draworder(1000):diffusealpha(0)
+		end,
+		OffCommand=function(self)
+			self:sleep(knife_delay):queuecommand("VoltFrame1")
+		end,
+		VoltFrame1Command=function(self)
+			self:Load(paths[1]):diffusealpha(1)
+				:sleep(frame_time):queuecommand("VoltFrame2")
+		end
+	}
+
+	for i=2, selected.switch_screen do
+		transition["VoltFrame"..i.."Command"] = function(self)
+			self:Load(paths[i]):sleep(frame_time)
+			if i < selected.switch_screen then
+				self:queuecommand("VoltFrame"..(i+1))
+			end
+		end
+	end
+
+	t[#t+1] = transition
+end
 return t

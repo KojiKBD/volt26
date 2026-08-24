@@ -1,3 +1,5 @@
+local isVOLT26 = ThemePrefs.Get("VisualStyle") == "VOLT26"
+
 local af = Def.ActorFrame{
 	-- GameplayReloadCheck is a kludgy global variable used in ScreenGameplay in.lua to check
 	-- if ScreenGameplay is being entered "properly" or being reloaded by a scripted mod-chart.
@@ -55,38 +57,25 @@ local af = Def.ActorFrame{
 	-- allow stepcharts from multiple styles (single, double, routine) to coexist
 	-- in the same music wheel
 	LoadActor("./AutoSetStyle.lua"),
-	-- ---------------------------------------------------
-	-- next, load visual elements; the order of these matters
-	-- i.e. content in PerPlayer/Over needs to draw on top of content from PerPlayer/Under
-
-	-- make the MusicWheel appear to cascade down; this should draw underneath P2's PaneDisplay
-	LoadActor("./MusicWheelAnimation.lua"),
-
-	-- number of steps, jumps, holds, etc., and high scores associated with the current stepchart
-	LoadActor("./PaneDisplay.lua"),
-
-	-- elements we need two of (one for each player) that draw underneath the StepsDisplayList
-	-- this includes the stepartist boxes, the density graph, and the cursors.
-	LoadActor("./PerPlayer/default.lua"),
-	-- The grid for the difficulty picker (normal) or CourseContentsList (CourseMode)
-	LoadActor("./StepsDisplayList/default.lua"),
-
-	-- Song's Musical Artist, BPM, Duration
-	LoadActor("./SongDescription/SongDescription.lua"),
-	-- Banner Art
-	LoadActor("./Banner.lua"),
-
-	-- ---------------------------------------------------
-	-- finally, load the overlay used for sorting the MusicWheel (and more), hidden by default
-	LoadActor("./SortMenu/default.lua"),
-	-- a Test Input overlay can (maybe) be accessed from the SortMenu
-	LoadActor("./TestInput.lua"),
-
-	-- The GrooveStats leaderboard that can (maybe) be accessed from the SortMenu
-	-- This is only added in "dance" mode and if the service is available.
-	LoadActor("./Leaderboard.lua"),
-
-	LoadActor("./SongSearch/default.lua"),
 }
+
+-- Keep the stock visual actors as direct children for every other visual style.
+-- Their original hierarchy and message propagation must not change.
+if isVOLT26 then
+	af[#af+1] = LoadActor("./VOLT26/default.lua")
+else
+	af[#af+1] = LoadActor("./MusicWheelAnimation.lua")
+	af[#af+1] = LoadActor("./PaneDisplay.lua")
+	af[#af+1] = LoadActor("./PerPlayer/default.lua")
+	af[#af+1] = LoadActor("./StepsDisplayList/default.lua")
+	af[#af+1] = LoadActor("./SongDescription/SongDescription.lua")
+	af[#af+1] = LoadActor("./Banner.lua")
+end
+
+-- Shared overlays retain their original draw order.
+af[#af+1] = LoadActor("./SortMenu/default.lua")
+af[#af+1] = LoadActor("./TestInput.lua")
+af[#af+1] = LoadActor("./Leaderboard.lua")
+af[#af+1] = LoadActor("./SongSearch/default.lua")
 
 return af

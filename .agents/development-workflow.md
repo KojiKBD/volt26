@@ -1,5 +1,11 @@
 # Development Workflow
 
+## Change approval policy
+
+- Do not modify repository files or project functionality without the project owner's explicit prior approval.
+- Treat approval as limited to the specific changes and scope described by the project owner.
+- Read-only inspection, review, diagnosis, and planning do not authorize subsequent file modifications.
+
 ## Branch policy
 
 - Create a dedicated branch for every development activity.
@@ -20,4 +26,3 @@
 - Preserve pre-existing local modifications and untracked files unless the project owner explicitly asks to change or remove them.
 - Do not mix unrelated pre-existing work into commits created for a new activity.
 - The canonical `origin` for this repository is `https://github.com/KojiKBD/volt26.git`.
-

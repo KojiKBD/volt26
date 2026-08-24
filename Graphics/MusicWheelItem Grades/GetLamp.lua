@@ -45,6 +45,10 @@ return Def.ActorFrame{
 			self:visible(false)
 		end,
 		SetGradeCommand=function(self, param)
+			if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+				self:visible(false)
+				return
+			end
 			self:scaletoclipped(SL_WideScale(5, 6), 31)
 
 			local lamp = GetLamp(param.HighScoreList)

@@ -138,6 +138,14 @@ Branch.AfterScreenSelectColor = function()
 end
 
 Branch.AllowScreenSelectPlayMode = function()
+	-- VOLT26 always uses ITG mode, so skip the Casual/ITG selection screen.
+	-- Continue through the normal post-selection branch so the ITG-specific
+	-- preferences are applied and the theme metrics are reloaded.
+	if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+		SL.Global.GameMode = "ITG"
+		return Branch.AllowScreenSelectPlayMode2()
+	end
+
 	if ThemePrefs.Get("AllowScreenSelectPlayMode") then
 		return "ScreenSelectPlayMode"
 	else
