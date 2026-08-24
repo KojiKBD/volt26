@@ -40,7 +40,7 @@ then
 		end,
 		RenderCommand=function(self)
 			self:visible(true):Draw():visible(false)
-			SL.Global.ScreenshotTexture = self:GetTexture()
+			VOLT26.EvaluationInput.SetScreenshotTexture(self:GetTexture())
 			SCREENMAN:GetTopScreen():GetChild("Overlay"):queuecommand("AnimateScreenshot")
 		end,
 

@@ -21,6 +21,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.Scoring`: score calculations over telemetry snapshots and chart radar data.
 - `VOLT26.Results`: normalized Evaluation snapshots, grade policy, record eligibility, and name-entry decisions.
 - `VOLT26.Analysis`: timing statistics, histogram smoothing, bounded scatter batches, and shared song/course timeline coordinates.
+- `VOLT26.EvaluationInput`: available-pane selection, callback ownership, replay/practice policy, and screenshot capture state.
 - `VOLT26.Failure`: failure-position records and gameplay-exit reconciliation policy.
 - `VOLT26.Evaluation`: result-context storage and completed-stage lifecycle.
 - `VOLT26.Options`: player-modifier access, options-screen routing, and return policy.
