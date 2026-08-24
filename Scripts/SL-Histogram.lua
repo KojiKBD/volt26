@@ -40,7 +40,7 @@ local function gen_vertices(player, width, height, Steps, desaturation)
 		local FirstSecond = math.min(TimingData:GetElapsedTimeFromBeat(0), 0)
 		local LastSecond = Song:GetLastSecond()
 
-		local graphColor = DeepCopy(DifficultyColor(Steps:GetDifficulty()))
+		local graphColor = VOLT26.ChartData.GetDifficultyColor(Steps:GetDifficulty())
 		local peakColor = LightenColor(DeepCopy(graphColor))
 
 		if desaturation ~= nil then

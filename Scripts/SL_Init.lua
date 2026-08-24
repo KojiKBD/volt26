@@ -538,6 +538,19 @@ end
 
 VOLT26.ChartData = {}
 
+local OriginalDifficultyColors = {
+	Difficulty_Beginner = color("#AEFA44"),
+	Difficulty_Easy = color("#FFFF00"),
+	Difficulty_Medium = color("#FFBE00"),
+	Difficulty_Hard = color("#FF7D00"),
+	Difficulty_Challenge = color("#FF5D47"),
+	Difficulty_Edit = color("#B4B7BA"),
+}
+
+function VOLT26.ChartData.GetDifficultyColor(difficulty)
+	return DeepCopy(OriginalDifficultyColors[difficulty] or OriginalDifficultyColors.Difficulty_Edit)
+end
+
 local function ChartPlayerEnum(player)
 	if player == "P1" or player == PLAYER_1 then return PLAYER_1 end
 	if player == "P2" or player == PLAYER_2 then return PLAYER_2 end

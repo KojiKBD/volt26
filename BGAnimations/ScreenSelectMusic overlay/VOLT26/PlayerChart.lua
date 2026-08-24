@@ -28,11 +28,11 @@ local af = Def.ActorFrame{
 		local chart = H.Chart(player)
 		local data = H.ChartData(player)
 		local difficulty = chart and ToEnumShortString(chart:GetDifficulty()):upper() or H.Dash
-		self:GetChild("Difficulty"):settext(difficulty)
-		self:GetChild("Meter"):settext(chart and chart:GetMeter() or H.Dash)
+		local difficultyColor = chart and VOLT26.ChartData.GetDifficultyColor(chart:GetDifficulty()) or accent
+		self:GetChild("Difficulty"):settext(difficulty):diffuse(difficultyColor)
+		self:GetChild("Meter"):settext(chart and chart:GetMeter() or H.Dash):diffuse(difficultyColor)
 		self:GetChild("Peak"):settext(data.peak > 0 and string.format("PEAK %.1f NPS", data.peak * VOLT26.MusicSelection.GetMusicRate()) or "NO DENSITY DATA")
-		local graphColor = chart and DifficultyColor(chart:GetDifficulty()) or accent
-		local vertices = graphVertices(data, graphColor)
+		local vertices = graphVertices(data, difficultyColor)
 		self:GetChild("Graph"):SetNumVertices(#vertices):SetVertices(vertices)
 		self:GetChild("Stats"):settext(string.format(
 			"NOTES %d  |  JUMPS %d  |  HOLDS %d  |  MINES %d  |  ROLLS %d  |  HANDS %d  |  %s",
