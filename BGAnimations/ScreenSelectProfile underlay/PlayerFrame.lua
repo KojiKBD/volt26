@@ -37,7 +37,7 @@ end
 local initial_data = profile_data[0]
 local pos = nil
 
-if SL.Global.FastProfileSwitchInProgress then
+if VOLT26.Profile.IsFastSwitchInProgress() then
 	-- If we're fast profile switching, we want to open the profile scrollers
 	-- focused on current player profiles. Let's remember the index of the profile
 	-- so that we can scroll to it.
@@ -82,7 +82,7 @@ local FrameBackground = function(c, player, w)
 		Def.Quad{
 			InitCommand=function(self)
 				self:cropbottom(1):zoomto(w+frame.border, frame.h+frame.border)
-				if ThemePrefs.Get("RainbowMode") then self:diffuse(Color.Black) end
+				if VOLT26.ThemePrefs.Get("RainbowMode") then self:diffuse(Color.Black) end
 			end,
 		},
 		-- colored bg
@@ -261,9 +261,6 @@ return Def.ActorFrame{
 						LoadActor(THEME:GetPathG("", "VOLT26/SelectColor"))..{
 							InitCommand=function(self)
 								self:align(0,0):zoom(0.09):diffusealpha(0.9):xy(13, 8)
-								if ThemePrefs.Get("VisualStyle") == "SRPG10" then
-									self:zoom(0.3):xy(5, 0)
-								end
 							end
 						},
 						LoadFont("Common Normal")..{
@@ -398,7 +395,7 @@ return Def.ActorFrame{
 		Name='SelectedProfileText',
 		InitCommand=function(self)
 			self:settext(initial_data and initial_data.displayname or "")
-			self:y(160):zoom(1.35):shadowlength(ThemePrefs.Get("RainbowMode") and 0.5 or 0):cropright(1)
+			self:y(160):zoom(1.35):shadowlength(VOLT26.ThemePrefs.Get("RainbowMode") and 0.5 or 0):cropright(1)
 		end,
 		OnCommand=function(self) self:sleep(0.2):smooth(0.2):cropright(0) end
 	}

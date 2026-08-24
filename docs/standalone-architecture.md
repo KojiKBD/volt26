@@ -9,6 +9,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.Core`: bootstrap, lifecycle, and access to runtime state.
 - `VOLT26.State`: global, per-player, per-stage, and per-session state.
 - `VOLT26.ThemePrefs`: persistent theme configuration.
+- `VOLT26.Profile`: guest/profile lifecycle, persistence callbacks, avatar lookup, and profile-flow state.
 - `VOLT26.Navigation`: route decisions and supported-mode policy.
 - `VOLT26.Brand`: theme identity, colors, and presentation-neutral brand data.
 
