@@ -10,10 +10,11 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.State`: global, per-player, per-stage, and per-session state.
 - `VOLT26.ThemePrefs`: persistent theme configuration.
 - `VOLT26.Profile`: guest/profile lifecycle, persistence callbacks, avatar lookup, and profile-flow state.
+- `VOLT26.MusicSelection`: music-screen initialization, active-rate access, and player refresh behavior.
 - `VOLT26.Navigation`: route decisions and supported-mode policy.
 - `VOLT26.Brand`: theme identity, colors, and presentation-neutral brand data.
 
-Profile, song-selection, scoring, evaluation, and optional-service APIs will be added as their feature groups are migrated.
+Scoring, evaluation, and optional-service APIs will be added as their feature groups are migrated.
 
 ## SCREEN groups
 

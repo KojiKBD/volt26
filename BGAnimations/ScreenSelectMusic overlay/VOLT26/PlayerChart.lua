@@ -30,7 +30,7 @@ local af = Def.ActorFrame{
 		local difficulty = chart and ToEnumShortString(chart:GetDifficulty()):upper() or H.Dash
 		self:GetChild("Difficulty"):settext(difficulty)
 		self:GetChild("Meter"):settext(chart and chart:GetMeter() or H.Dash)
-		self:GetChild("Peak"):settext(data.peak > 0 and string.format("PEAK %.1f NPS", data.peak * SL.Global.ActiveModifiers.MusicRate) or "NO DENSITY DATA")
+		self:GetChild("Peak"):settext(data.peak > 0 and string.format("PEAK %.1f NPS", data.peak * VOLT26.MusicSelection.GetMusicRate()) or "NO DENSITY DATA")
 		local vertices = graphVertices(data)
 		self:GetChild("Graph"):SetNumVertices(#vertices):SetVertices(vertices)
 		self:GetChild("Stats"):settext(string.format(

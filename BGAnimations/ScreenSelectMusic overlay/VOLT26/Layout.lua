@@ -1,5 +1,4 @@
--- VOLT26 SongSelect composition.  This actor is loaded only when the active
--- visual style is VOLT26; stock Simply Love actors remain untouched otherwise.
+-- Standalone VOLT26 SongSelect composition.
 
 local H = {
 	W = 854,
@@ -75,7 +74,7 @@ function H.Length()
 		local master = GAMESTATE:GetMasterPlayerNumber()
 		seconds = master and TotalCourseLength(master) or nil
 	elseif item.MusicLengthSeconds then
-		seconds = item:MusicLengthSeconds() / SL.Global.ActiveModifiers.MusicRate
+		seconds = item:MusicLengthSeconds() / VOLT26.MusicSelection.GetMusicRate()
 	end
 	return seconds and SecondsToMSS(seconds) or H.Dash
 end
@@ -83,7 +82,7 @@ end
 function H.BPM(player, chart)
 	if not H.Item() then return H.Dash end
 	local ok, text = pcall(function()
-		return StringifyDisplayBPMs(player, chart, SL.Global.ActiveModifiers.MusicRate)
+		return StringifyDisplayBPMs(player, chart, VOLT26.MusicSelection.GetMusicRate())
 	end)
 	return ok and text and text ~= "" and text or H.Dash
 end

@@ -553,6 +553,28 @@ VOLT26.Profile = {
 	end,
 }
 
+VOLT26.MusicSelection = {}
+
+function VOLT26.MusicSelection.GetMusicRate()
+	return tonumber(VOLT26.State.Global.ActiveModifiers.MusicRate) or 1
+end
+
+function VOLT26.MusicSelection.PrepareScreen()
+	VOLT26.State.Global.GameplayReloadCheck = false
+	generateFavoritesForMusicWheel()
+	GAMESTATE:GetSongOptionsObject("ModsLevel_Preferred"):MusicRate(VOLT26.MusicSelection.GetMusicRate())
+end
+
+function VOLT26.MusicSelection.RefreshPlayer(player, rebuildFavorites)
+	if not PROFILEMAN:IsPersistentProfile(player) then
+		VOLT26.Profile.LoadGuest(player)
+	end
+	if rebuildFavorites then
+		generateFavoritesForMusicWheel()
+	end
+	ApplyMods(player)
+end
+
 VOLT26.Navigation = {
 	SelectMusicOrCourse = function()
 		return SelectMusicOrCourse()

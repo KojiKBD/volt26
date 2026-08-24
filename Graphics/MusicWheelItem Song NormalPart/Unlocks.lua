@@ -5,7 +5,7 @@ local af = Def.ActorFrame {
 	PlayerJoinedMessageCommand=function(self, params)
 		if not PROFILEMAN:IsPersistentProfile(params.Player) then
 			GAMESTATE:ResetPlayerOptions(params.Player)
-			SL[ToEnumShortString(params.Player)]:initialize()
+			VOLT26.Core.GetPlayerState(params.Player):initialize()
 		end
 		if pn == nil then
 			player = params.Player
@@ -42,7 +42,7 @@ local af = Def.ActorFrame {
 
                 local year = 2026
                 if string.find(string.lower(song_dir), "itl online "..year.." unlocks") then
-                    local unlockData = SL[pn].ITLData["unlockFolders"] or {}
+					local unlockData = VOLT26.Core.GetPlayerState(pn).ITLData["unlockFolders"] or {}
                     local songUnlocked = (unlockData[song_folder]==true)
                     self:visible(not songUnlocked)
                 else

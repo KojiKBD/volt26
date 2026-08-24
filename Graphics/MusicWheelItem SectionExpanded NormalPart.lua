@@ -12,19 +12,13 @@ local standard = Def.ActorFrame{
 	Def.Quad{
 		InitCommand=function(self) 
 			self:horizalign(left):diffuse(color("#000000")):zoomto(item_width, _screen.h/num_visible_items)
-			if ThemePrefs.Get("VisualStyle") == "VOLT26" then self:visible(false) end
-			if ThemePrefs.Get("VisualStyle") == "Technique" then
-				self:diffusealpha(0.5)
-			end
+			self:visible(false)
 		end
 	},
 	Def.Quad{
 		InitCommand=function(self) 
 			self:horizalign(left):diffuse(color("#4c565d")):zoomto(item_width, _screen.h/num_visible_items - 1)
-			if ThemePrefs.Get("VisualStyle") == "VOLT26" then self:visible(false) end
-			if ThemePrefs.Get("VisualStyle") == "Technique" then
-				self:diffusealpha(0.5)
-			end
+			self:visible(false)
 		end
 	},
 	Def.ActorFrame{
