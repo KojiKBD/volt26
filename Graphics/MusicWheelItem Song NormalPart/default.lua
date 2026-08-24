@@ -15,7 +15,7 @@ af[#af+1] = Def.Sprite{
 		if DarkUI() then self:diffuse(0,0,0,1) end
 	end,
 	SetCommand=function(self, params)
-		self:visible(params.Song and params.Song:HasEdits(stepstype) or false)
+		self:visible(ThemePrefs.Get("VisualStyle") ~= "VOLT26" and params.Song and params.Song:HasEdits(stepstype) or false)
 	end
 }
 
@@ -41,6 +41,7 @@ for player in ivalues(PlayerNumber) do
 			self:visible(GAMESTATE:IsPlayerEnabled(player))
 		end,
 		SetCommand=function(self, params)
+			if ThemePrefs.Get("VisualStyle") == "VOLT26" then self:visible(false); return end
 			-- Only display EX score if a profile is found for an enabled player.
 			if not GAMESTATE:IsPlayerEnabled(player) or not PROFILEMAN:IsPersistentProfile(player) then
 				self:visible(false)
@@ -75,6 +76,10 @@ for player in ivalues(PlayerNumber) do
 			self:visible(false)
 		end,
 	}
+end
+
+if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+	af[#af+1] = LoadActor(THEME:GetPathG("", "VOLT26/SongSelection/MusicWheelItem.lua"), "Song")
 end
 
 return af

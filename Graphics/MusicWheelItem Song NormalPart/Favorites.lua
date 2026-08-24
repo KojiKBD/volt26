@@ -28,6 +28,12 @@ local af = Def.ActorFrame {
             end
         end,
         SetCommand=function(self, params)
+            -- VOLT26 deliberately keeps grades/favorites out of the wheel row.
+            -- Its song information belongs in the detail panels instead.
+            if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+                self:visible(false)
+                return
+            end
             if params.Song then
                 local song = params.Song
                 if song and FindInTable(song, SL[pn].Favorites) then 

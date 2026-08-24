@@ -8,10 +8,10 @@ local af = Def.ActorFrame{
 	OnCommand=function(self)
 		self:sleep(totalTime - 0.5):linear(0.5):diffusealpha(0)
 		if failed then
-			SOUND:PlayOnce(THEME:GetPathG("", "_VisualStyles/VOLT26/Eval/Failed.ogg"))
+			SOUND:PlayOnce(THEME:GetPathG("", "VOLT26/Eval/Failed.ogg"))
 			self:GetChild("Failed"):play()
 		else
-			SOUND:PlayOnce(THEME:GetPathG("", "_VisualStyles/VOLT26/Eval/Passed.ogg"))
+			SOUND:PlayOnce(THEME:GetPathG("", "VOLT26/Eval/Passed.ogg"))
 			self:GetChild("Victory"):play()
 		end
 	end,
@@ -21,25 +21,25 @@ local af = Def.ActorFrame{
 	end,
 	Def.Sound{
 		Name="Victory",
-		File=THEME:GetPathG("", "_VisualStyles/VOLT26/Eval/Victory.ogg"),
+		File=THEME:GetPathG("", "VOLT26/Eval/Victory.ogg"),
 	},
 	Def.Sound{
 		Name="Failed",
-		File=THEME:GetPathG("", "_VisualStyles/VOLT26/Eval/Failed_theme.ogg"),
+		File=THEME:GetPathG("", "VOLT26/Eval/Failed_theme.ogg"),
 	},
 }
 
 if failed then
-	local sPath    = "_VisualStyles/VOLT26/Eval/defeat_animation_res/"
+	local sPath    = "VOLT26/Eval/defeat_animation_res/"
     local startNum = 0
     local endNum   = 38
-	local tytPath    = "_VisualStyles/VOLT26/Eval/tyt_res/"
+	local tytPath    = "VOLT26/Eval/tyt_res/"
     local fFPS     = 24
     local fDelay   = 1 / fFPS
 
 
 	af[#af+1] = Def.Sprite{
-		Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/Eval/defeat.png"),
+		Texture=THEME:GetPathG("", "VOLT26/Eval/defeat.png"),
 		InitCommand=function(self)
 			self:zoom(0.5)
 			--self:x(-200):y(100)
@@ -124,7 +124,7 @@ local maxLoops = 2
 
 
 	-- af[#af+1] = Def.Sprite{
-	-- 	Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/Eval/srpg.png"),
+	-- 	Texture=THEME:GetPathG("", "VOLT26/Eval/srpg.png"),
 	-- 	InitCommand=function(self)
 	-- 		self:zoomto(SCREEN_WIDTH, SCREEN_HEIGHT)
 	-- 	end,
@@ -137,7 +137,7 @@ local maxLoops = 2
 
 
 	-- af[#af+1] = Def.Sprite{
-	-- 	Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/Eval/Red Lines.png"),
+	-- 	Texture=THEME:GetPathG("", "VOLT26/Eval/Red Lines.png"),
 	-- 	InitCommand=function(self)
 	-- 		self:zoom(480 / 1080):diffusealpha(0)
 	-- 	end,
@@ -147,7 +147,7 @@ local maxLoops = 2
 	-- }
 
 	-- af[#af+1] = Def.Sprite{
-	-- 	Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/Eval/Expedition Failed.png"),
+	-- 	Texture=THEME:GetPathG("", "VOLT26/Eval/Expedition Failed.png"),
 	-- 	InitCommand=function(self)
 	-- 		self:zoom(480 / 1080):diffusealpha(0)
 	-- 	end,
@@ -156,7 +156,7 @@ local maxLoops = 2
 	-- 	end,
 	-- }
 else
-    local sPath    = "_VisualStyles/VOLT26/Eval/victory_animation_res/"
+    local sPath    = "VOLT26/Eval/victory_animation_res/"
     local startNum = 7
     local endNum   = 60
     local fFPS     = 24
@@ -195,7 +195,7 @@ else
 
     af[#af+1] = anim
 	af[#af+1] = Def.Sprite{
-		Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/Eval/Victory.png"),
+		Texture=THEME:GetPathG("", "VOLT26/Eval/Victory.png"),
 		InitCommand=function(self)
 			self:zoom(0.5)
 			-- x(-200) moves it left. y(0) keeps it vertically centered.

@@ -15,28 +15,6 @@ if type(ThemePrefs) ~= "table" or type(ThemePrefs.Get) ~= "function" then
 end
 
 SL_CustomPrefs.Get = function()
-	 -- emojis are our lingua franca for the 21st century
-	local visualStyleChoices = { "❤", "↖", "🐻", "🦆", "😺", "🎃", "🌈", "⭐", "🤔", "🌀" }
-	local visualStyleValues  = { "Hearts", "Arrows", "Bears", "Ducks", "Cats", "Spooky", "Gay", "Stars", "Thonk", "Technique" }
-
-	local year = Year()
-	local month = MonthOfYear()+1
-	local day = DayOfMonth()
-	local today = year * 10000 + month * 100 + day
-
-	if today >= 20260629 then
-		visualStyleChoices[#visualStyleChoices+1] = "🖌"
-		visualStyleValues[#visualStyleValues+1] = "SRPG10"
-	else
-		local prefs = IniFile.ReadFile("/Save/ThemePrefs.ini")
-		local theme = PREFSMAN:GetPreference("Theme")
-		local lastActiveEvent = nil
-		if prefs[theme] and prefs[theme].LastActiveEvent == "SRPG10" then
-			visualStyleChoices[#visualStyleChoices+1] = "🖌"
-			visualStyleValues[#visualStyleValues+1] = "SRPG10"
-		end
-	end
-
 	return {
 		AllowFailingOutOfSet =
 		{
@@ -109,9 +87,11 @@ SL_CustomPrefs.Get = function()
 		},
 		VisualStyle =
 		{
-			Default = "Technique",
-			Choices = visualStyleChoices,
-			Values  = visualStyleValues
+			-- Transitional compatibility value. VOLT26 is no longer a selectable
+			-- Simply Love visual style and new code must not read this preference.
+			Default = "VOLT26",
+			Choices = { "VOLT26" },
+			Values  = { "VOLT26" }
 		},
 		AllowThemeVideos = {
 			Default = true,
@@ -171,6 +151,12 @@ SL_CustomPrefs.Get = function()
 			Default = 3,
 			Choices = { 1,2,3,4,5,6,7,8,9,10,11,12 },
 			Values  = { 1,2,3,4,5,6,7,8,9,10,11,12 }
+		},
+		VOLT26Color =
+		{
+			Default = 2,
+			Choices = { 1,2,3 },
+			Values  = { 1,2,3 }
 		},
 		-- - - - - - - - - - - - - - - - - - - -
 		-- Save the last seen song in Edit Mode to disk so that ScreenEditMenu
@@ -313,6 +299,10 @@ SL_CustomPrefs.Get = function()
 		LastActiveEvent =
 		{
 			Default = "",
+		},
+		VOLT26MementosDashHighScore =
+		{
+			Default = 0,
 		},
 		-- - - - - - - - - - - - - - - - - - - -
 		EnableTournamentMode = {

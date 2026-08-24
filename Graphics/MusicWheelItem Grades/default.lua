@@ -40,6 +40,8 @@ local function IsQuint(hsl)
 end
 
 return Def.ActorFrame{
+	InitCommand=function(self) if ThemePrefs.Get("VisualStyle") == "VOLT26" then self:visible(false) end end,
+	SetCommand=function(self) if ThemePrefs.Get("VisualStyle") == "VOLT26" then self:visible(false) end end,
 	LoadActor("GetLamp.lua"),
 
 	Def.Sprite{
@@ -55,6 +57,10 @@ return Def.ActorFrame{
 		--     NumTimesPlayed (number)
 		--     HighScoreList (as of ITGmania 1.0.1 -- NOTE: can be removed in a future version)
 		SetGradeCommand=function(self, params)
+			if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+				self:visible(false)
+				return
+			end
 			if not params.Grade then
 				self:visible(false)
 				return

@@ -138,4 +138,3 @@ Every migration branch should select the relevant checks below and record the ou
 4. Migrate the first vertical slice: startup → title → profile → music selection → gameplay → evaluation.
 
 The current planning branch must remain unmerged until the project owner has reviewed these documents and explicitly accepted them.
-

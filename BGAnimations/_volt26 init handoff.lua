@@ -23,12 +23,12 @@ af[#af+1] = Def.Quad{
 }
 
 af[#af+1] = Def.Sprite{
-	Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/Stars/star_00029.png"),
+	Texture=THEME:GetPathG("", "VOLT26/Stars/star_00029.png"),
 	InitCommand=function(self) self:zoomto(_screen.w, _screen.h) end
 }
 
 af[#af+1] = Def.Sprite{
-	Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/logo_main (doubleres).png"),
+	Texture=THEME:GetPathG("", "VOLT26/logo_main (doubleres).png"),
 	InitCommand=function(self) self:zoom(0.30) end
 }
 

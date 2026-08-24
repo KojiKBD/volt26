@@ -175,13 +175,13 @@ local GlobalDefaults = {
 
 		-- These values outside initialize() won't be reset each game cycle,
 		-- but are rather manipulated as needed by the theme.
-		ActiveColorIndex = ThemePrefs.Get("SimplyLoveColor") or 1,
+		ActiveColorIndex = ThemePrefs.Get("VOLT26Color") or ThemePrefs.Get("SimplyLoveColor") or 2,
 	}
 }
 
--- "SL" is a general-purpose table that can be accessed from anywhere
--- within the theme and stores info that needs to be passed between screens
-SL = {
+-- VOLT26 owns all shared runtime state.  The temporary SL alias declared
+-- below exists only while legacy screens are migrated to the public CORE API.
+VOLT26 = {
 	P1 = setmetatable( {}, PlayerDefaults),
 	P2 = setmetatable( {}, PlayerDefaults),
 	Global = setmetatable( {}, GlobalDefaults),
@@ -505,16 +505,61 @@ SL = {
 	SimplyLoveLatestVersion = nil,
 }
 
+VOLT26.Meta = {
+	Name = "VOLT26",
+	Version = "0.1.0-dev",
+	UpstreamCompatibility = "Simply Love 5.9.0",
+}
+
+VOLT26.State = {
+	P1 = VOLT26.P1,
+	P2 = VOLT26.P2,
+	Global = VOLT26.Global,
+}
+
+VOLT26.Core = {}
+
+function VOLT26.Core.GetGlobalState()
+	return VOLT26.State.Global
+end
+
+function VOLT26.Core.GetPlayerState(player)
+	local key = type(player) == "string" and player or ToEnumShortString(player)
+	return VOLT26.State[key]
+end
+
+-- Keep VOLT26.Preferences reserved for the inherited game-mode scoring table
+-- until all compatibility consumers have migrated away from SL.Preferences.
+VOLT26.ThemePrefs = {
+	Get = function(name) return ThemePrefs.Get(name) end,
+	Set = function(name, value) ThemePrefs.Set(name, value) end,
+	Save = function() ThemePrefs.Save() end,
+}
+
+VOLT26.Navigation = {
+	SelectMusicOrCourse = function()
+		return SelectMusicOrCourse()
+	end,
+}
+
 
 -- Initialize preferences by calling this method.  We typically do
 -- this from ./BGAnimations/ScreenTitleMenu underlay/default.lua
 -- so that preferences reset between each game cycle.
 
-function InitializeSimplyLove()
-	SL.P1:initialize()
-	SL.P2:initialize()
-	SL.Global:initialize()
+function VOLT26.Core.ResetSession()
+	VOLT26.State.P1:initialize()
+	VOLT26.State.P2:initialize()
+	VOLT26.State.Global:initialize()
 
 end
 
-InitializeSimplyLove()
+function InitializeVOLT26()
+	VOLT26.Core.ResetSession()
+end
+
+-- Compatibility bridge for screens that have not moved to the CORE API yet.
+SL = VOLT26
+InitializeSimplyLove = InitializeVOLT26
+
+InitializeVOLT26()

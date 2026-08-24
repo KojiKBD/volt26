@@ -1,33 +1,33 @@
 local Players = GAMESTATE:GetHumanPlayers();
-
+local style = ThemePrefs.Get("VisualStyle")
 local t = Def.ActorFrame{
-	LoadFont("Wendy/_wendy white")..{
-		Text="GAME",
-		InitCommand=function(self) self:xy(_screen.cx,_screen.cy-40):croptop(1):fadetop(1):zoom(1.2):shadowlength(1) end,
-		OnCommand=function(self) self:decelerate(0.5):croptop(0):fadetop(0):glow(1,1,1,1):decelerate(1):glow(1,1,1,1) end,
-		OffCommand=function(self) self:accelerate(0.5):fadeleft(1):cropleft(1) end
-	},
-	LoadFont("Wendy/_wendy white")..{
-		Text="OVER",
-		InitCommand=function(self) self:xy(_screen.cx,_screen.cy+40):croptop(1):fadetop(1):zoom(1.2):shadowlength(1) end,
-		OnCommand=function(self) self:decelerate(0.5):croptop(0):fadetop(0):glow(1,1,1,1):decelerate(1):glow(1,1,1,1) end,
-		OffCommand=function(self) self:accelerate(0.5):fadeleft(1):cropleft(1) end
-	},
+		LoadFont("Wendy/_wendy white")..{
+			Text="GAME",
+			InitCommand=function(self) self:xy(_screen.cx,_screen.cy-40):croptop(1):fadetop(1):zoom(1.2):shadowlength(1) end,
+			OnCommand=function(self) self:decelerate(0.5):croptop(0):fadetop(0):glow(1,1,1,1):decelerate(1):glow(1,1,1,1) end,
+			OffCommand=function(self) self:accelerate(0.5):fadeleft(1):cropleft(1) end
+		},
+		LoadFont("Wendy/_wendy white")..{
+			Text="OVER",
+			InitCommand=function(self) self:xy(_screen.cx,_screen.cy+40):croptop(1):fadetop(1):zoom(1.2):shadowlength(1) end,
+			OnCommand=function(self) self:decelerate(0.5):croptop(0):fadetop(0):glow(1,1,1,1):decelerate(1):glow(1,1,1,1) end,
+			OffCommand=function(self) self:accelerate(0.5):fadeleft(1):cropleft(1) end
+		},
 
-	--Player 1 Stats BG
-	Def.Quad{
-		InitCommand=function(self)
-			self:zoomto(160,_screen.h):xy(80, _screen.h/2):diffuse(color("#00000099"))
-			if ThemePrefs.Get("RainbowMode") then self:diffuse(color("#000000dd")) end
-		end,
-	},
+		--Player 1 Stats BG
+		Def.Quad{
+			InitCommand=function(self)
+				self:zoomto(160,_screen.h):xy(80, _screen.h/2):diffuse(color("#00000099"))
+				if ThemePrefs.Get("RainbowMode") then self:diffuse(color("#000000dd")) end
+			end,
+		},
 
-	--Player 2 Stats BG
-	Def.Quad{
-		InitCommand=function(self)
-			self:zoomto(160,_screen.h):xy(_screen.w-80, _screen.h/2):diffuse(color("#00000099"))
-			if ThemePrefs.Get("RainbowMode") then self:diffuse(color("#000000dd")) end
-		end,
+		--Player 2 Stats BG
+		Def.Quad{
+			InitCommand=function(self)
+				self:zoomto(160,_screen.h):xy(_screen.w-80, _screen.h/2):diffuse(color("#00000099"))
+				if ThemePrefs.Get("RainbowMode") then self:diffuse(color("#000000dd")) end
+			end,
 	}
 }
 
