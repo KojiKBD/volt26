@@ -35,7 +35,7 @@ Before an item is considered complete, record:
 
 ## Initial capability map
 
-This capability map is based on the current inherited tree. The initial source-level dependency scan is complete; project-owner retention decisions and implementation verification remain Phase 1 work.
+This capability map combines the completed source-level dependency scan with the standalone slices accepted to date. `Implemented` means that the recorded normal route works through a VOLT26-owned interface; it does not imply that every extended-coverage case has passed. Items still marked `Assess` require an explicit project-owner scope decision before migration.
 
 | ID | Non-visual capability | Primary source landmarks | Decision | Status |
 | --- | --- | --- | --- | --- |
@@ -44,23 +44,23 @@ This capability map is based on the current inherited tree. The initial source-l
 | CORE-03 | Theme preference definitions, defaults, loading, and saving | `Scripts/99 SL-ThemePrefs.lua` | Adapt | In progress |
 | CORE-04 | Screen branching and navigation decisions | `Scripts/SL-Branches.lua`, screen metrics in `metrics.ini` | Adapt | In progress |
 | CORE-05 | Shared helper, text, UTF-8, and support utilities | `Scripts/SL-Helpers.lua`, `Scripts/SL-Helpers-Text.lua`, `Scripts/utf8.lua`, `Scripts/SL-SupportHelpers.lua` | Assess | Not started |
-| PROFILE-01 | Player profile discovery, selection, and profile-derived state | `Scripts/SL-PlayerProfiles.lua`, `BGAnimations/ScreenSelectProfile underlay/` | Assess | Not started |
-| OPTIONS-01 | Player option construction and persistence | `Scripts/SL-PlayerOptions.lua`, `BGAnimations/ScreenPlayerOptions*` | Adapt | In progress |
+| PROFILE-01 | Player profile discovery, selection, and profile-derived state | `Scripts/SL-PlayerProfiles.lua`, `BGAnimations/ScreenSelectProfile underlay/` | Adapt | Implemented |
+| OPTIONS-01 | Player option construction and persistence | `Scripts/SL-PlayerOptions.lua`, `BGAnimations/ScreenPlayerOptions*` | Adapt | Implemented |
 | OPTIONS-02 | Operator/service options and active option-row behavior | `Scripts/SL-OperatorMenuOptions.lua`, `BGAnimations/ScreenOptionsService overlay/` | Assess | Not started |
-| SELECT-01 | Music selection state and helper logic | `Scripts/SL-SelectMusicHelpers.lua`, `BGAnimations/ScreenSelectMusic overlay/` | Adapt | In progress |
+| SELECT-01 | Music selection state and helper logic | `Scripts/SL-SelectMusicHelpers.lua`, `BGAnimations/ScreenSelectMusic overlay/` | Adapt | Implemented |
 | SELECT-02 | Song search, filtering, sorting, and wheel behavior | `BGAnimations/ScreenSelectMusic overlay/SongSearch/`, `SortMenu/`, `Scripts/Consensual-sick_wheel.lua` | Assess | Not started |
 | SELECT-03 | Favorite-song persistence and handling | `Scripts/SL-FavoritesHandler.lua` | Assess | Not started |
 | SELECT-04 | Chart metadata parsing and derived chart information | `Scripts/SL-ChartParser.lua`, `Scripts/SL-ChartParserHelpers.lua` | Assess | Not started |
 | SELECT-05 | Casual mode group, song, and option selection | `BGAnimations/ScreenSelectMusicCasual overlay/`, `Other/CasualMode-*.txt` | Assess | Not started |
-| GAME-01 | Custom score calculation and score-state management | `Scripts/SL-CustomScores.lua` | Assess | Not started |
-| GAME-02 | Judgment-offset and per-column judgment tracking | `BGAnimations/ScreenGameplay overlay/JudgmentOffsetTracking.lua`, `PerColumnJudgmentTracking.lua` | Assess | Not started |
-| GAME-03 | EX judgment tracking and subtractive scoring | `BGAnimations/ScreenGameplay overlay/TrackExScoreJudgments.lua`, `BGAnimations/ScreenGameplay underlay/PerPlayer/NoteField/SubtractiveScoring.lua` | Assess | Not started |
-| GAME-04 | Failure behavior, fail timing, and hold-start failure rules | `BGAnimations/ScreenGameplay overlay/TrackFailTime.lua`, `FailOnHoldStart.lua` | Assess | Not started |
+| GAME-01 | Custom score calculation and score-state management | `Scripts/SL-CustomScores.lua` | Adapt | In progress |
+| GAME-02 | Judgment-offset and per-column judgment tracking | `BGAnimations/ScreenGameplay overlay/JudgmentOffsetTracking.lua`, `PerColumnJudgmentTracking.lua` | Adapt | Implemented |
+| GAME-03 | EX judgment tracking and subtractive scoring | `BGAnimations/ScreenGameplay overlay/TrackExScoreJudgments.lua`, `BGAnimations/ScreenGameplay underlay/PerPlayer/NoteField/SubtractiveScoring.lua` | Adapt | Implemented |
+| GAME-04 | Failure behavior, fail timing, and hold-start failure rules | `BGAnimations/ScreenGameplay overlay/TrackFailTime.lua`, `FailOnHoldStart.lua` | Adapt | Implemented |
 | GAME-05 | Gameplay statistics, density, measure counters, and timing data | `BGAnimations/ScreenGameplay underlay/PerPlayer/StepStatistics/`, `NoteField/MeasureCounter.lua`, `Scripts/SL-Histogram.lua` | Assess | Not started |
 | GAME-06 | Target-score, pacemaker, and missed-target actions | `BGAnimations/ScreenGameplay underlay/PerPlayer/TargetScore/` | Assess | Not started |
 | GAME-07 | Course-song speed changes and inter-song behavior | `BGAnimations/ScreenGameplay next course song/` | Assess | Not started |
 | GAME-08 | Two-player comparison and current-winner calculation | `BGAnimations/ScreenGameplay overlay/WhoIsCurrentlyWinning.lua`, `underlay/Shared/VersusStepStatistics.lua` | Assess | Not started |
-| EVAL-01 | Evaluation state aggregation and cross-screen storage | `BGAnimations/ScreenEvaluation common/PerPlayer/Storage.lua`, `Shared/GlobalStorage.lua` | Adapt | In progress |
+| EVAL-01 | Evaluation state aggregation and cross-screen storage | `BGAnimations/ScreenEvaluation common/PerPlayer/Storage.lua`, `Shared/GlobalStorage.lua` | Adapt | Implemented |
 | EVAL-02 | Records, grade, percentage, judgment, and stream calculations | `BGAnimations/ScreenEvaluation common/Panes/`, `PerPlayer/Upper/`, `Scripts/SL-CustomScores.lua` | Assess | Not started |
 | EVAL-03 | Evaluation graphs, scatter plots, and derived performance analysis | `BGAnimations/ScreenEvaluation common/PerPlayer/Lower/`, `Scripts/SL-Histogram.lua` | Assess | Not started |
 | EVAL-04 | Screenshot capture and evaluation exit/input handling | `BGAnimations/ScreenEvaluation common/Shared/ScreenshotHandler.lua`, `ExitHandler.lua`, `EventInputHandler.lua` | Assess | Not started |
@@ -74,7 +74,7 @@ This capability map is based on the current inherited tree. The initial source-l
 
 ## Phase 1 source scan progress
 
-The source scan records what the inherited implementation does before the project owner makes a retention decision. A completed source scan does not change an item's implementation status.
+The source scan records what the inherited implementation did at the reviewed upstream baseline. Subsequent standalone branches may finalize a decision and advance implementation status independently of the scan result.
 
 | Scan group | Upstream baseline | Coverage | Result |
 | --- | --- | --- | --- |
@@ -438,3 +438,4 @@ The following are tracked elsewhere unless they contain behavior required by an 
 | 2026-08-24 | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `codex/evaluation-banner-background` | Aligned the Evaluation Stage background with the existing VOLT26 Song Select background while preserving evaluation content, transitions, and screenshot support. Hidden bootstrap verification passed. |
 | 2026-08-24 | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `codex/title-menu-afk-easter-egg` | Added the title-menu AFK easter egg with a five-minute inactivity policy that starts after menu arrival, synchronized looping video and extracted OGG audio, safe input dismissal, and menu-audio restoration. Hidden bootstrap and interactive owner verification passed. |
 | 2026-08-24 | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `codex/remove-mementos-dash` | Removed Mementos Dash from the product surface and repository, including its title-menu route, screen implementation, persistent high score, localization, and dedicated graphics. Repository scans, hidden bootstrap, and interactive owner verification of the remaining four title-menu choices passed. |
+| 2026-08-24 | `dd06138b15492f4136796dfe4b6708ced0f7b9eb` | `codex/volt26-identity-inventory` | Reconciled the capability map with accepted standalone branches: `PROFILE-01`, `OPTIONS-01`, `SELECT-01`, `GAME-02`, `GAME-03`, `GAME-04`, and `EVAL-01` now record their implemented normal-route slices; `GAME-01` records its partial scoring migration. Extended-coverage verification and all remaining `Assess` decisions are still pending. |

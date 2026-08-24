@@ -130,11 +130,14 @@ Every migration branch should select the relevant checks below and record the ou
 | Display | Supported aspect ratios and low/high resolutions remain usable |
 | Installation | A clean ITGmania setup needs only the VOLT26 theme directory |
 
-## Immediate next activities
+## Current next activities
 
-1. Review and checkpoint the current 347-file local baseline on a dedicated branch.
-2. Complete the initial functional inventory with source-level dependencies and owner decisions.
-3. Update VOLT26 identity and define its standalone bootstrap on a separate implementation branch.
-4. Migrate the first vertical slice: startup → title → profile → music selection → gameplay → evaluation.
+The initial source scan and the first standalone vertical route are complete. The next work should proceed in this order:
 
-The current planning branch must remain unmerged until the project owner has reviewed these documents and explicitly accepted them.
+1. obtain explicit scope decisions for the remaining `Assess` items, beginning with song search, favorites, chart metadata, and evaluation analysis;
+2. finish the inherited CORE adapters and define preference/profile migration behavior;
+3. verify a clean standalone installation, persistence across restart, two-player routes, courses, and supported aspect ratios;
+4. remove unneeded Simply Love compatibility names and files only after their consumers are migrated or intentionally omitted;
+5. define versioning, changelog, packaging, upgrade, and rollback procedures for the first release candidate.
+
+Each activity remains subject to the branch, verification, owner-acceptance, and merge policy in `AGENTS.md`.
