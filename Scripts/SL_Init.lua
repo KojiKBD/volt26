@@ -524,7 +524,14 @@ function VOLT26.Core.GetGlobalState()
 end
 
 function VOLT26.Core.GetPlayerState(player)
-	local key = type(player) == "string" and player or ToEnumShortString(player)
+	local key
+	if player == PLAYER_1 or player == "PlayerNumber_P1" or player == "P1" then
+		key = "P1"
+	elseif player == PLAYER_2 or player == "PlayerNumber_P2" or player == "P2" then
+		key = "P2"
+	else
+		key = ToEnumShortString(player)
+	end
 	return VOLT26.State[key]
 end
 
@@ -623,6 +630,17 @@ function VOLT26.Gameplay.LeaveScreen()
 end
 
 VOLT26.Evaluation = {}
+
+function VOLT26.Evaluation.AllPlayersFailed()
+	local players = GAMESTATE:GetHumanPlayers()
+	if #players == 0 then return false end
+	for player in ivalues(players) do
+		if not STATSMAN:GetCurStageStats():GetPlayerStageStats(player):GetFailed() then
+			return false
+		end
+	end
+	return true
+end
 
 function VOLT26.Evaluation.StoreStageContext()
 	VOLT26.State.Global.Stages.Stats[VOLT26.Gameplay.GetCurrentStageIndex()] = {
