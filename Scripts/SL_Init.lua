@@ -1633,7 +1633,8 @@ VOLT26.Failure = {}
 
 function VOLT26.Failure.GetSnapshot(player)
 	local stage = VOLT26.Gameplay.GetPlayerStageState(player)
-	return DeepCopy(stage and stage.failure or nil)
+	local failure = stage and stage.failure or nil
+	return failure and DeepCopy(failure) or nil
 end
 
 function VOLT26.Failure.GetCourseCumulativeLengths(player)
