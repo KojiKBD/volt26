@@ -33,6 +33,7 @@ for player in ivalues( GAMESTATE:GetHumanPlayers() ) do
 	-- Sadly, the full details of this Stages.Stats[stage_index] data structure
 	-- is not documented anywhere. :(
 	VOLT26.Gameplay.BeginPlayerStage(player)
+	if VOLT26.Telemetry.IsEnabled() then VOLT26.Telemetry.Begin(player) end
 
 	af[#af+1] = LoadActor("./TrackTimeSpentInGameplay.lua", player)
 	af[#af+1] = LoadActor("./JudgmentOffsetTracking.lua", player)
