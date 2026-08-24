@@ -279,7 +279,7 @@ end
 af[#af+1] = Def.ActorFrame{
 	InitCommand=function(self) self:xy(56,16):rotationz(-5) end,
 	Def.Sprite{
-		Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/SongSelection/SS_bg.png"),
+		Texture=THEME:GetPathG("", "VOLT26/SongSelection/SS_bg.png"),
 		InitCommand=function(self) self:align(0,0):setsize(170,43) end,
 	},
 	Def.BitmapText{
@@ -292,7 +292,7 @@ af[#af+1] = Def.ActorFrame{
 -- safe frame, then place only the changing banner within its marked opening.
 local banner = Def.ActorFrame{ Name="Banner" }
 banner[#banner+1] = Def.Sprite{
-	Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/SongSelection/Banner_BG-SS.png"),
+	Texture=THEME:GetPathG("", "VOLT26/SongSelection/Banner_BG-SS.png"),
 	InitCommand=function(self) self:align(0,0):setsize(854,480) end,
 }
 banner[#banner+1] = Def.ActorProxy{
@@ -316,7 +316,7 @@ addRefreshCommands(banner)
 af[#af+1] = banner
 
 af[#af+1] = Def.Sprite{
-	Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/SongSelection/takeyourtime.png"),
+	Texture=THEME:GetPathG("", "VOLT26/SongSelection/takeyourtime.png"),
 	InitCommand=function(self) self:xy(744,345):setsize(102,140):rotationz(-4) end,
 }
 
@@ -324,7 +324,7 @@ af[#af+1] = Def.Sprite{
 -- artwork full-frame and place only its dynamic content at the card origin.
 local card = Def.ActorFrame{ Name="SongInfoCard" }
 card[#card+1] = Def.Sprite{
-	Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/SongSelection/Backdrop_SongInfoSS.png"),
+	Texture=THEME:GetPathG("", "VOLT26/SongSelection/Backdrop_SongInfoSS.png"),
 	InitCommand=function(self) self:align(0,0):setsize(854,480) end,
 }
 -- Match the dominant angle of Backdrop_SongInfoSS so all live typography and

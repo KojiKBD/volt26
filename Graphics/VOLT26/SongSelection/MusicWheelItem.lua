@@ -158,7 +158,7 @@ local af = Def.ActorFrame{
 
 	Def.Sprite{
 		Name="Hover",
-		Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/SongSelection/Hover_PS.png"),
+		Texture=THEME:GetPathG("", "VOLT26/SongSelection/Hover_PS.png"),
 		InitCommand=function(self)
 			self:horizalign(left):x(-32)
 				:setsize(_screen.w*0.39, math.max(34, _screen.h/15-5))
@@ -187,4 +187,4 @@ local af = Def.ActorFrame{
 return af
 ]=]
 
-return LoadActor(THEME:GetPathG("", "_VisualStyles/VOLT26/SongSelection/MusicWheelItemNative.lua"), requested_kind)
+return LoadActor(THEME:GetPathG("", "VOLT26/SongSelection/MusicWheelItemNative.lua"), requested_kind)

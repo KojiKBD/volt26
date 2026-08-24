@@ -1,11 +1,6 @@
 -- - - - - - - - - - - - - - - - - - - - -
--- first, reset the global SL table to default values
--- this is defined in:  ./Scripts/SL_Init.lua
-InitializeSimplyLove()
-
-if ThemePrefs.Get("VisualStyle") == "SRPG10" then
-    SL.SRPG10:MaybeRandomizeColor()
-end
+-- Reset game-cycle state through the VOLT26 CORE API.
+VOLT26.Core.ResetSession()
 
 -- -----------------------------------------------------------------------
 -- preliminary Lua setup is done
@@ -19,7 +14,7 @@ af.InitCommand=function(self) self:Center() end
 -- ==========================================
 -- VOLT26 LAYER 1: PHANTOM RED BACKGROUND
 -- ==========================================
-if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+do
     af[#af+1] = Def.Quad{
         Name="VOLT26_RedBG",
         InitCommand=function(self)
@@ -36,7 +31,7 @@ end
 -- ==========================================
 -- VOLT26 LAYER 1.5: AFTER EFFECTS STAR BURST
 -- ==========================================
-if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+do
     local startNum = 0
     local endNum = 29 
     local fDelay = 1 / 20 
@@ -44,7 +39,7 @@ if ThemePrefs.Get("VisualStyle") == "VOLT26" then
 
     -- FIX 1: Use string.format so it actually finds "star_00000.png"
     local function framePath(n)
-        return THEME:GetPathG("", string.format("_VisualStyles/VOLT26/Stars/star_%05d.png", n))
+        return THEME:GetPathG("", string.format("VOLT26/Stars/star_%05d.png", n))
     end
 
     local starAnim = Def.Sprite{
@@ -78,13 +73,13 @@ end
 -- ==========================================
 -- VOLT26 LAYER 2: THE SLIDING TEXT TRACK
 -- ==========================================
-if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+do
     local text_images = {
-        THEME:GetPathG("", "_VisualStyles/VOLT26/gameplay_text.png"),
-        THEME:GetPathG("", "_VisualStyles/VOLT26/mementos_text.png"),
-        THEME:GetPathG("", "_VisualStyles/VOLT26/edit_text.png"),
-        THEME:GetPathG("", "_VisualStyles/VOLT26/options_text.png"),
-        THEME:GetPathG("", "_VisualStyles/VOLT26/exit_text.png")
+        THEME:GetPathG("", "VOLT26/gameplay_text.png"),
+        THEME:GetPathG("", "VOLT26/mementos_text.png"),
+        THEME:GetPathG("", "VOLT26/edit_text.png"),
+        THEME:GetPathG("", "VOLT26/options_text.png"),
+        THEME:GetPathG("", "VOLT26/exit_text.png")
     }
 
     local spacing = _screen.w * 0.6 
@@ -144,7 +139,7 @@ if ThemePrefs.Get("VisualStyle") == "VOLT26" then
     -- layer is: menu images < knife < train.
     track[#track+1] = Def.Sprite{
         Name="VOLT26_Knife",
-        Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/Knife.png"),
+        Texture=THEME:GetPathG("", "VOLT26/Knife.png"),
         InitCommand=function(self)
             self:visible(false):diffusealpha(0)
         end,
@@ -188,7 +183,7 @@ end
 -- ==========================================
 -- VOLT26 LAYER 3: THE TRAIN OVERLAY
 -- ==========================================
-if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+do
     af[#af+1] = Def.ActorFrame{
         Name="VOLT26_Train",
         InitCommand=function(self)
@@ -197,7 +192,7 @@ if ThemePrefs.Get("VisualStyle") == "VOLT26" then
             self:effectperiod(1)
         end,
         Def.Sprite{
-            Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/trainoverlay.png"),
+            Texture=THEME:GetPathG("", "VOLT26/trainoverlay.png"),
             InitCommand=function(self)
                 self:zoomto(_screen.w + 50, _screen.h + 50)
             end
@@ -208,63 +203,17 @@ end
 -- ==========================================
 -- VOLT26 SOUND ACTOR
 -- ==========================================
-if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+do
     -- Removed IsAction and SupportPan so ITGmania doesn't block it
-    af[#af+1] = LoadActor(THEME:GetPathG("", "_VisualStyles/VOLT26/changeoption.ogg"))..{ 
+    af[#af+1] = LoadActor(THEME:GetPathG("", "VOLT26/changeoption.ogg"))..{
         Name="VOLT26_ChangeSound"
     }
 end
 
--- -----------------------------------------------------------------------
--- NORMAL SIMPLY LOVE STUFF (Spooky, Logo, etc)
--- -----------------------------------------------------------------------
-
-if IsSpooky() then
-    af[#af+1] = LoadActor("./Spooky.lua")
-end
-
-local af2 = Def.ActorFrame{}
-af2.OffCommand=function(self) self:smooth(0.65):diffusealpha(0) end
-af2.Name="SLInfo"
-
-af2[#af2+1] = LoadActor("./Logo.lua")
-af2[#af2+1] = LoadActor("./UserContentText.lua")
-
-if IsSpooky() then
-    af2[#af2+1] = LoadActor("./SpookyButFadeOut.lua")
-end
-
-af2[#af2+1] = Def.ActorFrame{
-    OnCommand=function(self)
-        local url = "https://www.itgmania.com/api/versions.json"
-        if (SL.Global.ITGmaniaLatestVersion == nil and
-            SL.Global.SimplyLoveLatestVersion == nil and
-                NETWORK:IsUrlAllowed(url)) then
-            NETWORK:HttpRequest{
-                url=url,
-                onResponse=function(response)
-                    if response.statusCode == 200 then
-                        local versions = JsonDecode(response["body"])
-                        local itgmania_version = versions["itgmania_version"]
-                        local simply_love_version = versions["simply_love_version"]
-
-                        SL.Global.ITGmaniaLatestVersion = GetVersionParts(itgmania_version)
-                        SL.Global.SimplyLoveLatestVersion = GetVersionParts(simply_love_version)
-
-                        MESSAGEMAN:Broadcast("VersionCheck")
-                    end
-                end
-            }
-        end
-    end,
-}
-
-af[#af+1] = af2
-
 -- ==========================================
 -- VOLT26 EVENT COUNTDOWN
 -- ==========================================
-if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+do
     -- Convert a Gregorian date to an integer day. Doing this ourselves avoids
     -- time-of-day and daylight-saving errors from timestamp subtraction.
     local function CivilDay(year, month, day)
@@ -301,7 +250,7 @@ if ThemePrefs.Get("VisualStyle") == "VOLT26" then
     }
 
     countdown[#countdown+1] = LoadActor(
-        THEME:GetPathG("", "_VisualStyles/VOLT26/daysuntil.png")
+        THEME:GetPathG("", "VOLT26/daysuntil.png")
     )..{
         InitCommand=function(self)
             -- Render the replacement high-resolution artwork at its design size.
@@ -336,7 +285,7 @@ if ThemePrefs.Get("VisualStyle") == "VOLT26" then
 
     countdown[#countdown+1] = LoadFont("Persona")..{
         Name="EventPhrase",
-        Text=SL.VOLT26.RandomBullshit(),
+        Text=VOLT26.Brand.RandomTagline(),
         InitCommand=function(self)
             self:xy(-235, 102):zoom(0.82):maxwidth(405)
                 :diffuse(0, 0, 0, 1):shadowlength(0)
@@ -349,8 +298,8 @@ end
 -- ==========================================
 -- VOLT26 LIVE CALENDAR
 -- ==========================================
-if ThemePrefs.Get("VisualStyle") == "VOLT26" then
-    local calendar_root = "_VisualStyles/VOLT26/calendar/"
+do
+    local calendar_root = "VOLT26/Calendar/"
     local weekdays = {
         "sunday", "monday", "tuesday", "wednesday",
         "thursday", "friday", "saturday"
@@ -400,7 +349,7 @@ if ThemePrefs.Get("VisualStyle") == "VOLT26" then
     }
 
     calendar[#calendar+1] = LoadActor(
-        THEME:GetPathG("", calendar_root .. "background.png")
+        THEME:GetPathG("", calendar_root .. "Background.png")
     )..{
         InitCommand=function(self)
             self:xy(85, 40):zoom(0.1):shadowlength(2):draworder(2):rotationz(0)
@@ -481,7 +430,7 @@ end
 -- ==========================================
 -- VOLT26 LAYER 4: INVISIBLE CONTROLLER BRAIN
 -- ==========================================
-if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+do
     local current_idx = 0
     local controller = Def.ActorFrame{
         Name="VOLT26Menu",
@@ -506,7 +455,7 @@ if ThemePrefs.Get("VisualStyle") == "VOLT26" then
             MESSAGEMAN:Broadcast("VOLT26_StopMenuAudio")
             MESSAGEMAN:Broadcast("VOLT26_Impact", {idx=self.ConfirmIndex})
             local knife_sound = THEME:GetCurrentThemeDirectory()
-                .."Graphics/_VisualStyles/VOLT26/knife.ogg"
+                .."Graphics/VOLT26/knife.ogg"
             if FILEMAN:DoesFileExist(knife_sound) then
                 SOUND:PlayOnce(knife_sound)
             end
@@ -552,7 +501,7 @@ end
 -- ==========================================
 -- VOLT26 LOOPING SOUNDS
 -- ==========================================
-if ThemePrefs.Get("VisualStyle") == "VOLT26" then
+do
     local function LoopingSound(name, path)
         local elapsed = 0
         local length = 0
@@ -597,12 +546,12 @@ if ThemePrefs.Get("VisualStyle") == "VOLT26" then
         }
     end
 
-    local train_path = THEME:GetPathG("", "_VisualStyles/VOLT26/train.ogg")
+    local train_path = THEME:GetPathG("", "VOLT26/train.ogg")
     if FILEMAN:DoesFileExist(train_path) then
         af[#af+1] = LoopingSound("VOLT26_TrainLoop", train_path)
     end
 
-    local menuost_path = THEME:GetPathG("", "_VisualStyles/VOLT26/menuost.ogg")
+    local menuost_path = THEME:GetPathG("", "VOLT26/menuost.ogg")
     if FILEMAN:DoesFileExist(menuost_path) then
         af[#af+1] = LoopingSound("VOLT26_MenuOSTLoop", menuost_path)
     end

@@ -7,8 +7,8 @@ local SongNumberInCourse = 0
 local SongsInCourse
 local style = ThemePrefs.Get("VisualStyle")
 local assets = {
-	splode     = THEME:GetPathG("", "_VisualStyles/"..style.."/GameplayIn splode"),
-	minisplode = THEME:GetPathG("", "_VisualStyles/"..style.."/GameplayIn minisplode")
+	splode     = THEME:GetPathG("", "VOLT26/GameplayIn splode"),
+	minisplode = THEME:GetPathG("", "VOLT26/GameplayIn minisplode")
 }
 
 if IsSpooky() then

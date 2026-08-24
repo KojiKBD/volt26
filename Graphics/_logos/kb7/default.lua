@@ -27,7 +27,7 @@ af[#af+1] = LoadActor("./kb7.png")..{ Name="Logo" }
 -- -----------------------------------------------------------------------
 
 local style = ThemePrefs.Get("VisualStyle")
-local stylepath = THEME:GetPathG("", "_VisualStyles/" .. style .. "/SelectColor.png")
+local stylepath = THEME:GetPathG("", "VOLT26/SelectColor.png")
 
 -- the kb7 asset features 7 icons of unequal width and spacing
 -- normal width icon is 162px

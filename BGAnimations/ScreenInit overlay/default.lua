@@ -1,61 +1,3 @@
--- Use Simply Love's original ScreenInit for every non-VOLT visual style.
-if ThemePrefs.Get("VisualStyle") ~= "VOLT26" then
-local af = Def.ActorFrame{ InitCommand=function(self) self:Center() end }
-
--- check SM5 version, current game (dance, pump, etc.), and RTT support
-af[#af+1] = LoadActor("./CompatibilityChecks.lua")
-
--- -----------------------------------------------------------------------
-
-local slc = SL.Global.ActiveColorIndex
-
---semitransparent black quad as background for 7 decorative arrows
-af[#af+1] = Def.Quad{
-	InitCommand=function(self) self:zoomto(_screen.w,0):diffuse(Color.Black) end,
-	OnCommand=function(self) self:accelerate(0.3):zoomtoheight(128):diffusealpha(0.9):sleep(2.1) end,
-	OffCommand=function(self) self:accelerate(0.3):zoomtoheight(0) end
-}
-
--- loop to add 7 SM5 logo arrows to the primary ActorFrame
-for i=1,7 do
-
-	local arrow = Def.ActorFrame{
-		InitCommand=function(self) self:x((i-4) * 50):diffusealpha(0) end,
-		OnCommand=function(self)
-			-- thonk
-			if ThemePrefs.Get("VisualStyle")=="Thonk" then
-				self:diffusealpha(1):rotationy(-90):sleep(i*0.1 + 0.2)
-				self:smooth(0.25):rotationy(0):sleep(0.8):bouncebegin(0.8):y(_screen.h)
-			-- everything else
-			else
-				self:sleep(i*0.1 + 0.2)
-				self:linear(0.75):diffusealpha(1):linear(0.75):diffusealpha(0)
-			end
-
-			self:queuecommand("Hide")
-		end,
-		HideCommand=function(self) self:visible(false) end,
-	}
-
-	-- desaturated SM5 logo
-	arrow[#arrow+1] = LoadActor("logo.png")..{
-		InitCommand=function(self) self:zoom(0.1):diffuse(GetHexColor(slc-i-4, true)) end,
-	}
-
-	-- only add Thonk asset if needed
-	if ThemePrefs.Get("VisualStyle")=="Thonk" then
-		arrow[#arrow+1] = LoadActor("thonk.png")..{
-			InitCommand=function(self) self:zoom(0.1):xy(6,-2) end,
-		}
-	end
-
-	af[#af+1] = arrow
-end
-
-return af
-
-end
-
 -- VOLT26 opening credits.
 local af = Def.ActorFrame{
 	InitCommand=function(self) self:Center() end,
@@ -64,7 +6,7 @@ local af = Def.ActorFrame{
 	end
 }
 
--- Keep Simply Love's startup compatibility checks active behind the intro.
+-- Keep startup compatibility checks active behind the intro.
 af[#af+1] = LoadActor("./CompatibilityChecks.lua")
 
 local credits = {
@@ -145,7 +87,7 @@ af[#af+1] = LoadFont("Common Normal")..{
 
 local function StarFramePath(frame)
 	return THEME:GetPathG("", string.format(
-		"_VisualStyles/VOLT26/Stars/star_%05d.png", frame))
+		"VOLT26/Stars/star_%05d.png", frame))
 end
 
 -- Exactly 60 displayed frames: the 30-frame sequence twice at 20fps.
@@ -174,7 +116,7 @@ af[#af+1] = Def.Sprite{
 
 af[#af+1] = Def.Sprite{
 	Name="VOLT26IntroLogo",
-	Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/logo_main (doubleres).png"),
+	Texture=THEME:GetPathG("", "VOLT26/logo_main (doubleres).png"),
 	InitCommand=function(self) self:zoom(2.2):diffusealpha(0) end,
 	OnCommand=function(self)
 		self:sleep(logo_hit - 0.62)
@@ -186,7 +128,7 @@ af[#af+1] = Def.Sprite{
 
 af[#af+1] = Def.Sound{
 	Name="VOLT26IntroKnifeSound",
-	File=THEME:GetPathG("", "_VisualStyles/VOLT26/knife.ogg"),
+	File=THEME:GetPathG("", "VOLT26/knife.ogg"),
 	OnCommand=function(self)
 		self:sleep(logo_hit):queuecommand("PlayImpact")
 	end,

@@ -34,7 +34,7 @@ af[#af+1] = Def.Sprite{
 			self:zoom(0.30):vertalign(top)
 			self:y(-200):shadowlength(0)
 		elseif ThemePrefs.Get("VisualStyle") == "VOLT26" then
-			-- self:Load(THEME:GetPathG("", "_VisualStyles/VOLT26/"..SL.VOLT26.GetLogo()))
+			-- self:Load(THEME:GetPathG("", "VOLT26/"..SL.VOLT26.GetLogo()))
 			-- self:zoom(0.30):vertalign(top)
 			-- self:y(-200):shadowlength(0)
 		else

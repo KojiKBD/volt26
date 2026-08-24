@@ -44,9 +44,9 @@ local af = Def.ActorFrame {
             elseif style == "VOLT26" then
                 -- local video_allowed = ThemePrefs.Get("AllowThemeVideos")
                 -- if video_allowed then
-                --     self:Load(THEME:GetPathG("", "_VisualStyles/VOLT26/BackgroundVideo.mp4"))
+                --     self:Load(THEME:GetPathG("", "VOLT26/BackgroundVideo.mp4"))
                 -- else
-                    self:Load(THEME:GetPathG("", "_VisualStyles/VOLT26/SharedBackground.png"))
+                    self:Load(THEME:GetPathG("", "VOLT26/SharedBackground.png"))
                 -- end
             else
                 self:Load(nil) 
@@ -75,9 +75,9 @@ local af = Def.ActorFrame {
             elseif style == "VOLT26" then
                 -- local video_allowed = ThemePrefs.Get("AllowThemeVideos")
                 -- if video_allowed then
-                --     self:Load(THEME:GetPathG("", "_VisualStyles/VOLT26/BackgroundVideo.mp4"))
+                --     self:Load(THEME:GetPathG("", "VOLT26/BackgroundVideo.mp4"))
                 -- else
-                    self:Load(THEME:GetPathG("", "_VisualStyles/VOLT26/SharedBackground.png"))
+                    self:Load(THEME:GetPathG("", "VOLT26/SharedBackground.png"))
                 -- end
             else
                 self:Load(nil) 
@@ -102,9 +102,9 @@ local af = Def.ActorFrame {
             elseif style == "VOLT26" then
                 -- local video_allowed = ThemePrefs.Get("AllowThemeVideos")
                 -- if video_allowed then
-                --     self:Load(THEME:GetPathG("", "_VisualStyles/VOLT26/BackgroundVideo.mp4"))
+                --     self:Load(THEME:GetPathG("", "VOLT26/BackgroundVideo.mp4"))
                 -- else
-            self:Load(THEME:GetPathG("", "_VisualStyles/VOLT26/SharedBackground.png"))
+            self:Load(THEME:GetPathG("", "VOLT26/SharedBackground.png"))
                 -- end
             else
                 self:Load(nil) 

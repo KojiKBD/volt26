@@ -79,7 +79,7 @@ for player in ivalues(PlayerNumber) do
 end
 
 if ThemePrefs.Get("VisualStyle") == "VOLT26" then
-	af[#af+1] = LoadActor(THEME:GetPathG("", "_VisualStyles/VOLT26/SongSelection/MusicWheelItem.lua"), "Song")
+	af[#af+1] = LoadActor(THEME:GetPathG("", "VOLT26/SongSelection/MusicWheelItem.lua"), "Song")
 end
 
 return af

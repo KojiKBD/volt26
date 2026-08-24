@@ -47,7 +47,7 @@ local standard = Def.ActorFrame {
 if ThemePrefs.Get("VisualStyle") == "VOLT26" then
 	return Def.ActorFrame{
 		standard,
-		LoadActor(THEME:GetPathG("", "_VisualStyles/VOLT26/SongSelection/MusicWheelItem.lua"), "Course"),
+		LoadActor(THEME:GetPathG("", "VOLT26/SongSelection/MusicWheelItem.lua"), "Course"),
 	}
 end
 

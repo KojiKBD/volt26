@@ -1,7 +1,7 @@
 if ThemePrefs.Get("VisualStyle") == "VOLT26" then
 	return Def.ActorFrame{
 		Def.Sprite{
-			Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/bg_songselect.png"),
+			Texture=THEME:GetPathG("", "VOLT26/bg_songselect.png"),
 			InitCommand=function(self) self:Center():setsize(_screen.w, _screen.h) end,
 		},
 		Def.Quad{

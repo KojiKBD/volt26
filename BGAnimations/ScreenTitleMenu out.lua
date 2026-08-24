@@ -1,11 +1,10 @@
-local color1 = GetHexColor(SL.Global.ActiveColorIndex-2, true)
-local color2 = GetHexColor(SL.Global.ActiveColorIndex-1, true)
-local style = ThemePrefs.Get("VisualStyle")
+local color1 = GetHexColor(VOLT26.State.Global.ActiveColorIndex-2, true)
+local color2 = GetHexColor(VOLT26.State.Global.ActiveColorIndex-1, true)
 
 local assets = {}
-assets.flycenter = THEME:GetPathG("", "_VisualStyles/".. style .."/TitleMenu flycenter")
-assets.flytop    = THEME:GetPathG("", "_VisualStyles/".. style .."/TitleMenu flytop")
-assets.flybottom = THEME:GetPathG("", "_VisualStyles/".. style .."/TitleMenu flybottom")
+assets.flycenter = THEME:GetPathG("", "VOLT26/TitleMenu flycenter")
+assets.flytop    = THEME:GetPathG("", "VOLT26/TitleMenu flytop")
+assets.flybottom = THEME:GetPathG("", "VOLT26/TitleMenu flybottom")
 
 local timing = {}
 timing.af_decel = 0.4
@@ -14,26 +13,6 @@ timing.img_accel= 0.8
 timing.duration = 1
 
 local t = Def.ActorFrame{}
-
--- -----------------------------------------------------------------------
--- override if it's time to get spooky
-if IsSpooky() then
-	style = "Spooky/ExtraSpooky"
-	assets.flycenter = THEME:GetPathG("", "_VisualStyles/Spooky/ExtraSpooky/Bats")
-	assets.flytop    = THEME:GetPathG("", "_VisualStyles/Spooky/ExtraSpooky/Bats")
-	assets.flybottom = THEME:GetPathG("", "_VisualStyles/Spooky/ExtraSpooky/Bats")
-
-	-- this is broadcast from ./Graphics/ScreenTitleMenu scroll.lua
-	-- when the first choice ("Gameplay") is chosen by the player
-	t.TitleMenuToGameplayMessageCommand=function(self)
-		-- change tween timing values before OffCommands evaluate them
-		timing.af_decel = 0.35
-		timing.af_accel = 1.15
-		timing.img_accel= 1.45
-		timing.duration = 2.5
-	end
-end
--- -----------------------------------------------------------------------
 
 t.OffCommand=function(self)
 	self:sleep(timing.duration)
@@ -324,24 +303,15 @@ t[#t+1] = Def.ActorFrame {
 	}
 }
 
-if IsSpooky() then
-	-- sound effect
-	t[#t+1] = LoadActor(THEME:GetPathG("", "_VisualStyles/Spooky/ExtraSpooky/spooky.ogg"))..{
-		-- only play when the first choice (Gameplay) is chosen
-		TitleMenuToGameplayMessageCommand=function(self) self:play() end
-	}
-end
-
-
 -- VOLT26 transition animations
-if style == "VOLT26" then
+do
 	local frame_time = 1/30
 	local knife_delay = 0.35
 	local volt_transitions = {
 		-- switch_screen is a fully-covered frame. Everything after it is
 		-- rendered by "Screen in.lua" over the newly-loaded screen.
-		{ folder="_VisualStyles/VOLT26/TransMenu",  prefix="TransMenu",  frames=16, switch_screen=8  },
-		{ folder="_VisualStyles/VOLT26/TransMenu2", prefix="TransMenu2", frames=28, switch_screen=17 }
+		{ folder="VOLT26/TransMenu",  prefix="TransMenu",  frames=16, switch_screen=8  },
+		{ folder="VOLT26/TransMenu2", prefix="TransMenu2", frames=28, switch_screen=17 }
 	}
 
 	local selected = volt_transitions[math.random(#volt_transitions)]
@@ -361,7 +331,7 @@ if style == "VOLT26" then
 	-- Store the selected sequence when the menu actually exits. The table
 	-- survives the screen swap; the generic Screen "in" actor consumes it.
 	t.OffCommand=function(self)
-		SL.Global.Volt26TransData = {
+		VOLT26.State.Global.Volt26TransData = {
 			paths=paths,
 			next_frame=selected.switch_screen+1,
 			frame_time=frame_time

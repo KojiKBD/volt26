@@ -21,7 +21,7 @@ end
 
 -- Dedicated VOLT26 title artwork, authored with its own skew and subtitle.
 af[#af+1] = Def.Sprite{
-	Texture=THEME:GetPathG("", "_VisualStyles/VOLT26/select_song_wheel.png"),
+	Texture=THEME:GetPathG("", "VOLT26/select_song_wheel.png"),
 	InitCommand=function(self) self:align(0,0):xy(18,8):setsize(235,93) end,
 }
 

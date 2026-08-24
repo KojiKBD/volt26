@@ -127,7 +127,7 @@ local function move_player(direction)
 	if player_actor then
 		player_actor:stoptweening():decelerate(0.10):x(lane_x[state.lane])
 	end
-	play_once(THEME:GetPathG("", "_VisualStyles/VOLT26/changeoption.ogg"))
+	play_once(THEME:GetPathG("", "VOLT26/changeoption.ogg"))
 end
 
 local function spawn_from_pool(pool, lane)
@@ -180,7 +180,7 @@ local function hit_obstacle(item)
 	state.alert = state.alert + 1
 	state.invulnerable = 1.25
 	trigger_effect(lane_x[state.lane], player_y, {1, 0, 0, 1})
-	play_once(THEME:GetPathG("", "_VisualStyles/VOLT26/knife.ogg"))
+	play_once(THEME:GetPathG("", "VOLT26/knife.ogg"))
 	MESSAGEMAN:Broadcast("MementosDashHit", { alert = state.alert })
 	if state.alert >= 3 then finish_run() end
 end
@@ -384,7 +384,7 @@ for i = 1, obstacle_pool_size do
 			obstacles[i].actor = self
 			self:visible(false):draworder(10)
 		end,
-		LoadActor(THEME:GetPathG("", "_VisualStyles/VOLT26/MementosDash/shadow.png"))..{
+		LoadActor(THEME:GetPathG("", "VOLT26/MementosDash/shadow.png"))..{
 			InitCommand=function(self) self:zoomto(86, 86):bob():effectmagnitude(0, 4, 0):effectperiod(0.55) end
 		}
 	}
@@ -398,7 +398,7 @@ for i = 1, treasure_pool_size do
 			treasures[i].actor = self
 			self:visible(false):draworder(11)
 		end,
-		LoadActor(THEME:GetPathG("", "_VisualStyles/VOLT26/MementosDash/treasure.png"))..{
+		LoadActor(THEME:GetPathG("", "VOLT26/MementosDash/treasure.png"))..{
 			InitCommand=function(self)
 				self:zoomto(58, 58):spin():effectmagnitude(0, 0, 65)
 			end
@@ -412,7 +412,7 @@ af[#af+1] = Def.ActorFrame{
 		player_actor = self
 		self:xy(lane_x[2], player_y):draworder(30)
 	end,
-	LoadActor(THEME:GetPathG("", "_VisualStyles/VOLT26/MementosDash/runner.png"))..{
+	LoadActor(THEME:GetPathG("", "VOLT26/MementosDash/runner.png"))..{
 		InitCommand=function(self)
 			self:zoomto(112, 128):bob():effectmagnitude(0, 3, 0):effectperiod(0.30)
 		end
@@ -527,7 +527,7 @@ af[#af+1] = Def.ActorFrame{
 	}
 }
 
-local music_path = THEME:GetPathG("", "_VisualStyles/VOLT26/menuost.ogg")
+local music_path = THEME:GetPathG("", "VOLT26/menuost.ogg")
 if FILEMAN:DoesFileExist(music_path) then
 	af[#af+1] = Def.Sound{ Name="Music", File=music_path }
 end

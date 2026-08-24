@@ -1,4 +1,4 @@
-SL.VOLT26 = {
+VOLT26.Brand = {
 	Colors = {
 	
     "#FF0000",  -- Elite  | Phantom Red (The fiery, rebellious core)
@@ -26,24 +26,17 @@ SL.VOLT26 = {
 	GetLogo = function()
 		return "logo_main (doubleres).png"
 	end,
-	RandomBullshit = function()
+	RandomTagline = function()
 		local lines = {
-			"Koji dorme con un peluche di Kuromi",
-			"Dando mi ha detto che il LUA è come la figa e poi mi ha dato del frocio",
-			"Palle",
-			"Ho visto un negro con le scarpe di gomma"
+			"TAKE YOUR HEART",
+			"MAKE YOUR MOVE",
+			"THE NIGHT IS OURS",
+			"WELCOME TO VOLT26"
 		}
 
 		return lines[math.random(#lines)]
 	end,
-	ActivateVisualStyle = function(self)
-		ThemePrefs.Set("VisualStyle", "VOLT26")
-		ThemePrefs.Set("RainbowMode", false)
-		ThemePrefs.Set("LastActiveEvent", "VOLT26")
-		ThemePrefs.Save()
-
-		MESSAGEMAN:Broadcast("VisualStyleSelected")
-
+	Activate = function(self)
 		self.firstRun = true
 
 		local screen = SCREENMAN:GetTopScreen()
@@ -53,14 +46,17 @@ SL.VOLT26 = {
 	end,
 	MaybeRandomizeColor = function(self)
 		if self.firstRun then
-			SL.Global.ActiveColorIndex = 2	-- green/unaffiliated/main logo
-			ThemePrefs.Set("SimplyLoveColor", 2)
+			VOLT26.State.Global.ActiveColorIndex = 2
+			ThemePrefs.Set("VOLT26Color", 2)
 			MESSAGEMAN:Broadcast("ColorSelected")
 			self.firstRun = false
 		elseif not ThemePrefs.Get("AllowScreenSelectColor") then
-			SL.Global.ActiveColorIndex = MersenneTwister.Random(#self.Colors)
-			ThemePrefs.Set("SimplyLoveColor", SL.Global.ActiveColorIndex)
+			VOLT26.State.Global.ActiveColorIndex = MersenneTwister.Random(#self.Colors)
+			ThemePrefs.Set("VOLT26Color", VOLT26.State.Global.ActiveColorIndex)
 			MESSAGEMAN:Broadcast("ColorSelected")
 		end
 	end,
 }
+
+-- Temporary field compatibility for screens not yet migrated.
+VOLT26.VOLT26 = VOLT26.Brand
