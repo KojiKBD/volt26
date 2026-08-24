@@ -244,6 +244,7 @@ do
         return math.max(0, target - today)
     end
 
+    local countdown_refresh_elapsed = 0
     local countdown = Def.ActorFrame{
         Name="VOLT26_Countdown",
         InitCommand=function(self)
@@ -255,6 +256,16 @@ do
         OnCommand=function(self)
             self:addx(25):diffusealpha(0)
                 :decelerate(0.22):addx(-25):diffusealpha(1)
+            self:SetUpdateFunction(function(frame, delta)
+                countdown_refresh_elapsed = countdown_refresh_elapsed + delta
+                if countdown_refresh_elapsed >= 60 then
+                    countdown_refresh_elapsed = countdown_refresh_elapsed - 60
+                    MESSAGEMAN:Broadcast("VOLT26_CountdownRefresh")
+                end
+            end)
+        end,
+        OffCommand=function(self)
+            self:SetUpdateFunction(nil)
         end
     }
 
@@ -278,6 +289,9 @@ do
                         :diffuse(0, 0, 0, 1):shadowlength(0)
                 end,
                 OnCommand=function(self) self:queuecommand("Refresh") end,
+                VOLT26_CountdownRefreshMessageCommand=function(self)
+                    self:playcommand("Refresh")
+                end,
                 RefreshCommand=function(self)
                     local value = string.format("%03d", DaysUntilRespark())
                     local digit_count = #value
@@ -287,7 +301,6 @@ do
                         self:settext(value:sub(slot, slot))
                             :x(-77 + (slot - (digit_count + 1) / 2) * 34)
                     end
-                    self:sleep(60):queuecommand("Refresh")
                 end
             }
     end
