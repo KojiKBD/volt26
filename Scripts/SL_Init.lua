@@ -2592,6 +2592,133 @@ function VOLT26.Options.SaveReturnChoice(page, selections)
 	end
 end
 
+function VOLT26.Options.GetOperatorRow(screenName)
+	if type(screenName) ~= "string" then return 0 end
+	local rows = VOLT26.State.Global.PrevScreenOptionsServiceRow
+	return math.max(0, math.floor(tonumber(rows[screenName]) or 0))
+end
+
+function VOLT26.Options.RememberOperatorRow(screenName, rowIndex, rowCount)
+	if type(screenName) ~= "string" then return 0 end
+	local index = math.max(0, math.floor(tonumber(rowIndex) or 0))
+	local count = math.max(0, math.floor(tonumber(rowCount) or 0))
+	if count > 0 and index >= count - 1 then index = 0 end
+	VOLT26.State.Global.PrevScreenOptionsServiceRow[screenName] = index
+	return index
+end
+
+local OperatorMenuLines = {
+	"SystemOptions", "MapControllers", "TestInput", "InputOptions",
+	"GraphicsSoundOptions", "VisualOptions", "ArcadeOptions", "Bookkeeping",
+	"AdvancedOptions", "MenuTimerOptions", "USBProfileOptions",
+	"OptionsManageProfiles", "ThemeOptions", "StepManiaCredits", "ClearCredits", "Reload",
+}
+
+local ThemeOptionLines = {
+	"MusicWheelSpeed", "PreferredStyle", "AllowFailingOutOfSet", "NumberOfContinuesAllowed",
+	"SelectProfile", "SelectColor", "SelectPlayMode", "SelectPlayMode2", "EvalSummary",
+	"NameEntry", "GameOver", "HideStockNoteSksins", "DanceSolo", "WriteCustomScores",
+	"KeyboardFeatures", "SampleMusicLoops", "SampleMusicStartsImmediately", "RescoreEarlyHits",
+	"DefaultSort",
+}
+
+local MenuTimerLines = {
+	"MenuTimer", "ScreenSelectMusicMenuTimer", "ScreenPlayerOptionsMenuTimer",
+	"ScreenEvaluationMenuTimer", "ScreenEvaluationNonstopMenuTimer",
+	"ScreenEvaluationSummaryMenuTimer", "ScreenNameEntryMenuTimer",
+}
+
+local function FilterOperatorLines(source, excluded)
+	local result = {}
+	for _, line in ipairs(source) do
+		if not excluded[line] then result[#result + 1] = line end
+	end
+	return result
+end
+
+function VOLT26.Options.GetOperatorMenuLines(customSongsAvailable, coinMode)
+	return FilterOperatorLines(OperatorMenuLines, {
+		USBProfileOptions = not customSongsAvailable,
+		ClearCredits = coinMode ~= "CoinMode_Pay",
+	})
+end
+
+function VOLT26.Options.GetThemeOptionLines()
+	return FilterOperatorLines(ThemeOptionLines, {})
+end
+
+function VOLT26.Options.GetMenuTimerLines()
+	return FilterOperatorLines(MenuTimerLines, {})
+end
+
+function VOLT26.Options.GetOperatorMenuLineNames(customSongsAvailable, coinMode)
+	return table.concat(VOLT26.Options.GetOperatorMenuLines(customSongsAvailable, coinMode), ",")
+end
+
+function VOLT26.Options.GetThemeOptionLineNames()
+	return table.concat(VOLT26.Options.GetThemeOptionLines(), ",")
+end
+
+function VOLT26.Options.GetMenuTimerLineNames()
+	return table.concat(VOLT26.Options.GetMenuTimerLines(), ",")
+end
+
+local OperatorMenuLines = {
+	"SystemOptions", "MapControllers", "TestInput", "InputOptions",
+	"GraphicsSoundOptions", "VisualOptions", "ArcadeOptions", "Bookkeeping",
+	"AdvancedOptions", "MenuTimerOptions", "USBProfileOptions",
+	"OptionsManageProfiles", "ThemeOptions", "StepManiaCredits", "ClearCredits", "Reload",
+}
+
+local ThemeOptionLines = {
+	"MusicWheelSpeed", "PreferredStyle", "AllowFailingOutOfSet", "NumberOfContinuesAllowed",
+	"SelectProfile", "SelectColor", "SelectPlayMode", "SelectPlayMode2", "EvalSummary",
+	"NameEntry", "GameOver", "HideStockNoteSksins", "DanceSolo", "WriteCustomScores",
+	"KeyboardFeatures", "SampleMusicLoops", "SampleMusicStartsImmediately", "RescoreEarlyHits",
+	"DefaultSort",
+}
+
+local MenuTimerLines = {
+	"MenuTimer", "ScreenSelectMusicMenuTimer", "ScreenPlayerOptionsMenuTimer",
+	"ScreenEvaluationMenuTimer", "ScreenEvaluationNonstopMenuTimer",
+	"ScreenEvaluationSummaryMenuTimer", "ScreenNameEntryMenuTimer",
+}
+
+local function FilterOperatorLines(source, excluded)
+	local result = {}
+	for _, line in ipairs(source) do
+		if not excluded[line] then result[#result + 1] = line end
+	end
+	return result
+end
+
+function VOLT26.Options.GetOperatorMenuLines(customSongsAvailable, coinMode)
+	return FilterOperatorLines(OperatorMenuLines, {
+		USBProfileOptions = not customSongsAvailable,
+		ClearCredits = coinMode ~= "CoinMode_Pay",
+	})
+end
+
+function VOLT26.Options.GetThemeOptionLines()
+	return FilterOperatorLines(ThemeOptionLines, {})
+end
+
+function VOLT26.Options.GetMenuTimerLines()
+	return FilterOperatorLines(MenuTimerLines, {})
+end
+
+function VOLT26.Options.GetOperatorMenuLineNames(customSongsAvailable, coinMode)
+	return table.concat(VOLT26.Options.GetOperatorMenuLines(customSongsAvailable, coinMode), ",")
+end
+
+function VOLT26.Options.GetThemeOptionLineNames()
+	return table.concat(VOLT26.Options.GetThemeOptionLines(), ",")
+end
+
+function VOLT26.Options.GetMenuTimerLineNames()
+	return table.concat(VOLT26.Options.GetMenuTimerLines(), ",")
+end
+
 VOLT26.TitleMenu = {
 	AFKTimeoutSeconds = 5 * 60,
 }

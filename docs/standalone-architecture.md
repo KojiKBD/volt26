@@ -32,7 +32,8 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.EvaluationInput`: available-pane selection, callback ownership, replay/practice policy, and screenshot capture state.
 - `VOLT26.Failure`: failure-position records and gameplay-exit reconciliation policy.
 - `VOLT26.Evaluation`: versioned song/course contexts, immutable per-player result snapshots, profile history, and idempotent completed-stage lifecycle.
-- `VOLT26.Options`: player-modifier access, options-screen routing, and return policy.
+- `VOLT26.Options`: player-modifier access, player/options-screen routing, curated operator-menu policy, and active operator-row state.
+- `VOLT26.OperatorOptions`: validated engine-preference rows for editor noteskins, fail behavior, song thresholds, renderer order, offsets, memory cards, and removable-media limits.
 - `VOLT26.TitleMenu`: title-menu behavior and inactivity policy.
 - `VOLT26.Navigation`: route decisions and supported-mode policy.
 - `VOLT26.Brand`: theme identity, colors, and presentation-neutral brand data.

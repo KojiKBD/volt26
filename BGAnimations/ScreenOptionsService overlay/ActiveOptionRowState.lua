@@ -1,5 +1,4 @@
--- after ScreenOptionsService initializes, attempt to set the active OptionRow
--- based on state that might exist in SL.Global.PrevScreenOptionsServiceRow
+-- Restore the active operator row through the VOLT26 options service.
 --
 -- this applies to any screens that inherit from ScreenOptionsService, including ScreenOptionsServiceSub
 
@@ -14,19 +13,18 @@ end
 -- active OptionRow
 a.SetActiveOptionRowCommand=function(self)
 	local screen = SCREENMAN:GetTopScreen()
-	local row_index = SL.Global.PrevScreenOptionsServiceRow[screen:GetName()] or 0
+	local row_index = VOLT26.Options.GetOperatorRow(screen:GetName())
 	screen:SetOptionRowIndex(GAMESTATE:GetMasterPlayerNumber(), row_index)
 end
 
 -- when leaving this screen, save the index of the active OptionRow
 a.OffCommand=function(self)
 	local screen = SCREENMAN:GetTopScreen()
-	local row_index = screen:GetCurrentRowIndex(GAMESTATE:GetMasterPlayerNumber())
-  -- if we're on the "Exit" row, save the index for this screen's 1st row
-  if screen:GetNumRows()-1 == row_index then
-    row_index = 0
-  end
-	SL.Global.PrevScreenOptionsServiceRow[screen:GetName()] = row_index
+	VOLT26.Options.RememberOperatorRow(
+		screen:GetName(),
+		screen:GetCurrentRowIndex(GAMESTATE:GetMasterPlayerNumber()),
+		screen:GetNumRows()
+	)
 end
 
 return a
