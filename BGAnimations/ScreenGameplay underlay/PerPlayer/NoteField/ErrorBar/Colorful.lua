@@ -35,7 +35,7 @@ local function DisplayTick(self, params)
         local window = score
         local isTopWindow = score == "W1"
         if mods.ShowFaPlusWindow then
-            if IsW0Judgment(params, player) then
+            if VOLT26.Scoring.IsW0Judgment(params, player) then
                 window = "W0"
             else
                 isTopWindow = false

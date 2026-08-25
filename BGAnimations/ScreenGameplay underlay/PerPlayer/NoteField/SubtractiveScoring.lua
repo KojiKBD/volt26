@@ -1,15 +1,14 @@
 local player, layout = ...
-local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26.Options.GetPlayerModifiers(player)
 
 if not mods.SubtractiveScoring then return end
 
 -- don't allow SubtractiveScoring to appear in Casual gamemode via profile settings
-if SL.Global.GameMode == "Casual" then return end
+if VOLT26.Gameplay.IsCasual() then return end
 
 -- -----------------------------------------------------------------------
 
-local metrics = SL.Metrics[SL.Global.GameMode]
+local metrics = VOLT26.Metrics[VOLT26.Gameplay.GetMode()]
 -- a flag to determine if we are using a GameMode that utilizes FA+ timing windows
 local FAplus = (metrics.PercentScoreWeightW1 == metrics.PercentScoreWeightW2)
 local undesirable_judgment = FAplus and "W3" or "W2"
@@ -67,7 +66,7 @@ local GetPossibleExScore = function(counts)
 		end
 	end
 
-	local possible_ex_score, possible_total = CalculateExScore(player, best_counts)
+	local possible_ex_score, possible_total = VOLT26.Scoring.CalculateExScore(player, best_counts)
 	return possible_ex_score, possible_total
 end
 
@@ -104,11 +103,12 @@ bmt.JudgmentMessageCommand=function(self, params)
 end
 
 
-bmt.ExCountsChangedMessageCommand=function(self, params)
+bmt.VOLT26ScoreChangedMessageCommand=function(self, params)
 	if player == params.Player and mods.ShowExScore then
 		local possible_ex_score, current_possible = GetPossibleExScore(params.ExCounts)
 		local total_possible = params.ActualPossible
 		local current_points = params.ActualPoints
+		if not total_possible or total_possible <= 0 then return end
 		local dp_lost = current_possible - current_points
 		local score = 100 - math.floor((total_possible-dp_lost) / total_possible * 10000) / 100
 		

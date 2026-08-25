@@ -2,14 +2,14 @@ return Def.Quad{
 	InitCommand=function(self) self:FullScreen():diffuse(0,0,0,0) end,
 	OnCommand=function(self) self:sleep(0.5):linear(1):diffusealpha(1) end,
 	OffCommand=function(self)
-		if SL.Global.GameMode == "ITG" then
+		if VOLT26.Gameplay.GetMode() == "ITG" then
 			local song = GAMESTATE:GetCurrentSong()
 			local totalWhites = 0
 			for player in ivalues( GAMESTATE:GetHumanPlayers() ) do
-				local pn = ToEnumShortString(player)
 				local pss = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
 				local number = pss:GetTapNoteScores("TapNoteScore_W1")
-				local faPlus = SL[pn].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1].ex_counts.W0_total
+				local exCounts = VOLT26.Scoring.GetExCounts(player) or {}
+				local faPlus = exCounts.W0_total or 0
 				-- Subtract FA+ count from the overall fantastic window count.
 				local whites = number - faPlus
 				totalWhites = totalWhites + whites
@@ -20,9 +20,9 @@ return Def.Quad{
 				-- to set the field is exposed to lua so we can hijack it for our own\
 				-- purposes.
 				local bestWhites = whites
-				if PROFILEMAN:IsPersistentProfile(pn) then
-					local steps = GAMESTATE:GetCurrentSteps(pn)
-					local scores = PROFILEMAN:GetProfile(pn):GetHighScoreList(song, steps):GetHighScores()
+				if PROFILEMAN:IsPersistentProfile(player) then
+					local steps = GAMESTATE:GetCurrentSteps(player)
+					local scores = PROFILEMAN:GetProfile(player):GetHighScoreList(song, steps):GetHighScores()
 					for hs in ivalues(scores) do
 						-- If the player previously quadded the song, retain the better white count.
 						-- Technically this is a workaround because the date would be wrong, but

@@ -128,7 +128,7 @@ for index, window in ipairs(TNS.Types) do
 
 			-- Check the top window case for ShowFaPlusWindow.
 			if ShowFaPlusWindow and ToEnumShortString(params.TapNoteScore) == "W1" then
-				local is_W0 = IsW0Judgment(params, player)
+				local is_W0 = VOLT26.Scoring.IsW0Judgment(params, player)
 				if is_W0 and window == "W0" then
 					TNS.Judgments[window] = TNS.Judgments[window] + 1
 					incremented = true

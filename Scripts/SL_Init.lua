@@ -1314,32 +1314,16 @@ function VOLT26.Telemetry.RecordExJudgment(player, params)
 
 	local stats = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
 	local counts = telemetry.ex_counts
-	local key
-
-	if params.HoldNoteScore then
-		key = ToEnumShortString(params.HoldNoteScore)
-		if key == "MissedHold" then key = "LetGo" end
-		if key ~= "Held" and key ~= "LetGo" then return nil end
-	elseif params.TapNoteScore then
-		key = ToEnumShortString(params.TapNoteScore)
-		if VOLT26.Gameplay.GetMode() == "ITG" and key == "W1" and IsW0Judgment(params, player) then
-			key = "W0"
-			counts.W0_total = counts.W0_total + 1
-		elseif VOLT26.Gameplay.GetMode() ~= "ITG" then
-			local tier = string.match(key, "W(%d)")
-			if tier then key = "W"..(tonumber(tier)-1) end
-		end
-		if counts[key] == nil then return nil end
-	else
-		return nil
-	end
-
-	if stats:GetFailed() then return nil end
-	counts[key] = counts[key] + 1
-	local ex_score, actual_points, actual_possible = CalculateExScore(player, counts)
+	local key, is_w0 = VOLT26.Scoring.NormalizeJudgment(
+		params.TapNoteScore,
+		params.HoldNoteScore,
+		VOLT26.Gameplay.GetMode(),
+		params.TapNoteScore and VOLT26.Scoring.IsW0Judgment(params, player) or false)
+	if not VOLT26.Scoring.ApplyJudgment(counts, key, stats:GetFailed(), is_w0) then return nil end
+	local ex_score, actual_points, actual_possible = VOLT26.Scoring.CalculateExScore(player, counts)
 	return {
 		Player=player,
-		ExCounts=counts,
+		ExCounts=DeepCopy(counts),
 		ExScore=ex_score,
 		ActualPoints=actual_points,
 		ActualPossible=actual_possible,
@@ -1356,14 +1340,25 @@ local function current_course_offset(player)
 	return offset
 end
 
+function VOLT26.Telemetry.NormalizeOffsetSample(score, tapNoteOffset, position, isAutohit)
+	local offset = (score == "TapNoteScore_Miss" or score == "TapNoteScore_CheckpointMiss")
+		and "Miss" or tapNoteOffset
+	if offset ~= "Miss" and type(offset) ~= "number" then return nil end
+	return {
+		position=tonumber(position) or 0,
+		offset=offset,
+		is_autohit=isAutohit == true,
+	}
+end
+
 function VOLT26.Telemetry.RecordOffset(player, params, require_step_on_hold_heads)
-	if params.Player ~= player or params.HoldNoteScore or not params.TapNoteOffset then return end
+	local isMiss = params.TapNoteScore == "TapNoteScore_Miss"
+		or params.TapNoteScore == "TapNoteScore_CheckpointMiss"
+	if params.Player ~= player or params.HoldNoteScore or (not params.TapNoteOffset and not isMiss) then return end
 	local telemetry = VOLT26.Telemetry.Ensure(player)
 	if not telemetry then return end
 
 	local score = params.TapNoteScore
-	local offset = (score == "TapNoteScore_Miss" or score == "TapNoteScore_CheckpointMiss")
-		and "Miss" or params.TapNoteOffset
 	local is_autohit = score == "TapNoteScore_CheckpointHit"
 	if not is_autohit and not require_step_on_hold_heads and params.Notes then
 		local only_hold_heads, found_note = true, false
@@ -1378,43 +1373,43 @@ function VOLT26.Telemetry.RecordOffset(player, params, require_step_on_hold_head
 	end
 
 	local position = current_course_offset(player) + GAMESTATE:GetCurMusicSeconds()
-	telemetry.offsets[#telemetry.offsets+1] = {
-		position=position,
-		offset=offset,
-		is_autohit=is_autohit,
-	}
+	local sample = VOLT26.Telemetry.NormalizeOffsetSample(score, params.TapNoteOffset, position, is_autohit)
+	if not sample then return end
+	telemetry.offsets[#telemetry.offsets+1] = sample
 	local stage = VOLT26.Telemetry.GetStage(player)
-	stage.sequential_offsets[#stage.sequential_offsets+1] = { position, offset, is_autohit }
+	stage.sequential_offsets[#stage.sequential_offsets+1] = { sample.position, sample.offset, sample.is_autohit }
 end
 
 function VOLT26.Telemetry.RecordColumnJudgment(player, params)
-	if params.Player ~= player or not params.Notes then return end
+	if params.Player ~= player or not params.Notes or not params.TapNoteScore then return end
 	if GAMESTATE:GetPlayerState(player):GetHealthState() == "HealthState_Dead" then return end
 	local telemetry = VOLT26.Telemetry.Ensure(player)
 	if not telemetry then return end
 	local modifiers = VOLT26.Options.GetPlayerModifiers(player)
 
 	for column, tapnote in pairs(params.Notes) do
+		local columnData = telemetry.column_judgments[column]
 		local note_type = ToEnumShortString(tapnote:GetTapNoteType())
-		if note_type == "Tap" or note_type == "HoldHead" or note_type == "Lift" then
+		if columnData and (note_type == "Tap" or note_type == "HoldHead" or note_type == "Lift") then
 			local judgment = ToEnumShortString(params.TapNoteScore)
 			if params.EarlyTapNoteScore then
 				local early = ToEnumShortString(params.EarlyTapNoteScore)
 				if early ~= "None" then
-					if IsW0Judgment(params, player) then
-						telemetry.column_judgments[column].Early.W0 = telemetry.column_judgments[column].Early.W0 + 1
-					elseif judgment ~= "W4" and judgment ~= "W5" and judgment ~= "Miss" then
-						telemetry.column_judgments[column].Early[judgment] = telemetry.column_judgments[column].Early[judgment] + 1
+					if VOLT26.Scoring.IsW0Judgment(params, player) then
+						columnData.Early.W0 = columnData.Early.W0 + 1
+					elseif judgment ~= "W4" and judgment ~= "W5" and judgment ~= "Miss" and columnData.Early[judgment] then
+						columnData.Early[judgment] = columnData.Early[judgment] + 1
 					end
-					telemetry.column_judgments[column].Early[early] = telemetry.column_judgments[column].Early[early] + 1
+					if columnData.Early[early] then columnData.Early[early] = columnData.Early[early] + 1 end
 				end
 			end
-			if modifiers.ShowFaPlusWindow and modifiers.ShowFaPlusPane and IsW0Judgment(params, player) then
+			if modifiers.ShowFaPlusWindow and modifiers.ShowFaPlusPane and VOLT26.Scoring.IsW0Judgment(params, player) then
 				judgment = "W0"
 			end
-			telemetry.column_judgments[column][judgment] = telemetry.column_judgments[column][judgment] + 1
+			if not columnData[judgment] then return end
+			columnData[judgment] = columnData[judgment] + 1
 			if note_type ~= "Lift" and judgment == "Miss" and tapnote:GetTapNoteResult():GetHeld() then
-				telemetry.column_judgments[column].MissBecauseHeld = telemetry.column_judgments[column].MissBecauseHeld + 1
+				columnData.MissBecauseHeld = columnData.MissBecauseHeld + 1
 			end
 		end
 	end
@@ -1422,9 +1417,69 @@ end
 
 VOLT26.Scoring = {}
 
+VOLT26.Scoring.ExCountKeys = ex_count_keys
+
+function VOLT26.Scoring.NewExCounts()
+	return new_ex_counts()
+end
+
+function VOLT26.Scoring.IsW0Judgment(params, player)
+	if params.Player ~= player or params.HoldNoteScore then return false end
+	if params.TapNoteScore ~= "TapNoteScore_W1" or VOLT26.Gameplay.GetMode() ~= "ITG" then return false end
+	if type(params.TapNoteOffset) ~= "number" then return false end
+	local prefs = VOLT26.Preferences["FA+"]
+	local scale = PREFSMAN:GetPreference("TimingWindowScale")
+	local window = prefs.TimingWindowSecondsW1 * scale + prefs.TimingWindowAdd
+	return math.abs(params.TapNoteOffset) <= window
+end
+
+function VOLT26.Scoring.NormalizeJudgment(tapNoteScore, holdNoteScore, gameMode, isW0)
+	if holdNoteScore then
+		local key = ToEnumShortString(holdNoteScore)
+		if key == "MissedHold" then key = "LetGo" end
+		if key == "Held" or key == "LetGo" then return key, false end
+		return nil, false
+	end
+	if not tapNoteScore then return nil, false end
+
+	local key = ToEnumShortString(tapNoteScore)
+	if gameMode == "ITG" and key == "W1" and isW0 then return "W0", true end
+	if gameMode ~= "ITG" then
+		local tier = key:match("W(%d)")
+		if tier then key = "W"..(tonumber(tier)-1) end
+	end
+	return key, false
+end
+
+function VOLT26.Scoring.ApplyJudgment(counts, key, failed, isW0)
+	if type(counts) ~= "table" or counts[key] == nil then return false end
+	if isW0 then counts.W0_total = (counts.W0_total or 0) + 1 end
+	if failed then return false end
+	counts[key] = counts[key] + 1
+	return true
+end
+
 function VOLT26.Scoring.GetExCounts(player)
 	local telemetry = VOLT26.Telemetry.GetSnapshot(player)
 	return telemetry and telemetry.ex_counts or nil
+end
+
+function VOLT26.Scoring.GetExSnapshot(player)
+	return DeepCopy(VOLT26.Scoring.GetExCounts(player) or VOLT26.Scoring.NewExCounts())
+end
+
+function VOLT26.Scoring.CalculateExFromRadar(counts, radar, weights, noMines)
+	weights = weights or VOLT26.ExWeights
+	radar = radar or {}
+	local totalPossible = (radar.TapsAndHolds or 0) * (weights.W0 or 0)
+		+ ((radar.Holds or 0) + (radar.Rolls or 0)) * (weights.Held or 0)
+	local totalPoints = noMines and (radar.Mines or 0) * (weights.HitMine or 0) or 0
+	for _, key in ipairs(ex_count_keys) do
+		totalPoints = totalPoints + ((counts and counts[key]) or 0) * (weights[key] or 0)
+	end
+	if totalPossible <= 0 then return 0, totalPoints, totalPossible end
+	local percent = math.max(0, math.floor(totalPoints / totalPossible * 10000) / 100)
+	return percent, totalPoints, totalPossible
 end
 
 function VOLT26.Scoring.CalculateExScore(player, ex_counts, use_actual_w0_weight)
@@ -1433,25 +1488,18 @@ function VOLT26.Scoring.CalculateExScore(player, ex_counts, use_actual_w0_weight
 		and GAMESTATE:GetCurrentTrail(player) or GAMESTATE:GetCurrentSteps(player)
 	if not steps_or_trail then return 0 end
 
-	local radar = steps_or_trail:GetRadarValues(player)
-	local w0_weight = use_actual_w0_weight and 3.5 or VOLT26.ExWeights.W0
-	local total_possible = radar:GetValue("RadarCategory_TapsAndHolds") * w0_weight
-		+ (radar:GetValue("RadarCategory_Holds") + radar:GetValue("RadarCategory_Rolls")) * VOLT26.ExWeights.Held
-	local total_points = 0
+	local sourceRadar = steps_or_trail:GetRadarValues(player)
+	local radar = {
+		TapsAndHolds = sourceRadar:GetValue("RadarCategory_TapsAndHolds"),
+		Holds = sourceRadar:GetValue("RadarCategory_Holds"),
+		Rolls = sourceRadar:GetValue("RadarCategory_Rolls"),
+		Mines = sourceRadar:GetValue("RadarCategory_Mines"),
+	}
+	local weights = DeepCopy(VOLT26.ExWeights)
+	if use_actual_w0_weight then weights.W0 = 3.5 end
 	local player_options = GAMESTATE:GetPlayerState(player):GetPlayerOptions("ModsLevel_Preferred")
-	if player_options:NoMines() then
-		total_points = total_points
-			+ radar:GetValue("RadarCategory_Mines") * VOLT26.ExWeights.HitMine
-	end
-
 	local counts = ex_counts or VOLT26.Scoring.GetExCounts(player)
-	if not counts or total_possible <= 0 then return 0, total_points, total_possible end
-	for key in ivalues(ex_count_keys) do
-		if counts[key] then
-			total_points = total_points + counts[key] * VOLT26.ExWeights[key]
-		end
-	end
-	return math.max(0, math.floor(total_points / total_possible * 10000) / 100), total_points, total_possible
+	return VOLT26.Scoring.CalculateExFromRadar(counts, radar, weights, player_options:NoMines())
 end
 
 VOLT26.Results = {}
@@ -1529,6 +1577,10 @@ function VOLT26.Results.GetCurrent(player)
 		showEx = modifiers.ShowExScore == true,
 		timingWindows = DeepCopy(modifiers.TimingWindows),
 	}
+end
+
+function VOLT26.Scoring.GetDetailedJudgments(player)
+	return DeepCopy(VOLT26.Results.GetCurrent(player).exJudgments)
 end
 
 local function EventMachineRecordIndex(player, stats, machineHighScores)
@@ -1769,12 +1821,7 @@ function VOLT26.Failure.Record(player)
 		graph_label = total_seconds > 0 and death_second / total_seconds or 0
 	end
 
-	local failure = {
-		total_seconds=total_seconds,
-		death_second=death_second,
-		graph_percentage=graph_denominator > 0 and death_second / graph_denominator or 0,
-		graph_label=graph_label,
-	}
+	local failure = VOLT26.Failure.BuildSnapshot(death_second, total_seconds, graph_denominator, graph_label)
 
 	local current_measure = math.floor(player_state:GetSongPosition():GetSongBeatVisible() / 4)
 	local streams = VOLT26.Core.GetPlayerState(player).Streams
@@ -1796,6 +1843,19 @@ function VOLT26.Failure.Record(player)
 	stage.GraphPercentage = failure.graph_percentage
 	stage.GraphLabel = failure.graph_label
 	stage.DeathMeasures = failure.death_measures
+	return DeepCopy(failure)
+end
+
+function VOLT26.Failure.BuildSnapshot(deathSecond, totalSeconds, graphDenominator, graphLabel)
+	local total = math.max(0, tonumber(totalSeconds) or 0)
+	local death = clamp(tonumber(deathSecond) or 0, 0, total)
+	local denominator = math.max(0, tonumber(graphDenominator) or total)
+	return {
+		total_seconds=total,
+		death_second=death,
+		graph_percentage=denominator > 0 and clamp(death / denominator, 0, 1) or 0,
+		graph_label=math.max(0, tonumber(graphLabel) or (total - death)),
+	}
 end
 
 function VOLT26.Failure.NewExitGuard()
@@ -1829,11 +1889,19 @@ end
 
 function VOLT26.Failure.ReconcileExit(guard)
 	local premature = VOLT26.Failure.WasPrematureExit()
+	local reconciled = {}
 	for player in ivalues(GAMESTATE:GetEnabledPlayers()) do
-		if premature or guard.used_autoplay[player] then
+		local shouldFail = VOLT26.Failure.ShouldFailAttempt(premature, guard.used_autoplay[player])
+		if shouldFail then
 			STATSMAN:GetCurStageStats():GetPlayerStageStats(player):FailPlayer()
 		end
+		reconciled[player] = shouldFail
 	end
+	return reconciled
+end
+
+function VOLT26.Failure.ShouldFailAttempt(premature, usedAutoplay)
+	return premature == true or usedAutoplay == true
 end
 
 VOLT26.Evaluation = {}

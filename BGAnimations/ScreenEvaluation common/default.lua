@@ -5,7 +5,7 @@ local callbackController = VOLT26.EvaluationInput.NewCallbackController()
 local inputHandler, diagnosticInputHandler, eventOverlayInputHandler, shortcutInputHandler, screenshotInputHandler
 
 if ThemePrefs.Get("WriteCustomScores") then
-	WriteScores()
+	VOLT26.ScoreExport.WriteCurrent()
 end
 
 local t = Def.ActorFrame{Name="ScreenEval Common"}

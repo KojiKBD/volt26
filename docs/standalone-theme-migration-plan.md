@@ -132,12 +132,12 @@ Every migration branch should select the relevant checks below and record the ou
 
 ## Current next activities
 
-The initial source scan and the first standalone vertical route are complete. The next work should proceed in this order:
+The standalone core, accepted evaluation slices, and GAME-01 through GAME-04 are verified. Subsequent work should proceed in this order:
 
-1. obtain explicit scope decisions for the remaining `Assess` items, beginning with song search, favorites, chart metadata, and evaluation analysis;
-2. finish the inherited CORE adapters and define preference/profile migration behavior;
-3. verify a clean standalone installation, persistence across restart, two-player routes, courses, and supported aspect ratios;
-4. remove unneeded Simply Love compatibility names and files only after their consumers are migrated or intentionally omitted;
-5. define versioning, changelog, packaging, upgrade, and rollback procedures for the first release candidate.
+1. complete `SESSION-01` and verify the remaining implemented profile, options, selection, and evaluation-summary boundaries;
+2. obtain explicit scope decisions for the remaining `Assess` items, beginning with `CORE-05`, `OPTIONS-02`, gameplay statistics, and optional online/event behavior;
+3. remove unneeded Simply Love compatibility names and files only after their consumers are migrated or intentionally omitted;
+4. verify a clean standalone installation, persistence, courses, supported aspect ratios, and release packaging;
+5. define versioning, changelog, upgrade, and rollback procedures for the first release candidate.
 
 Each activity remains subject to the branch, verification, owner-acceptance, and merge policy in `AGENTS.md`.
