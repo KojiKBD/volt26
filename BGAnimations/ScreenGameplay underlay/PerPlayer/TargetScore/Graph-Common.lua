@@ -2,9 +2,9 @@ local player, pss, isTwoPlayers, pos_data, target_score, personal_best, use_smal
 local pn = ToEnumShortString(player)
 
 -- ---------------------------------------------------------------
-local bothWantBars =   isTwoPlayers
-                   and (SL.P1.ActiveModifiers.DataVisualizations == "Target Score Graph")
-                   and (SL.P2.ActiveModifiers.DataVisualizations == "Target Score Graph")
+local bothWantBars = isTwoPlayers
+	and VOLT26.Options.GetPlayerModifiers(PLAYER_1).DataVisualizations == "Target Score Graph"
+	and VOLT26.Options.GetPlayerModifiers(PLAYER_2).DataVisualizations == "Target Score Graph"
 
 -- ---------------------------------------------------------------
 -- some helper functions local to this file
@@ -61,7 +61,7 @@ local af = Def.ActorFrame{
 	end,
 }
 
-if SL[pn].ActiveModifiers.DataVisualizations == "Target Score Graph" then
+if VOLT26.Options.GetPlayerModifiers(player).DataVisualizations == "Target Score Graph" then
 	local args = { player, pss, isTwoPlayers, bothWantBars, pos_data, target_score, personal_best, percentToYCoordinate, GetCurMaxPercentDancePoints}
 
 	if use_smaller_graph then

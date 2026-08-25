@@ -18,10 +18,10 @@ local NoteFieldIsCentered = (GetNotefieldX(player) == _screen.cx)
 
 -- -----------------------------------------------------------------------
 local BothUsingStepStats = (#GAMESTATE:GetHumanPlayers()==2
-and SL.P1.ActiveModifiers.DataVisualizations == "Step Statistics"
-and SL.P2.ActiveModifiers.DataVisualizations == "Step Statistics")
+and VOLT26.Options.GetPlayerModifiers(PLAYER_1).DataVisualizations == "Step Statistics"
+and VOLT26.Options.GetPlayerModifiers(PLAYER_2).DataVisualizations == "Step Statistics")
 -- -----------------------------------------------------------------------
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26.Options.GetPlayerModifiers(player)
 local FilterAlpha = clamp(BackgroundFilterValues()[mods.BackgroundFilter]/100 or 0, 0.25, 1)
 -- max_seconds is how many seconds of a stepchart we want visualized on-screen at once.
 -- For very long songs (longer than, say, 10 minutes) the density graph becomes too
@@ -84,12 +84,7 @@ local histogram_amv = Scrolling_NPS_Histogram(player, width, height)..{
 	PeakNPSUpdatedMessageCommand=function(self) self:queuecommand("Size") end,
 	SizeCommand=function(self)
 		if BothUsingStepStats then
-			local my_peak = GAMESTATE:Env()[pn.."PeakNPS"]
-			local their_peak = GAMESTATE:Env()[ToEnumShortString(OtherPlayer[player]).."PeakNPS"]
-
-			if my_peak < their_peak then
-				self:zoomtoheight(my_peak/their_peak)
-			end
+			self:zoomtoheight(VOLT26.GameplayStats.GetPeakScale(player, OtherPlayer[player]))
 		end
 	end
 }
@@ -111,7 +106,7 @@ local text = LoadFont("Common Normal")..{
 		end
 	end,
 	PeakNPSUpdatedMessageCommand=function(self)
-		local my_peak = GAMESTATE:Env()[pn.."PeakNPS"]
+		local my_peak = VOLT26.GameplayStats.GetPeakNPS(player)
 
 		if my_peak == nil then
 			self:settext("")
@@ -138,7 +133,7 @@ local text = LoadFont("Common Normal")..{
 		end
 
 		self:y( -self:GetHeight()/2 - 2 )
-		self:settext( ("%s: %g"):format(THEME:GetString(Branch.GameplayScreen(), "PeakNPS"), round(my_peak * SL.Global.ActiveModifiers.MusicRate,2)) )
+		self:settext( ("%s: %g"):format(THEME:GetString(Branch.GameplayScreen(), "PeakNPS"), round(my_peak * VOLT26.MusicSelection.GetMusicRate(),2)) )
 	end,
 }
 

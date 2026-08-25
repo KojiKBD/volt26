@@ -6,8 +6,9 @@ local af = Def.ActorFrame{
 		-- tween for 1 second by default
 		local duration = 1
 		-- but decrease the overall tween time if musicrate is > 1 to ensure that this doesn't accidentally block arrows
-		if SL.Global.ActiveModifiers.MusicRate > 1 then
-			duration = duration * (1/SL.Global.ActiveModifiers.MusicRate)
+		local musicRate = VOLT26.MusicSelection.GetMusicRate()
+		if musicRate > 1 then
+			duration = duration * (1/musicRate)
 		end
 
 		self:sleep(duration/2):accelerate(duration/2):diffusealpha(0):queuecommand("Hide")

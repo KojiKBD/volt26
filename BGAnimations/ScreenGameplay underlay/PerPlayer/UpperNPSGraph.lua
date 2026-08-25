@@ -1,8 +1,8 @@
 local player = ...
-local pn = ToEnumShortString(player)
+local mods = VOLT26.Options.GetPlayerModifiers(player)
 
-if not SL[pn].ActiveModifiers.NPSGraphAtTop
-or SL.Global.GameMode == "Casual"
+if not mods.NPSGraphAtTop
+or VOLT26.Gameplay.IsCasual()
 then
 	return
 end
@@ -46,7 +46,7 @@ local song_percent, first_second, last_second
 
 return Def.ActorFrame{
 	InitCommand=function(self)
-		local adjusted_offset_x = SL[pn].ActiveModifiers.NoteFieldOffsetX * (player == PLAYER_1 and -1 or 1)
+		local adjusted_offset_x = mods.NoteFieldOffsetX * (player == PLAYER_1 and -1 or 1)
 		self:y(71):x(xpos[player] + adjusted_offset_x)
 	end,
 	-- called at the start of each new song in CourseMode, and once at the start of regular gameplay
@@ -64,13 +64,10 @@ return Def.ActorFrame{
 		SizeCommand=function(self)
 			self:zoomtoheight(1)
 
-			if #GAMESTATE:GetHumanPlayers()==2 and SL.P1.ActiveModifiers.NPSGraphAtTop and SL.P2.ActiveModifiers.NPSGraphAtTop then
-				local my_peak = GAMESTATE:Env()[pn.."PeakNPS"]
-				local their_peak = GAMESTATE:Env()[ToEnumShortString(OtherPlayer[player]).."PeakNPS"]
-
-				if my_peak < their_peak then
-					self:zoomtoheight(my_peak/their_peak)
-				end
+			if #GAMESTATE:GetHumanPlayers()==2
+				and VOLT26.Options.GetPlayerModifiers(PLAYER_1).NPSGraphAtTop
+				and VOLT26.Options.GetPlayerModifiers(PLAYER_2).NPSGraphAtTop then
+				self:zoomtoheight(VOLT26.GameplayStats.GetPeakScale(player, OtherPlayer[player]))
 			end
 		end
 	},

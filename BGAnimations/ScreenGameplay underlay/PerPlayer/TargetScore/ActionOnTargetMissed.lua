@@ -2,15 +2,12 @@ if not PREFSMAN:GetPreference("EventMode") then return end
 -- -----------------------------------------------------------------------
 
 local player = ...
-local pn = ToEnumShortString(player)
-
-local FailOnMissedTarget    = SL[pn].ActiveModifiers.ActionOnMissedTarget == "Fail"
-local RestartOnMissedTarget = SL[pn].ActiveModifiers.ActionOnMissedTarget == "Restart"
+local action = VOLT26.TargetScore.GetMissedAction(player, PREFSMAN:GetPreference("EventMode"))
 
 local args = {
 	TargetGradeMissedMessageCommand=function(self, params)
 		if params.Player == player then
-			if FailOnMissedTarget then
+			if action == "Fail" then
 				-- Use the engine's internal "SM_BeginFailed" message to *immediately* leave ScreenGameplay.
 				--   An alternative would be "SM_NotesEnded" which queue's ScreenGameplay's "out" transition (a fade to black in SL).
 				-- For more on SM_xxx messages:
@@ -24,7 +21,7 @@ local args = {
 				
 				SCREENMAN:GetTopScreen():PostScreenMessage("SM_BeginFailed", 0)
 
-			elseif RestartOnMissedTarget then
+			elseif action == "Restart" then
 				-- EventMode is assumed (i.e. not CoinMode_Pay), so no need to fuss with managing stage counts for SL or SM
 				SCREENMAN:GetTopScreen():SetPrevScreenName(Branch.GameplayScreen()):SetNextScreenName(Branch.GameplayScreen()):begin_backing_out()
 			end

@@ -89,7 +89,7 @@ local af = Def.ActorFrame {
 -- reuse "splode" assets (Gamplay in, combo milestones) for for grade changes
 -- but don't add them to the FullWidth graph ActorFrame if the player wanted
 -- their (arguably distracting) compatriots hidden from the combo
-if not SL[pn].ActiveModifiers.HideComboExplosions then
+if not VOLT26.Options.GetPlayerModifiers(player).HideComboExplosions then
 	af[#af+1] = Def.ActorFrame{
 		InitCommand=function(self) self:visible(false) end,
 		GradeChangedCommand=function(self)

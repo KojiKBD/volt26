@@ -1,7 +1,6 @@
 local function gen_vertices(player, width, height, Steps, desaturation)
 	local Song
 	local first_step_has_occurred = false
-	local pn = ToEnumShortString(player)
 
 	if not Steps then 
 		if GAMESTATE:IsCourseMode() then
@@ -17,19 +16,15 @@ local function gen_vertices(player, width, height, Steps, desaturation)
 
 	-- This function does no work if we already have the data in SL.Streams cache.
 	local chartData = VOLT26.ChartData.Refresh(Steps, player)
-	PeakNPS = chartData.PeakNPS
-	NPSperMeasure = chartData.NPSperMeasure
-	-- store the PeakNPS in GAMESTATE:Env()[pn.."PeakNPS"] in case both players are joined
-	-- their charts may have different peak densities, and if they both want histograms,
-	-- we'll need to be able to compare densities and scale one of the graphs vertically
-	GAMESTATE:Env()[pn.."PeakNPS"] = PeakNPS
+	local PeakNPS = chartData.PeakNPS
+	local NPSperMeasure = chartData.NPSperMeasure
+	-- Store each player's peak density so simultaneous graphs can share one scale.
+	VOLT26.GameplayStats.SetPeakNPS(player, PeakNPS)
 
 	-- use MESSAGEMAN to broadcast that the peak NPS has been calculated (and/or updated in CourseMode)
 	-- and is available.  actors on the current screen can listen for this via something like:
 	--
-	-- PeakNPSUpdatedMessageCommand=function(self)
-	--   local p1peak = GAMESTATE:Env()["P1PeakNPS"]
-	-- end
+	-- PeakNPSUpdatedMessageCommand=function(self) self:queuecommand("Size") end
 	MESSAGEMAN:Broadcast("PeakNPSUpdated")
 
 	local verts = {}
@@ -102,14 +97,7 @@ end
 
 -- This function interpolates between two vertices based on a given offset
 function interpolate_vert(v1, v2, offset)
-    -- Calculate the ratio of the offset to the difference in x-coordinates of the two vertices
-    local ratio = (offset - v1[1][1]) / (v2[1][1] - v1[1][1])
-    -- Interpolate the y-coordinate based on the ratio
-    local y = v1[1][2] * (1 - ratio) + v2[1][2] * ratio
-    -- Interpolate the color based on the ratio
-    local color = lerp_color(ratio, v1[2], v2[2])
-    -- Return the interpolated vertex and color as a table
-    return {{offset, y, 0}, color}
+	return VOLT26.GameplayStats.InterpolateVertex(v1, v2, offset)
 end
 
 function NPS_Histogram(player, width, height, desaturation)
@@ -150,7 +138,7 @@ function NPS_Histogram_Static_Course(player, width, height, desaturation)
 	local PeakCourseNPS = 0
 	for te in ivalues(trail:GetTrailEntries()) do
 		if te:GetSteps():GetPeakNps(pn) > PeakCourseNPS then PeakCourseNPS = te:GetSteps():GetPeakNps(pn) end
-		local w = (te:GetSong():GetLastSecond() / SL.Global.ActiveModifiers.MusicRate / totaltime) * width
+		local w = (te:GetSong():GetLastSecond() / VOLT26.MusicSelection.GetMusicRate() / totaltime) * width
 		local PeakTENPS = te:GetSteps():GetPeakNps(pn)
 		table.insert(ptable, {curx, w, te:GetSteps(), PeakTENPS})
 		curx = curx + w

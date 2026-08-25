@@ -6,15 +6,15 @@
 if #GAMESTATE:GetHumanPlayers() < 2 then return end
 
 -- if displaying different scoring mechanisms, don't bother.
-if VOLT26.Options.GetPlayerModifiers(PLAYER_1).ShowExScore
-	~= VOLT26.Options.GetPlayerModifiers(PLAYER_2).ShowExScore then return end
+local p1Modifiers = VOLT26.Options.GetPlayerModifiers(PLAYER_1)
+local p2Modifiers = VOLT26.Options.GetPlayerModifiers(PLAYER_2)
+if not VOLT26.Versus.CanCompare(p1Modifiers, p2Modifiers) then return end
 
 local p1_score, p2_score
-local p1_dp = 0
-local p2_dp = 0
+local scores = VOLT26.Versus.NewScoreState()
 local p1_pss = STATSMAN:GetCurStageStats():GetPlayerStageStats(PLAYER_1)
 local p2_pss = STATSMAN:GetCurStageStats():GetPlayerStageStats(PLAYER_2)
-local IsEX = VOLT26.Options.GetPlayerModifiers(PLAYER_1).ShowExScore
+local IsEX = p1Modifiers.ShowExScore
 
 -- allow for HideScore, which outright removes score actors
 local try_diffusealpha = function(af, alpha)
@@ -30,34 +30,34 @@ return Def.Actor{
 	end,
 	JudgmentMessageCommand=function(self, params)
 		if not IsEX then
-			-- calculate the percentage DP manually rather than use GetPercentDancePoints.
-			-- That function rounds to the nearest .01%, which is inaccurate on long songs.
+			local score
 			if params.Player == PLAYER_1 then
-				p1_dp = p1_pss:GetActualDancePoints() / p1_pss:GetPossibleDancePoints()
+				score = VOLT26.Versus.CalculateDancePointRatio(
+					p1_pss:GetActualDancePoints(), p1_pss:GetPossibleDancePoints()
+				)
 			elseif params.Player == PLAYER_2 then
-				p2_dp = p2_pss:GetActualDancePoints() / p2_pss:GetPossibleDancePoints()
+				score = VOLT26.Versus.CalculateDancePointRatio(
+					p2_pss:GetActualDancePoints(), p2_pss:GetPossibleDancePoints()
+				)
 			end
-			self:queuecommand("Winning")
+			if score then self:playcommand("Winning", {Leader=VOLT26.Versus.UpdateScore(scores, params.Player, score)}) end
 		end
 	end,
 	VOLT26ScoreChangedMessageCommand=function(self, params)
 		if IsEX then
-			if params.Player == PLAYER_1 then
-				p1_dp = params.ExScore
-			elseif params.Player == PLAYER_2 then
-				p2_dp = params.ExScore
-			end
-			self:queuecommand("Winning")
+			self:playcommand("Winning", {
+				Leader=VOLT26.Versus.UpdateScore(scores, params.Player, params.ExScore)
+			})
 		end
 	end,
-	WinningCommand=function(self)
-		if p1_dp == p2_dp then
+	WinningCommand=function(self, params)
+		if params.Leader == "Tie" then
 			try_diffusealpha(p1_score, 1)
 			try_diffusealpha(p2_score, 1)
-		elseif p1_dp > p2_dp then
+		elseif params.Leader == PLAYER_1 then
 			try_diffusealpha(p1_score, 1)
 			try_diffusealpha(p2_score, 0.65)
-		elseif p2_dp > p1_dp then
+		elseif params.Leader == PLAYER_2 then
 			try_diffusealpha(p1_score, 0.65)
 			try_diffusealpha(p2_score, 1)
 		end

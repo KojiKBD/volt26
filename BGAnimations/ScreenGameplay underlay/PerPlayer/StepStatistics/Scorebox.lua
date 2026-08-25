@@ -1,7 +1,7 @@
 local player = ...
 local pn = ToEnumShortString(player)
 
-if (not SL[pn].ActiveModifiers.DisplayScorebox or
+if (not VOLT26.Options.GetPlayerModifiers(player).DisplayScorebox or
 		not IsServiceAllowed(SL.GrooveStats.GetScores) or
 		SL[pn].ApiKey == "") then
 	return

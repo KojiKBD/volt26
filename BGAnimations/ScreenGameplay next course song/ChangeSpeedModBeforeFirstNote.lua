@@ -4,23 +4,7 @@ for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 	po[player] = GAMESTATE:GetPlayerState(player):GetPlayerOptions('ModsLevel_Song')
 end
 
-local increment = {
-	XMod = 0.25,
-	MMod = 10,
-	CMod = 10,
-}
-
-local upper_limit = {
-	XMod = 10,
-	MMod = 2000,
-	CMod = 2000,
-}
-
-local fmt = {
-	XMod = "mod,%.2fx",
-	MMod = "mod,m%d",
-	CMod = "mod,c%d",
-}
+local callbackActive = false
 
 local InputHandler = function( event )
 	if not event.PlayerNumber or not event.button then return false end
@@ -31,28 +15,16 @@ local InputHandler = function( event )
 	-- we don't want to change speed mod if a player has OnlyDedicatedMenuButtons=0 and is, for example, tapping out
 	-- the beat on their dance pad before the first note.
 	if event.button == "MenuRight" or event.button == "MenuLeft" then
-		local xmod = po[event.PlayerNumber]:XMod()
-		local mmod = po[event.PlayerNumber]:MMod()
-		local cmod = po[event.PlayerNumber]:CMod()
+		local speedmod_str, speedmod = VOLT26.CourseSpeed.GetActive(po[event.PlayerNumber])
+		if not speedmod_str then return false end
+		local direction = event.button == "MenuRight" and 1 or -1
+		speedmod = VOLT26.CourseSpeed.Adjust(speedmod_str, speedmod, direction)
+		if not speedmod then return false end
 
-		local speedmod     = (cmod ~= nil and cmod)   or (mmod ~= nil and mmod)   or (xmod ~= nil and xmod)
-		local speedmod_str = (cmod ~= nil and "CMod") or (mmod ~= nil and "MMod") or (xmod ~= nil and "XMod")
-
-		if event.button == "MenuRight" then
-			if speedmod + increment[speedmod_str] <= upper_limit[speedmod_str] then
-				speedmod = speedmod + increment[speedmod_str]
-			end
-		elseif event.button == "MenuLeft" then
-			if speedmod - increment[speedmod_str] > 0 then
-				speedmod = speedmod - increment[speedmod_str]
-			end
-		end
-
-		-- update SL table with new speed
-		SL[ToEnumShortString(event.PlayerNumber)].ActiveModifiers.SpeedMod = speedmod
+		VOLT26.Options.GetPlayerModifiers(event.PlayerNumber).SpeedMod = speedmod
 
 		-- format a GameCommand string like "mod,1.75x" or "mod,c460" or "mod,m900"
-		local gcString = fmt[speedmod_str]:format(speedmod)
+		local gcString = VOLT26.CourseSpeed.Format(speedmod_str, speedmod)
 
 		-- apply the new speed mod to the player immediately
 		GAMESTATE:ApplyGameCommand(gcString, event.PlayerNumber)
@@ -73,15 +45,19 @@ return Def.Actor{
 	JudgmentMessageCommand=function(self) self:playcommand("RemoveInputHandler") end,
 
 	AddInputHandlerCommand=function(self)
+		if callbackActive then return end
 		local screen = SCREENMAN:GetTopScreen()
 		if screen then
 			screen:AddInputCallback( InputHandler )
+			callbackActive = true
 		end
 	end,
 	RemoveInputHandlerCommand=function(self)
+		if not callbackActive then return end
 		local screen = SCREENMAN:GetTopScreen()
 		if screen then
 			screen:RemoveInputCallback( InputHandler )
+			callbackActive = false
 		end
 	end
 }
