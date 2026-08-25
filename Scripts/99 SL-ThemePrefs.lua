@@ -51,15 +51,6 @@ VOLT26_Prefs.Get = function()
 			Choices = { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
 			Values  = { true, false }
 		},
-		DefaultGameMode =
-		{
-			Default = "ITG",
-			Choices = {
-				THEME:GetString("ScreenSelectPlayMode", "Casual"),
-				THEME:GetString("ScreenSelectPlayMode", "ITG"),
-			},
-			Values = { "Casual", "ITG" }
-		},
 		DefaultSort =
 		{
 			Default = "Series",
@@ -192,12 +183,6 @@ VOLT26_Prefs.Get = function()
 			Choices = map(SecondsToMSS, range(60, 450, 15)),
 			Values  = range(60, 450, 15),
 		},
-		ScreenSelectMusicCasualMenuTimer =
-		{
-			Default = 300,
-			Choices = map(SecondsToMSS, range(60, 450, 15)),
-			Values  = range(60, 450, 15),
-		},
 		ScreenPlayerOptionsMenuTimer =
 		{
 			Default = 90,
@@ -271,20 +256,6 @@ VOLT26_Prefs.Get = function()
 		{
 			Default = true,
 			Choices = { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
-			Values  = { true, false }
-		},
-		-- - - - - - - - - - - - - - - - - - - -
-		-- Casual GameMode Settings
-		CasualMaxMeter = {
-			Default = 10,
-			Choices = range(5, 15, 1),
-			Values  = range(5, 15, 1)
-		},
-		-- - - - - - - - - - - - - - - - - - - -
-		-- SM5.1's ImageCache System (used in CasualMode)
-		UseImageCache = {
-			Default = false,
-			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
 			Values  = { true, false }
 		},
 		-- - - - - - - - - - - - - - - - - - - -

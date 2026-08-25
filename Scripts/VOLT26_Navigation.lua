@@ -15,7 +15,7 @@ end
 
 function Navigation.SelectMusicOrCourse()
 	if GAMESTATE:IsCourseMode() then return "ScreenSelectCourse" end
-	return VOLT26.Gameplay.GetMode() == "Casual" and "ScreenSelectMusicCasual" or "ScreenSelectMusic"
+	return "ScreenSelectMusic"
 end
 
 function Navigation.AfterScreenRankingDouble()
@@ -84,7 +84,7 @@ function Navigation.AllowScreenSelectPlayMode2()
 end
 
 function Navigation.AfterEvaluationStage()
-	return VOLT26.Gameplay.GetMode() == "Casual" and Navigation.AfterProfileSave() or "ScreenProfileSave"
+	return "ScreenProfileSave"
 end
 
 function Navigation.AfterSelectPlayMode()
@@ -121,7 +121,6 @@ function Navigation.CancelMusicSelection()
 end
 
 function Navigation.AllowScreenNameEntry()
-	if VOLT26.Gameplay.GetMode() == "Casual" then return Navigation.AfterProfileSaveSummary() end
 	return VOLT26.ThemePrefs.Get("AllowScreenNameEntry")
 		and "ScreenNameEntryTraditional" or "ScreenProfileSaveSummary"
 end
