@@ -1,12 +1,11 @@
 -- Pane6 displays TestInput.
 
-if SL.Global.GameMode == "Casual" then return end
+if VOLT26.Gameplay.IsCasual() then return end
 
 -- DedicatedMenu buttons are necessary here to prevent players from getting stuck in this pane
 if not PREFSMAN:GetPreference("OnlyDedicatedMenuButtons") then return end
 
-local game = GAMESTATE:GetCurrentGame():GetName()
-if not (game=="dance" or game=="pump" or game=="techno") then return end
+if not VOLT26.InputDiagnostics.SupportsPadVisuals() then return end
 
 -- -----------------------------------------------------------------------
 
@@ -16,7 +15,7 @@ local style = ToEnumShortString(GAMESTATE:GetCurrentStyle():GetStyleType())
 
 local pane = Def.ActorFrame{
 	InitCommand=function(self)
-		if style == "OnePlayerTwoSides" or (style == "TwoPlayersSharedSides" and routineStatus) then
+		if style == "OnePlayerTwoSides" then
 			if controller == PLAYER_2 then self:x(-260)
 			else self:x(50) end
 		end
