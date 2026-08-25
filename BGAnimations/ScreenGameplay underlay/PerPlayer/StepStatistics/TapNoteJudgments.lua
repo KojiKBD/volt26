@@ -1,5 +1,7 @@
 local player, has_labels = unpack(...)
 local pn = ToEnumShortString(player)
+local mods = VOLT26.Options.GetPlayerModifiers(player)
+local gameMode = VOLT26.Gameplay.GetMode()
 
 local IsUltraWide = (GetScreenAspectRatio() > 21/9)
 local NoteFieldIsCentered = (GetNotefieldX(player) == _screen.cx)
@@ -10,12 +12,10 @@ local StepsOrTrail = (GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentTrail(pla
 local total_tapnotes = StepsOrTrail:GetRadarValues(player):GetValue( "RadarCategory_Notes" )
 
 -- Only add this in ITG mode.
-local ShowFaPlusWindow = SL[pn].ActiveModifiers.ShowFaPlusWindow and SL.Global.GameMode=="ITG"
+local ShowFaPlusWindow = mods.ShowFaPlusWindow and gameMode == "ITG"
 
 -- determine how many digits are needed to express the number of notes in base-10
-local digits = (math.floor(math.log10(total_tapnotes)) + 1)
--- display a minimum 4 digits for aesthetic reasons
-digits = math.max(4, digits)
+local digits = VOLT26.GameplayStats.GetDigitCount(total_tapnotes, 4)
 
 -- generate a Lua string pattern that will be used to leftpad with 0s
 local pattern = ("%%0%dd"):format(digits)
@@ -34,7 +34,7 @@ if ShowFaPlusWindow then
 	TNS.Judgments["W0"] = 0
 end
 
-local tns_string = "TapNoteScore" .. (SL.Global.GameMode=="ITG" and "" or SL.Global.GameMode)
+local tns_string = "TapNoteScore" .. (gameMode == "ITG" and "" or gameMode)
 
 -- get TNS names appropriate for the current GameMode, localized to the current language
 for i, judgment in ipairs(TNS.Types) do
@@ -51,7 +51,7 @@ for i, judgment in ipairs(TNS.Types) do
 		end
 	else
 		TNS.Names[#TNS.Names+1] = THEME:GetString(tns_string, judgment)
-		TNS.Colors[#TNS.Colors+1] = SL.JudgmentColors[SL.Global.GameMode][i]
+		TNS.Colors[#TNS.Colors+1] = SL.JudgmentColors[gameMode][i]
 	end
 end
 
@@ -60,10 +60,10 @@ local row_height = ShowFaPlusWindow and 29 or 35
 
 local windows = {}
 if ShowFaPlusWindow then
-	windows[#windows + 1] = SL[pn].ActiveModifiers.TimingWindows[1]
+	windows[#windows + 1] = mods.TimingWindows[1]
 end
 
-for v in ivalues( SL[pn].ActiveModifiers.TimingWindows) do
+for v in ivalues(mods.TimingWindows) do
 	windows[#windows + 1] = v
 end
 

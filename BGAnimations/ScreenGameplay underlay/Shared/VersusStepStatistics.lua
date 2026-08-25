@@ -3,8 +3,7 @@ local IsUltraWide = (GetScreenAspectRatio() > 21/9)
 local FilterAlpha = BackgroundFilterValues()
 
 local ShouldDisplayStatsForPlayer = function(player)
-    local pn = ToEnumShortString(player)
-    return (SL[pn].ActiveModifiers.DataVisualizations == "Step Statistics" or
+    return (VOLT26.Options.GetPlayerModifiers(player).DataVisualizations == "Step Statistics" or
             ThemePrefs.Get("EnableTournamentMode") and ThemePrefs.Get("StepStats") == "Show")
 end
 
@@ -31,8 +30,8 @@ end
 local determineFilterAlphas = function()
     local alphas = {}
     for player in ivalues(Players) do
-        local pn = ToEnumShortString(player)
-        alphas[player] = clamp(FilterAlpha[SL[pn].ActiveModifiers.BackgroundFilter]/100 or 0, 0.25, 0.9)
+        local filter = VOLT26.Options.GetPlayerModifiers(player).BackgroundFilter
+        alphas[player] = clamp(FilterAlpha[filter]/100 or 0, 0.25, 0.9)
     end
     return alphas
 end
@@ -67,9 +66,7 @@ for player in ivalues(Players) do
             local total_tapnotes = StepsOrTrail:GetRadarValues(player):GetValue( "RadarCategory_Notes" )
     
             -- determine how many digits are needed to express the number of notes in base-10
-            local digits = (math.floor(math.log10(total_tapnotes)) + 1)
-            -- display a minimum 4 digits for aesthetic reasons
-            digits = math.max(4, digits)
+            local digits = VOLT26.GameplayStats.GetDigitCount(total_tapnotes, 4)
 
             self:zoom(0.8)
             self:y(100)
@@ -84,9 +81,9 @@ for player in ivalues(Players) do
         af[#af+1] = judgments
 
         -- Add a score to Step Stats if it's hidden by the NPS graph or we're in Tournament Mode.
-        if SL[ToEnumShortString(player)].ActiveModifiers.NPSGraphAtTop or ThemePrefs.Get("EnableTournamentMode") then
+        if VOLT26.Options.GetPlayerModifiers(player).NPSGraphAtTop or ThemePrefs.Get("EnableTournamentMode") then
             local pn = ToEnumShortString(player)
-            local IsEX = SL[pn].ActiveModifiers.ShowExScore
+            local IsEX = VOLT26.Options.GetPlayerModifiers(player).ShowExScore
 
             af[#af+1] = LoadFont("Wendy/_wendy monospace numbers")..{
                 Text="0.00",

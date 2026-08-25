@@ -1,9 +1,8 @@
 local player, layout = ...
-local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26.Options.GetPlayerModifiers(player)
 
 -- don't allow MeasureCounter to appear in Casual gamemode via profile settings
-if SL.Global.GameMode == "Casual"
+if VOLT26.Gameplay.IsCasual()
 or not mods.MeasureCounter
 or mods.MeasureCounter == "None" then
 	return
@@ -12,7 +11,7 @@ end
 -- -----------------------------------------------------------------------
 
 local PlayerState = GAMESTATE:GetPlayerState(player)
-local streams, prevMeasure, streamIndex
+local segments, prevMeasure, streamIndex
 -- Collection of the BitmapText actors used for the measure counters.
 local bmt = {}
 
@@ -24,9 +23,7 @@ local lookAhead = mods.HideLookahead and 0 or 3
 
 -- We'll want to reset each of these values for each new song in the case of CourseMode
 local InitializeMeasureCounter = function()
-	-- SL[pn].Streams is initially set (and updated in CourseMode)
-	-- in ./ScreenGameplay in/MeasureCounterAndModsLevel.lua
-	streams = SL[pn].Streams
+	segments = VOLT26.GameplayStats.GetMeasureSegments(player)
 	streamIndex = 1
 	prevMeasure = -1
 
@@ -35,73 +32,9 @@ local InitializeMeasureCounter = function()
 	end
 end
 
--- Returns whether or not we've reached the end of this stream segment.
-local IsEndOfStream = function(currMeasure, Measures, streamIndex)
-	if Measures[streamIndex] == nil then return false end
-
-	-- a "segment" can be either stream or rest
-	local segmentStart = Measures[streamIndex].streamStart
-	local segmentEnd   = Measures[streamIndex].streamEnd
-
-	local currStreamLength = segmentEnd - segmentStart
-	local currCount = math.floor(currMeasure - segmentStart) + 1
-
-	return currCount > currStreamLength
-end
-
-local GetTextForMeasure = function(currMeasure, Measures, streamIndex, isLookAhead)
-	if currMeasure < 0 then
-		if not isLookAhead then
-			-- Measures[1] is guaranteed to exist as we check for non-empty tables at the start of Update() below.
-			if not Measures[1].isBreak then
-				-- currMeasure can be negative. If the first thing is a stream, then denote that "negative space" as a rest.
-				return "(" .. math.floor(currMeasure * -1) + 1 .. ")"
-			else
-				-- If the first thing is a break, then add the negative space to the existing break count
-				local segmentStart = Measures[1].streamStart
-				local segmentEnd   = Measures[1].streamEnd
-				local currStreamLength = segmentEnd - segmentStart
-				return "(" .. math.floor(currMeasure * -1) + 1 + currStreamLength .. ")"
-			end
-		else
-			if not Measures[1].isBreak then
-				-- Push all the stream segments back by one since we're adding an additional ephemeral break.
-				streamIndex = streamIndex - 1
-			end
-		end
-	end
-	if Measures[streamIndex] == nil then return "" end
-
-	-- A "segment" can be either stream or rest
-	local segmentStart = Measures[streamIndex].streamStart
-	local segmentEnd   = Measures[streamIndex].streamEnd
-
-	local currStreamLength = segmentEnd - segmentStart
-	local currCount = math.floor(currMeasure - segmentStart) + 1
-
-	local text = ""
-	if Measures[streamIndex].isBreak then
-		if not isLookAhead then
-			local remainingRest = currStreamLength - currCount + 1
-
-			-- Ensure that the rest count is in range of the total length.
-			text = "(" .. remainingRest .. ")"
-		else
-			text = "(" .. currStreamLength .. ")"
-		end
-	else
-		if not isLookAhead and currCount ~= 0 then
-			text = tostring(currCount .. "/" .. currStreamLength)
-		else
-			text = tostring(currStreamLength)
-		end
-	end
-	return text
-end
-
 local Update = function(self, delta)
 	-- Check to make sure we even have any streams populated to display.
-	if not streams or not streams.Measures or #streams.Measures == 0 then return end
+	if not segments or #segments == 0 then return end
 
 	-- Things to look into:
 	-- 1. Does PlayerState:GetSongPosition() take split timing into consideration?  Do we need to?
@@ -113,7 +46,7 @@ local Update = function(self, delta)
 		prevMeasure = currMeasure
 
 		-- If we've reached the end of the stream, we want to get values for the next stream.
-		if IsEndOfStream(currMeasure, streams.Measures, streamIndex) then
+		if VOLT26.GameplayStats.IsEndOfSegment(currMeasure, segments, streamIndex) then
 			streamIndex = streamIndex + 1
 		end
 
@@ -123,14 +56,15 @@ local Update = function(self, delta)
 			-- We're looping forwards, but the BMTs are indexed in the opposite direction.
 			-- Adjust indices accordingly.
 			local adjustedIndex = lookAhead+2-i
-			local text = GetTextForMeasure(currMeasure, streams.Measures, streamIndex + i - 1, isLookAhead)
+			local segmentIndex = streamIndex + i - 1
+			local text = VOLT26.GameplayStats.GetMeasureText(currMeasure, segments, segmentIndex, isLookAhead)
 			bmt[adjustedIndex]:settext(text)
 			-- We can hit nil when we've run out of streams/breaks for the song. Just hide these BMTs.
-			if streams.Measures[streamIndex + i - 1] == nil then
+			if segments[segmentIndex] == nil then
 				bmt[adjustedIndex]:visible(false)
 
 			-- rest count
-			elseif streams.Measures[streamIndex + i - 1].isBreak then
+			elseif segments[segmentIndex].isBreak then
 				-- Make rest lookaheads be lighter than active rests.
 				if not isLookAhead then
 					bmt[adjustedIndex]:diffuse(0.5, 0.5, 0.5 ,1)

@@ -1,5 +1,6 @@
 local player = ...
 local pn = ToEnumShortString(player)
+local mods = VOLT26.Options.GetPlayerModifiers(player)
 local ar = GetScreenAspectRatio()
 local IsUltraWide = (GetScreenAspectRatio() > 21/9)
 local NoteFieldIsCentered = (GetNotefieldX(player) == _screen.cx)
@@ -9,13 +10,13 @@ local NoteFieldIsCentered = (GetNotefieldX(player) == _screen.cx)
 
 local stylename = GAMESTATE:GetCurrentStyle():GetName()
 
-if SL[pn].ActiveModifiers.DataVisualizations ~= "Step Statistics" then return end
+if mods.DataVisualizations ~= "Step Statistics" then return end
 
 if (not IsUltraWide and stylename == "versus")
 	or (not ThemePrefs.Get("EnableTournamentMode") and
-	    SL[pn].ActiveModifiers.DataVisualizations ~= "Step Statistics")
+	    mods.DataVisualizations ~= "Step Statistics")
 	or (ThemePrefs.Get("EnableTournamentMode") and ThemePrefs.Get("StepStats") == "Hide")
-	or (SL.Global.GameMode == "Casual")
+	or VOLT26.Gameplay.IsCasual()
 	or (GetNotefieldWidth() > _screen.w/2 and stylename ~= "double")
 	or (NoteFieldIsCentered and not IsUsingWideScreen())
 	or (not IsUltraWide and stylename ~= "single" and stylename ~= "double")

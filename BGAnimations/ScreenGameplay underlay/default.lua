@@ -33,21 +33,16 @@ if GAMESTATE:GetCurrentStyle():GetStyleType() == "StyleType_TwoPlayersSharedSide
 	local xmod = po[GAMESTATE:GetMasterPlayerNumber()]:XMod()
 	local mmod = po[GAMESTATE:GetMasterPlayerNumber()]:MMod()
 	local cmod = po[GAMESTATE:GetMasterPlayerNumber()]:CMod()
-
-	local mini = tonumber(SL[ToEnumShortString(GAMESTATE:GetMasterPlayerNumber())].ActiveModifiers.Mini:sub(1, -2)) / 100
-
-	local speedmod = SL[ToEnumShortString(GAMESTATE:GetMasterPlayerNumber())].ActiveModifiers.SpeedMod
+	local masterMods = VOLT26.Options.GetPlayerModifiers(GAMESTATE:GetMasterPlayerNumber())
+	local speedmod = masterMods.SpeedMod
 	local speedmod_str = (cmod ~= nil and "CMod") or (mmod ~= nil and "MMod") or (xmod ~= nil and "XMod")
 
-	local fmt = {
-		XMod = "mod,%.2fx",
-		MMod = "mod,m%d",
-		CMod = "mod,c%d",
-	}
-	local gcString = fmt[speedmod_str]:format(speedmod)
-	gcString = gcString ..""
-	GAMESTATE:ApplyGameCommand(gcString.."mod,"..SL[ToEnumShortString(GAMESTATE:GetMasterPlayerNumber())].ActiveModifiers.Mini.." mini", PLAYER_2)
-	GAMESTATE:ApplyGameCommand(gcString.."mod,"..SL[ToEnumShortString(GAMESTATE:GetMasterPlayerNumber())].ActiveModifiers.Mini.." mini", PLAYER_1)
+	local gcString = VOLT26.CourseSpeed.Format(speedmod_str, speedmod)
+	if gcString then
+		local routineMods = gcString .. ",mod," .. masterMods.Mini .. " mini"
+		GAMESTATE:ApplyGameCommand(routineMods, PLAYER_2)
+		GAMESTATE:ApplyGameCommand(routineMods, PLAYER_1)
+	end
 
 end
 

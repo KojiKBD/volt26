@@ -1,7 +1,6 @@
 local player = ...
-local PlayerState  = GAMESTATE:GetPlayerState(player)
 local SongPosition = GAMESTATE:GetPlayerState(player):GetSongPosition()
-local rate = SL.Global.ActiveModifiers.MusicRate
+local rate = VOLT26.MusicSelection.GetMusicRate()
 
 local NoteFieldIsCentered = (GetNotefieldX(player) == _screen.cx)
 local IsUltraWide = (GetScreenAspectRatio() > 21/9)
@@ -90,17 +89,14 @@ end
 local cumulative_seconds = {}
 
 if GAMESTATE:IsCourseMode() then
-	local seconds = 0
 	local trail = GAMESTATE:GetCurrentTrail(player)
 
 	if trail then
-		local entries = trail:GetTrailEntries()
-		for i, entry in ipairs(entries) do
-			-- In the engine, TrailUtil.GetTotalSeconds() adds up song.MusicLengthSeconds
-			-- so let's use the same method here for consistency.
-			seconds = seconds + (entry:GetSong():MusicLengthSeconds() / rate)
-			table.insert(cumulative_seconds, seconds)
+		local durations = {}
+		for _, entry in ipairs(trail:GetTrailEntries()) do
+			durations[#durations + 1] = entry:GetSong():MusicLengthSeconds()
 		end
+		cumulative_seconds = VOLT26.GameplayStats.BuildCumulativeSeconds(durations, rate)
 	end
 end
 
@@ -128,7 +124,9 @@ local Update = function(af, delta)
 		return
 	end
 
-	remBMT:settext( fmt(clamp(totalseconds - seconds_offset - (SongPosition:GetMusicSeconds()/rate), 0, totalseconds)) )
+	remBMT:settext(fmt(VOLT26.GameplayStats.GetRemainingSeconds(
+		totalseconds, seconds_offset, SongPosition:GetMusicSeconds(), rate
+	)))
 end
 
 -- -----------------------------------------------------------------------

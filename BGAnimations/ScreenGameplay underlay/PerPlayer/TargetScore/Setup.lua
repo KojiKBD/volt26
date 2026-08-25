@@ -1,5 +1,4 @@
 local player, use_smaller_graph, notefield_is_centered = unpack(...)
-local pn = ToEnumShortString(player)
 
 -- ---------------------------------------------------------------
 -- Finds the top score for the current song (or course) given a player.
@@ -100,28 +99,19 @@ end
 -- { 'C-', 'C', 'C+', 'B-', 'B', 'B+', 'A-', 'A', 'A+', 'S-', 'S', 'S+', '☆', '☆☆', '☆☆☆', '☆☆☆☆', 'Machine best', 'Personal best' }
 
 -- the index of the target score chosen in the PlayerOptions menu
-local target_grade_index = tonumber(SL[pn].ActiveModifiers.TargetScore)
-
--- the score that corresponds to the chosen target grade by the player
-local target_grade_score = 0
-
-if (target_grade_index == 17) then
-	-- player set TargetGrade as Machine best
-	target_grade_score = GetTopScore("Machine")
-
-elseif (target_grade_index == 18) then
-	-- player set TargetGrade as Personal best
-	target_grade_score = GetTopScore("Personal")
-else
-	-- player set TargetGrade as a particular letter grade
-	-- anything from C- to ☆☆☆☆
-	target_grade_score = THEME:GetMetric("PlayerStageStats", "GradePercentTier" .. string.format("%02d", 17 - target_grade_index))
+local gradeThresholds = {}
+for index=1,16 do
+	gradeThresholds[index] = THEME:GetMetric(
+		"PlayerStageStats", "GradePercentTier" .. string.format("%02d", 17 - index)
+	)
 end
-
--- if there is no personal/machine score, default to S as target
-if target_grade_score == 0 then
-	target_grade_score = THEME:GetMetric("PlayerStageStats", "GradePercentTier06")
-end
+local target_grade_score = VOLT26.TargetScore.ResolveTarget(
+	VOLT26.Options.GetPlayerModifiers(player).TargetScore,
+	GetTopScore("Machine"),
+	GetTopScore("Personal"),
+	gradeThresholds,
+	11
+)
 
 -- ---------------------------------------------------------------
 

@@ -5,12 +5,11 @@ return function(SongNumberInCourse)
 		-- we'll retrieve it the next time ScreenSelectMusic loads and re-apply those same mods
 		-- in this way, we can override the effects of songs that forced modifiers during gameplay
 		-- the old-school (ie. ITG) way of GAMESTATE:ApplyGameCommand()
-		local pn = ToEnumShortString(player)
 		VOLT26.Gameplay.StorePlayerOptions(player)
 
 		-- Check if MeasureCounter are turned on.
 		-- We may need to parse the chart
-		local mods = SL[pn].ActiveModifiers
+		local mods = VOLT26.Options.GetPlayerModifiers(player)
 		if mods.MeasureCounter and mods.MeasureCounter ~= "None" then
 
 			local steps = nil
@@ -29,7 +28,10 @@ return function(SongNumberInCourse)
 			if (mods.MeasureCounter and mods.MeasureCounter ~= "None") then
 				-- Set the actual stream information for the player based on their selected notes threshold.
 				local notesThreshold = tonumber(mods.MeasureCounter:match("%d+"))
-				SL[pn].Streams.Measures = VOLT26.ChartAnalysis.GetStreamSequences(chartData.NotesPerMeasure, notesThreshold)
+				VOLT26.GameplayStats.SetMeasureSegments(
+					player,
+					VOLT26.ChartAnalysis.GetStreamSequences(chartData.NotesPerMeasure, notesThreshold)
+				)
 			end
 		end
 	end

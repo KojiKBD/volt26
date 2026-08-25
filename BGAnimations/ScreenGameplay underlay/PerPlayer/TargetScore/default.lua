@@ -7,21 +7,23 @@
 
 -- ---------------------------------------------------------------
 -- nothing handled by this file applies to or should appear in Casual mode
-if SL.Global.GameMode == "Casual" then return end
+if VOLT26.Gameplay.IsCasual() then return end
 
 -- ---------------------------------------------------------------
 -- first, the usual suspects
 
 local player = ...
 local pn = ToEnumShortString(player)
+local mods = VOLT26.Options.GetPlayerModifiers(player)
 
 -- ---------------------------------------------------------------
 -- Make sure that someone requested *something* from this file.
 -- There are four reasons we'd want to proceed.
-local WantsPacemaker        = SL[pn].ActiveModifiers.Pacemaker
-local WantsTargetGraph      = SL[pn].ActiveModifiers.DataVisualizations == "Target Score Graph"
-local FailOnMissedTarget    = PREFSMAN:GetPreference("EventMode") and SL[pn].ActiveModifiers.ActionOnMissedTarget == "Fail"
-local RestartOnMissedTarget = PREFSMAN:GetPreference("EventMode") and SL[pn].ActiveModifiers.ActionOnMissedTarget == "Restart"
+local WantsPacemaker = mods.Pacemaker
+local WantsTargetGraph = mods.DataVisualizations == "Target Score Graph"
+local missedAction = VOLT26.TargetScore.GetMissedAction(player, PREFSMAN:GetPreference("EventMode"))
+local FailOnMissedTarget = missedAction == "Fail"
+local RestartOnMissedTarget = missedAction == "Restart"
 
 -- if none of those four conditions apply, don't go any futher; just return now.
 if not (WantsPacemaker or WantsTargetGraph or FailOnMissedTarget or RestartOnMissedTarget) then return end
