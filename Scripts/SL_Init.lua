@@ -167,7 +167,8 @@ local GlobalDefaults = {
 			self.ColumnCueMinTime = 1.5
 
 			-- TODO(teejusb): We should only initialize this once to save on compute.
-			self.GrooveStatsPlayerOptionKeys = CreateGrooveStatsPlayerOptionKeys()
+			self.GrooveStatsPlayerOptionKeys = type(CreateGrooveStatsPlayerOptionKeys) == "function"
+				and CreateGrooveStatsPlayerOptionKeys() or {}
 
 			-- used to track active OptionRow index when navigating the Operator Menu's many screens and sub-screens
 			-- shaped like: { ScreenOptionsService=3, ScreenVisualOptions=1 }
@@ -484,7 +485,7 @@ VOLT26 = {
 		-- SL.UnlocksCache[url][packName]
 		-- LoadUnlocksCache() is defined in SL-Helpers-GrooveStats.lua so that must
 		-- be loaded before this file.
-		UnlocksCache = LoadUnlocksCache(),
+		UnlocksCache = type(LoadUnlocksCache) == "function" and LoadUnlocksCache() or {},
 	},
 	-- Stores all active/failed downloads.
 	-- Each entry is keyed on a string UUID which maps to a table with the
@@ -534,6 +535,52 @@ function VOLT26.Core.GetPlayerState(player)
 		key = ToEnumShortString(player)
 	end
 	return VOLT26.State[key]
+end
+
+VOLT26.Compatibility = {
+	MinimumVersion = {1, 3, 0},
+	SupportedGames = {dance=true, pump=true, techno=true, para=true, kb7=true},
+}
+
+function VOLT26.Compatibility.ParseVersion(version)
+	local result = {}
+	for part in tostring(version or ""):gsub("%-.*", ""):gmatch("[^%.]+") do
+		result[#result + 1] = tonumber(part)
+	end
+	return result
+end
+
+function VOLT26.Compatibility.MinimumVersionString()
+	return table.concat(VOLT26.Compatibility.MinimumVersion, ".")
+end
+
+function VOLT26.Compatibility.IsEngineSupported(family, version)
+	if family ~= "ITGmania" then return false end
+	local actual = VOLT26.Compatibility.ParseVersion(version)
+	for index, required in ipairs(VOLT26.Compatibility.MinimumVersion) do
+		if not actual[index] or actual[index] < required then return false end
+		if actual[index] > required then return true end
+	end
+	return true
+end
+
+function VOLT26.Compatibility.IsGameSupported(gameName)
+	return VOLT26.Compatibility.SupportedGames[gameName] == true
+end
+
+function VOLT26.Compatibility.CheckCurrent()
+	local family = type(ProductFamily) == "function" and ProductFamily() or "Unknown"
+	local version = type(ProductVersion) == "function" and ProductVersion() or "Unknown"
+	if not VOLT26.Compatibility.IsEngineSupported(family, version) then
+		return false, THEME:GetString("ScreenInit", "UnsupportedSMVersion"):format(
+			family, version, VOLT26.Compatibility.MinimumVersionString())
+	end
+	local game = GAMESTATE:GetCurrentGame()
+	local gameName = game and game:GetName() or "Unknown"
+	if not VOLT26.Compatibility.IsGameSupported(gameName) then
+		return false, THEME:GetString("ScreenInit", "UnsupportedGame"):format(gameName)
+	end
+	return true
 end
 
 VOLT26.ChartData = {}
@@ -738,7 +785,41 @@ VOLT26.ThemePrefs = {
 	Get = function(name) return ThemePrefs.Get(name) end,
 	Set = function(name, value) ThemePrefs.Set(name, value) end,
 	Save = function() ThemePrefs.Save() end,
+	GetDefinitions = function() return VOLT26_Prefs.Get() end,
+	IsValid = function(name, value)
+		return VOLT26_Prefs.IsValid(VOLT26_Prefs.Get()[name], value)
+	end,
 }
+
+function VOLT26.ThemePrefs.ApplyGameMode(gameMode)
+	local mode = gameMode or VOLT26.State.Global.GameMode
+	local preferences = VOLT26.Preferences[mode]
+	if not preferences then return false end
+	VOLT26.State.Global.GameMode = mode
+	for key, value in pairs(preferences) do PREFSMAN:SetPreference(key, value) end
+
+	for player in ivalues(GAMESTATE:GetHumanPlayers()) do
+		local state = VOLT26.Core.GetPlayerState(player)
+		if mode == "Casual" then state.ActiveModifiers.TimingWindows = {true, true, true, false, false} end
+		local timingWindows = CustomOptionRow("TimingWindows")
+		timingWindows:LoadSelections(timingWindows.Choices, player)
+		local options = GAMESTATE:GetPlayerState(player):GetPlayerOptions("ModsLevel_Preferred")
+		options:MinTNSToHideNotes(preferences.MinTNSToHideNotes)
+		options:FailSetting(GetDefaultFailType())
+	end
+
+	local statsPrefix = mode == "Casual" and "Casual-" or ""
+	if PROFILEMAN:GetStatsPrefix() ~= statsPrefix then PROFILEMAN:SetStatsPrefix(statsPrefix) end
+	return true
+end
+
+function VOLT26.ThemePrefs.ResetManagedEnginePreferences(gameMode)
+	local preferences = VOLT26.Preferences[gameMode or VOLT26.State.Global.GameMode]
+	if not preferences then return false end
+	for key in pairs(preferences) do PREFSMAN:SetPreferenceToDefault(key) end
+	PREFSMAN:SavePreferences()
+	return true
+end
 
 VOLT26.Profile = {
 	LoadGuest = LoadGuest,
@@ -1968,11 +2049,7 @@ function VOLT26.TitleMenu.GetAFKTimeoutSeconds()
 	return VOLT26.TitleMenu.AFKTimeoutSeconds
 end
 
-VOLT26.Navigation = {
-	SelectMusicOrCourse = function()
-		return SelectMusicOrCourse()
-	end,
-}
+VOLT26.Navigation = {}
 
 
 -- Initialize preferences by calling this method.  We typically do
@@ -1992,6 +2069,5 @@ end
 
 -- Compatibility bridge for screens that have not moved to the CORE API yet.
 SL = VOLT26
-InitializeSimplyLove = InitializeVOLT26
 
 InitializeVOLT26()

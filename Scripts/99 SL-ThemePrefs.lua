@@ -2,19 +2,19 @@
 -- ./StepMania 5/Docs/ThemerDocs/ThemePrefs.txt
 -- ./StepMania 5/Docs/ThemerDocs/ThemePrefsRows.txt
 
-SL_CustomPrefs = {}
+VOLT26_Prefs = {}
 
 -- the ThemePrefs system was removed wholesale from SM5.2
 -- If the ThemePrefs system isn't found, provide a simple shim that will keep SL from completely
 -- falling apart just long enough for the player to be notified that SM5.2 isn't supported.
 if type(ThemePrefs) ~= "table" or type(ThemePrefs.Get) ~= "function" then
 	ThemePrefs = {
-		Get=function(arg) return SL_CustomPrefs.Get()[arg].Default end,
+		Get=function(arg) return VOLT26_Prefs.Get()[arg].Default end,
 		Set=function() return end
 	}
 end
 
-SL_CustomPrefs.Get = function()
+VOLT26_Prefs.Get = function()
 	return {
 		AllowFailingOutOfSet =
 		{
@@ -358,27 +358,52 @@ SL_CustomPrefs.Get = function()
 	}
 end
 
-SL_CustomPrefs.Validate = function()
-	local file = IniFile.ReadFile("Save/ThemePrefs.ini")
-	local sl_prefs = SL_CustomPrefs.Get()
+VOLT26_Prefs.IsValid = function(definition, value)
+	if not definition or type(value) ~= type(definition.Default) then return false end
+	local values = definition.Values or definition.Choices
+	return not values or FindInTable(value, values) ~= nil
+end
+
+VOLT26_Prefs.MigrateLegacy = function()
+	local path = "Save/ThemePrefs.ini"
+	local file = IniFile.ReadFile(path) or {}
+	local themeName = THEME:GetCurThemeName()
+	-- A VOLT26 section is authoritative. Legacy data is imported only once,
+	-- when no target section exists, and only for currently recognized values.
+	if file[themeName] then return false end
+
+	local legacy = file["Simply Love"] or file["Simply-Love-SM5"]
+	if not legacy then return false end
+	local migrated = {}
+	for name, definition in pairs(VOLT26_Prefs.Get()) do
+		if name ~= "VOLT26Color" and VOLT26_Prefs.IsValid(definition, legacy[name]) then
+			migrated[name] = legacy[name]
+		end
+	end
+	-- VisualStyle is a fixed adapter, not a user preference.
+	migrated.VisualStyle = "VOLT26"
+	file[themeName] = migrated
+	IniFile.WriteFile(path, file)
+	return true
+end
+
+VOLT26_Prefs.Validate = function()
+	local file = IniFile.ReadFile("Save/ThemePrefs.ini") or {}
+	local definitions = VOLT26_Prefs.Get()
 
 	-- If a section for this theme is found in ./Save/ThemePrefs.ini
 	local theme_name = THEME:GetCurThemeName()
 	if file[theme_name] then
 		-- loop through key/value pairs retrieved and do some basic validation
 		for k,v in pairs( file[theme_name] ) do
-			if sl_prefs[k] then
+			if definitions[k] then
 				-- if we reach here, the setting exists in both the master definition as well
 				-- as the user's ThemePrefs.ini so perform some rudimentary validation; check
 				-- for both type mismatch and presence in sl_prefs
 
-				local values = sl_prefs[k].Values or sl_prefs[k].Choices
-
-				if type( v ) ~= type( sl_prefs[k].Default )
-				or (values and not FindInTable(v, values))
-				then
+				if not VOLT26_Prefs.IsValid(definitions[k], v) then
 					-- overwrite the user's erroneous setting with the default value
-					ThemePrefs.Set(k, sl_prefs[k].Default)
+					ThemePrefs.Set(k, definitions[k].Default)
 				end
 
 			-- It's possible a setting exists in the ThemePrefs.ini file, but does not exist
@@ -393,17 +418,21 @@ SL_CustomPrefs.Validate = function()
 	end
 end
 
-SL_CustomPrefs.Init = function()
+VOLT26_Prefs.Init = function()
+	VOLT26_Prefs.MigrateLegacy()
 	-- InitAll() is defined in _fallback/Scripts/02 ThemePrefsRows.lua
 	-- to init both the ThemePrefs and ThemePrefsRows tables.
-	ThemePrefs.InitAll( SL_CustomPrefs.Get() )
+	ThemePrefs.InitAll(VOLT26_Prefs.Get())
 
 	-- run our own rudimentary validation
-	SL_CustomPrefs.Validate()
+	VOLT26_Prefs.Validate()
 
-	-- finally, call ThemePrefs.Save() so that a [Simply Love] section
+	-- finally, call ThemePrefs.Save() so that a [VOLT26] section
 	-- can be created in ./Save/ThemePrefs.ini if one was not found
 	ThemePrefs.Save()
 end
 
-SL_CustomPrefs.Init()
+VOLT26_Prefs.Init()
+
+-- Temporary adapter for OPTIONS-02 until the inherited service screen migrates.
+SL_CustomPrefs = VOLT26_Prefs
