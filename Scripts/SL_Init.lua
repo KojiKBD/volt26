@@ -508,7 +508,7 @@ VOLT26 = {
 
 VOLT26.Meta = {
 	Name = "VOLT26",
-	Version = "0.1.0-dev",
+	Version = "0.1.0-rc.1",
 	UpstreamCompatibility = "Simply Love 5.9.0",
 }
 
