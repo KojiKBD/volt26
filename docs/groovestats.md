@@ -28,6 +28,6 @@ Local profiles normally live below `Save/LocalProfiles/`; memory-card profiles u
 
 ## Current security boundary
 
-VOLT26 does not expose the inherited QR login, automatic event-unlock downloads, or experimental online lobbies. Their upstream implementations use separate WebSocket/download trust boundaries that require dedicated validation before they can be enabled safely. Event and tournament response data is likewise deferred to `EVENT-01` and `EVENT-02`.
+VOLT26 does not expose the inherited QR login, automatic event-unlock downloads, or experimental online lobbies. Their upstream implementations use separate WebSocket/download trust boundaries that require dedicated validation before they can be enabled safely. Valid RPG and ITL result data returned by score submission can populate the dormant Evaluation event views, but it cannot trigger downloads or the hard-coded local ITL 2026 persistence path.
 
 Service responses and remotely synchronized player-option data are size-bounded and parsed behind the `VOLT26.GrooveStats` interface. Invalid credentials, malformed JSON, unsupported games, non-ITG settings, autoplay, and score-altering modifiers prevent normal submission behavior.
