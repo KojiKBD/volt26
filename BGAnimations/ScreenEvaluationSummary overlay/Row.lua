@@ -11,8 +11,8 @@ local t = Def.ActorFrame{
 		self:finishtweening():sleep(position_on_screen*0.05):linear(0.15):diffusealpha(0)
 
 		StageNum = ((params.Page-1)*4) + position_on_screen
-		local stage = SL.Global.Stages.Stats[StageNum]
-		SongOrCourse = stage ~= nil and stage.song or nil
+		local stage = VOLT26.Evaluation.GetStageContext(StageNum)
+		SongOrCourse = stage and (stage.item or stage.song) or nil
 
 		self:playcommand("DrawStage", {StageNum=StageNum})
 	end,
@@ -73,9 +73,11 @@ t[#t+1] = LoadFont("Common Normal")..{
 	InitCommand=function(self) self:zoom(0.65):y(32):maxwidth(350) end,
 	DrawStageCommand=function(self)
 		if SongOrCourse then
-			local MusicRate = SL.Global.Stages.Stats[StageNum].MusicRate
+			local stage = VOLT26.Evaluation.GetStageContext(StageNum)
+			local MusicRate = stage and (stage.music_rate or stage.MusicRate) or 1
 			local mpn = GAMESTATE:GetMasterPlayerNumber()
-			local StepsOrTrail = SL[ToEnumShortString(mpn)].Stages.Stats[StageNum].steps
+			local playerStage = VOLT26.Evaluation.GetPlayerStageSnapshot(mpn, StageNum)
+			local StepsOrTrail = playerStage and playerStage.steps or nil
 			local bpms = StringifyDisplayBPMs(mpn, StepsOrTrail, MusicRate)
 			if MusicRate ~= 1 then
 				-- format a string like "150 - 300 bpm (1.5x Music Rate)"

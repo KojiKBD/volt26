@@ -1,4 +1,4 @@
-local numStages = SL.Global.Stages.PlayedThisGame
+local numStages = VOLT26.Evaluation.GetStageCount()
 
 local page = 1
 local pages = math.ceil(numStages/4)
@@ -34,11 +34,7 @@ local page_text = THEME:GetString("ScreenEvaluationSummary", "Page")
 -- Utility function to collect the names of all unique profiles that played at least one song
 -- as player pn this session.
 uniqueProfilesUsedForPlayer = function(pn)
-	local extractProfile = function(stats)
-		return stats.profile
-	end
-	local profilesUsed = map(extractProfile, SL[pn].Stages.Stats)
-	return deduplicate(profilesUsed)
+	return VOLT26.Evaluation.GetProfilesUsed(pn)
 end
 
 
