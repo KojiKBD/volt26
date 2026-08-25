@@ -19,6 +19,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.ChartData`: immutable snapshots of engine-backed density, NPS, technique counts, and column cues.
 - `VOLT26.ChartAnalysis`: pure stream-sequence, breakdown-text, and measure-total derivation over chart snapshots.
 - `VOLT26.ChartHash`: explicit access to cached GrooveStats-compatible hashing for optional online consumers; ordinary song browsing must not invoke it.
+- `VOLT26.GrooveStats`: optional HTTPS service capability state, bounded response decoding, normalized per-profile identity persistence, and score-service eligibility policy. QR login, automatic downloads, online lobbies, and event payloads remain outside this boundary.
 - `VOLT26.Gameplay`: explicit active-stage lifecycle, reload state, and player-stage storage.
 - `VOLT26.GameplayStats`: peak-density normalization, immutable measure segments, stream/rest counters, rate-aware timing, and graph interpolation.
 - `VOLT26.TargetScore`: target resolution, pacemaker progress, reachability, and missed-target action policy.

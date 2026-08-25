@@ -483,14 +483,8 @@ VOLT26 = {
 		--   Timestamp: number, when the request was made
 		RequestCache = {},
 
-		-- Used to prevent redundant downloads for SRPG unlocks.
-		-- Each entry is keyed on the URL of the download which maps to a table of
-		-- PackNames the unlock has been unpacked to.
-		-- To see if we have already downloaded an unlock, one can just key on
-		-- SL.UnlocksCache[url][packName]
-		-- LoadUnlocksCache() is defined in SL-Helpers-GrooveStats.lua so that must
-		-- be loaded before this file.
-		UnlocksCache = type(LoadUnlocksCache) == "function" and LoadUnlocksCache() or {},
+		-- Event unlock downloads are outside ONLINE-01's accepted security boundary.
+		UnlocksCache = {},
 	},
 	-- Stores all active/failed downloads.
 	-- Each entry is keyed on a string UUID which maps to a table with the
@@ -822,6 +816,120 @@ VOLT26.ThemePrefs = {
 	end,
 }
 
+local GrooveStatsCapabilities = {
+	GetScores = "playerScores",
+	Leaderboard = "playerLeaderboards",
+	AutoSubmit = "scoreSubmit",
+}
+
+function VOLT26.GrooveStats.ResetCapabilities()
+	VOLT26.GrooveStats.IsConnected = false
+	for capability in pairs(GrooveStatsCapabilities) do
+		VOLT26.GrooveStats[capability] = false
+	end
+end
+
+function VOLT26.GrooveStats.DecodeResponse(response)
+	if type(response) ~= "table" then return nil, "invalid-response" end
+	if response.error then return nil, ToEnumShortString(response.error) end
+	if response.statusCode ~= 200 then return nil, "http-" .. tostring(response.statusCode or "unknown") end
+	if type(response.body) ~= "string" then return nil, "invalid-body" end
+	if #response.body > 1024 * 1024 then return nil, "response-too-large" end
+	local ok, data = pcall(JsonDecode, response.body)
+	if not ok or type(data) ~= "table" then return nil, "invalid-json" end
+	return data
+end
+
+function VOLT26.GrooveStats.ApplySessionResponse(response)
+	VOLT26.GrooveStats.ResetCapabilities()
+	local data, err = VOLT26.GrooveStats.DecodeResponse(response)
+	if not data then return false, err end
+	local services = data.servicesAllowed
+	if type(services) ~= "table" then return false, "missing-capabilities" end
+	local enabled = 0
+	for capability, responseKey in pairs(GrooveStatsCapabilities) do
+		local available = services[responseKey] == true
+		VOLT26.GrooveStats[capability] = available
+		if available then enabled = enabled + 1 end
+	end
+	VOLT26.GrooveStats.IsConnected = enabled > 0
+	if enabled == 0 then return false, "no-capabilities" end
+	return true, nil
+end
+
+function VOLT26.GrooveStats.NormalizeApiKey(value)
+	if type(value) ~= "string" or #value ~= 64 or value:find("[%s%c]") then return "" end
+	return value
+end
+
+function VOLT26.GrooveStats.NormalizeUsername(value)
+	if type(value) ~= "string" then return "" end
+	return value:gsub("[%c]", ""):sub(1, 64)
+end
+
+function VOLT26.GrooveStats.SetPlayerIdentity(player, apiKey, username, isPadPlayer)
+	local state = VOLT26.Core.GetPlayerState(player)
+	if not state then return false end
+	state.ApiKey = VOLT26.GrooveStats.NormalizeApiKey(apiKey)
+	state.GrooveStatsUsername = VOLT26.GrooveStats.NormalizeUsername(username)
+	state.IsPadPlayer = isPadPlayer == true or isPadPlayer == 1 or isPadPlayer == "1"
+	return true
+end
+
+function VOLT26.GrooveStats.GetProfilePath(player)
+	local slot = player == PLAYER_1 and "ProfileSlot_Player1"
+		or player == PLAYER_2 and "ProfileSlot_Player2" or nil
+	if not slot then return nil end
+	local directory = PROFILEMAN:GetProfileDir(slot)
+	if type(directory) ~= "string" or directory == "" then return nil end
+	return directory .. "GrooveStats.ini"
+end
+
+function VOLT26.GrooveStats.SavePlayerIdentity(player)
+	local path = VOLT26.GrooveStats.GetProfilePath(player)
+	local state = VOLT26.Core.GetPlayerState(player)
+	if not path or not state then return false end
+	VOLT26.GrooveStats.SetPlayerIdentity(player, state.ApiKey, state.GrooveStatsUsername, state.IsPadPlayer)
+	IniFile.WriteFile(path, {GrooveStats={
+		ApiKey=state.ApiKey,
+		Username=state.GrooveStatsUsername,
+		IsPadPlayer=state.IsPadPlayer and "1" or "0",
+	}})
+	return true
+end
+
+function VOLT26.GrooveStats.LoadPlayerIdentity(player)
+	local path = VOLT26.GrooveStats.GetProfilePath(player)
+	if not path then return false end
+	local contents = FILEMAN:DoesFileExist(path) and (IniFile.ReadFile(path) or {}) or {}
+	local section = type(contents.GrooveStats) == "table" and contents.GrooveStats or {}
+	VOLT26.GrooveStats.SetPlayerIdentity(player, section.ApiKey, section.Username, section.IsPadPlayer)
+	return VOLT26.GrooveStats.SavePlayerIdentity(player)
+end
+
+function VOLT26.GrooveStats.HasAnyApiKey()
+	return VOLT26.GrooveStats.NormalizeApiKey(VOLT26.State.P1.ApiKey) ~= ""
+		or VOLT26.GrooveStats.NormalizeApiKey(VOLT26.State.P2.ApiKey) ~= ""
+end
+
+function VOLT26.GrooveStats.IsConditionAllowed(condition)
+	if condition ~= true
+		or VOLT26.ThemePrefs.Get("EnableGrooveStats") ~= true
+		or not VOLT26.GrooveStats.IsConnected
+		or not VOLT26.GrooveStats.HasAnyApiKey()
+		or VOLT26.Gameplay.GetMode() ~= "ITG" then
+		return false
+	end
+	local game = GAMESTATE:GetCurrentGame()
+	local gameName = game and game:GetName() or ""
+	return gameName == "dance" or gameName == "pump"
+end
+
+function VOLT26.GrooveStats.IsServiceAllowed(capability)
+	local condition = type(capability) == "string" and VOLT26.GrooveStats[capability] or capability
+	return VOLT26.GrooveStats.IsConditionAllowed(condition)
+end
+
 function VOLT26.ThemePrefs.ApplyGameMode(gameMode)
 	local mode = gameMode or VOLT26.State.Global.GameMode
 	if mode == "Casual" then mode = "ITG" end
@@ -1115,7 +1223,7 @@ local songBrowsingActions = {
 
 	-- These inherited integrations remain installed but are not exposed until
 	-- their owning inventory capabilities are explicitly accepted.
-	Leaderboard = false,
+	Leaderboard = true,
 	LoadNewSongs = false,
 	OnlineLobbies = false,
 	PracticeMode = false,
@@ -2611,63 +2719,7 @@ local OperatorMenuLines = {
 	"SystemOptions", "MapControllers", "TestInput", "InputOptions",
 	"GraphicsSoundOptions", "VisualOptions", "ArcadeOptions", "Bookkeeping",
 	"AdvancedOptions", "MenuTimerOptions", "USBProfileOptions",
-	"OptionsManageProfiles", "ThemeOptions", "StepManiaCredits", "ClearCredits", "Reload",
-}
-
-local ThemeOptionLines = {
-	"MusicWheelSpeed", "PreferredStyle", "AllowFailingOutOfSet", "NumberOfContinuesAllowed",
-	"SelectProfile", "SelectColor", "SelectPlayMode", "SelectPlayMode2", "EvalSummary",
-	"NameEntry", "GameOver", "HideStockNoteSksins", "DanceSolo", "WriteCustomScores",
-	"KeyboardFeatures", "SampleMusicLoops", "SampleMusicStartsImmediately", "RescoreEarlyHits",
-	"DefaultSort",
-}
-
-local MenuTimerLines = {
-	"MenuTimer", "ScreenSelectMusicMenuTimer", "ScreenPlayerOptionsMenuTimer",
-	"ScreenEvaluationMenuTimer", "ScreenEvaluationNonstopMenuTimer",
-	"ScreenEvaluationSummaryMenuTimer", "ScreenNameEntryMenuTimer",
-}
-
-local function FilterOperatorLines(source, excluded)
-	local result = {}
-	for _, line in ipairs(source) do
-		if not excluded[line] then result[#result + 1] = line end
-	end
-	return result
-end
-
-function VOLT26.Options.GetOperatorMenuLines(customSongsAvailable, coinMode)
-	return FilterOperatorLines(OperatorMenuLines, {
-		USBProfileOptions = not customSongsAvailable,
-		ClearCredits = coinMode ~= "CoinMode_Pay",
-	})
-end
-
-function VOLT26.Options.GetThemeOptionLines()
-	return FilterOperatorLines(ThemeOptionLines, {})
-end
-
-function VOLT26.Options.GetMenuTimerLines()
-	return FilterOperatorLines(MenuTimerLines, {})
-end
-
-function VOLT26.Options.GetOperatorMenuLineNames(customSongsAvailable, coinMode)
-	return table.concat(VOLT26.Options.GetOperatorMenuLines(customSongsAvailable, coinMode), ",")
-end
-
-function VOLT26.Options.GetThemeOptionLineNames()
-	return table.concat(VOLT26.Options.GetThemeOptionLines(), ",")
-end
-
-function VOLT26.Options.GetMenuTimerLineNames()
-	return table.concat(VOLT26.Options.GetMenuTimerLines(), ",")
-end
-
-local OperatorMenuLines = {
-	"SystemOptions", "MapControllers", "TestInput", "InputOptions",
-	"GraphicsSoundOptions", "VisualOptions", "ArcadeOptions", "Bookkeeping",
-	"AdvancedOptions", "MenuTimerOptions", "USBProfileOptions",
-	"OptionsManageProfiles", "ThemeOptions", "StepManiaCredits", "ClearCredits", "Reload",
+	"OptionsManageProfiles", "ThemeOptions", "GrooveStatsOptions", "StepManiaCredits", "ClearCredits", "Reload",
 }
 
 local ThemeOptionLines = {

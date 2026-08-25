@@ -28,15 +28,6 @@ function Navigation.AllowScreenSelectProfile()
 end
 
 function Navigation.AfterSelectProfile()
-	local allApiKeys = true
-	for player in ivalues(GAMESTATE:GetHumanPlayers()) do
-		if VOLT26.Core.GetPlayerState(player).ApiKey == "" then allApiKeys = false; break end
-	end
-	local qrPolicy = VOLT26.ThemePrefs.Get("QRLogin")
-	if VOLT26.GrooveStats.IsConnected
-		and (qrPolicy == "Always" or (qrPolicy == "Sometimes" and not allApiKeys)) then
-		return "ScreenGrooveStatsLogin"
-	end
 	return Navigation.AllowScreenSelectColor()
 end
 

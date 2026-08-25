@@ -298,34 +298,6 @@ VOLT26_Prefs.Get = function()
 			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
 			Values  = { true, false }
 		},
-
-		AutoDownloadUnlocks = {
-			Default = false,
-			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
-			Values  = { true, false }
-		},
-
-		SeparateUnlocksByPlayer = {
-			Default = false,
-			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
-			Values  = { true, false }
-		},
-
-		QRLogin = {
-			Default = "Sometimes",
-			Choices = {
-				THEME:GetString("ThemePrefs", "Always"),
-				THEME:GetString("ThemePrefs", "Sometimes"),
-				THEME:GetString("ThemePrefs", "Never"),
-			},
-			Values = { "Always", "Sometimes", "Never" }
-		},
-
-		EnableOnlineLobbies = {
-			Default = false,
-			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
-			Values  = { true, false }
-		},
 	}
 end
 

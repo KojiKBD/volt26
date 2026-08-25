@@ -273,119 +273,26 @@ local NewSessionRequestProcessor = function(res, gsInfo)
 	service2:visible(false)
 	service3:visible(false)
 
-	SL.GrooveStats.IsConnected = false
-	if res.error or res.statusCode ~= 200 then
-		local error = res.error and ToEnumShortString(res.error) or nil
-		if error == "Timeout" then
-			groovestats:settext("Timed Out")
-		elseif error or (res.statusCode ~= nil and res.statusCode ~= 200) then
-			local text = ""
-			if error == "Blocked" then
-				text = "Access to GrooveStats Host Blocked"
-			elseif error == "CannotConnect" then
-				text = "Machine Offline"
-			elseif error == "Timeout" then
-				text = "Request Timed Out"
-			else
-				text = "Failed to Load 😞"
-			end
-			service1:settext(text):visible(true)
-
-
-			-- These default to false, but may have changed throughout the game's lifetime.
-			-- It doesn't hurt to explicitly set them to false.
-			SL.GrooveStats.GetScores = false
-			SL.GrooveStats.Leaderboard = false
-			SL.GrooveStats.AutoSubmit = false
-			groovestats:settext("❌ GrooveStats")
-
-			VOLT26.Text.DiffuseEmojis(service1:ClearAttributes())
-		end
-		VOLT26.Text.DiffuseEmojis(groovestats:ClearAttributes())
-		return
-	end
-
-	local data = JsonDecode(res.body)
-	if data == nil then return end
-
-	local services = data["servicesAllowed"]
-	if services ~= nil then
-		local serviceCount = 1
-
-		if services["playerScores"] ~= nil then
-			if services["playerScores"] then
-				SL.GrooveStats.GetScores = true
-			else
-				local curServiceText = gsInfo:GetChild("Service"..serviceCount)
-				curServiceText:settext("❌ Get Scores"):visible(true)
-				serviceCount = serviceCount + 1
-				SL.GrooveStats.GetScores = false
-			end
-		end
-
-		if services["playerLeaderboards"] ~= nil then
-			if services["playerLeaderboards"] then
-				SL.GrooveStats.Leaderboard = true
-			else
-				local curServiceText = gsInfo:GetChild("Service"..serviceCount)
-				curServiceText:settext("❌ Leaderboard"):visible(true)
-				serviceCount = serviceCount + 1
-				SL.GrooveStats.Leaderboard = false
-			end
-		end
-
-		if services["scoreSubmit"] ~= nil then
-			if services["scoreSubmit"] then
-				SL.GrooveStats.AutoSubmit = true
-			else
-				local curServiceText = gsInfo:GetChild("Service"..serviceCount)
-				curServiceText:settext("❌ Auto-Submit"):visible(true)
-				serviceCount = serviceCount + 1
-				SL.GrooveStats.AutoSubmit = false
-			end
-		end
-	end
-
-	local events = data["activeEvents"]
-	local easter_eggs = PREFSMAN:GetPreference("EasterEggs")
-	local game = GAMESTATE:GetCurrentGame():GetName()
-	local style = ThemePrefs.Get("VisualStyle")
-	if events ~= nil and easter_eggs and (game == "dance" or game == "pump") then
-		local last_active_event = ThemePrefs.Get("LastActiveEvent")
-
-		for event in ivalues(events) do
-			if event["shortName"] == "SRPG10" then
-				-- If we're already on the SRPG10 theme, then set the last_active_event
-				-- if it's not already set to SRPG so that we don't bring up the prompt.
-				if last_active_event ~= "SRPG10" and style == "SRPG10" then
-					ThemePrefs.Set("LastActiveEvent", "SRPG10")
-					last_active_event = "SRPG10"
-				end
-			
-				if last_active_event ~= "SRPG10" then
-					local top_screen = SCREENMAN:GetTopScreen()
-					top_screen:SetNextScreenName("ScreenPromptToSetSrpgVisualStyle"):StartTransitioningScreen("SM_GoToNextScreen")
-					break
-				end
-			end
-		end
-	end
-
-	-- All services are enabled, display a green check.
-	if SL.GrooveStats.GetScores and SL.GrooveStats.Leaderboard and SL.GrooveStats.AutoSubmit then
-		groovestats:settext("✔ GrooveStats")
-		SL.GrooveStats.IsConnected = true
-	-- All services are disabled, display a red X.
-	elseif not SL.GrooveStats.GetScores and not SL.GrooveStats.Leaderboard and not SL.GrooveStats.AutoSubmit then
-		groovestats:settext("❌ GrooveStats")
-		-- We would've displayed the individual failed services, but if they're all down then hide the group.
-		service1:visible(false)
-		service2:visible(false)
-		service3:visible(false)
-	-- Some combination of the two, we display a caution symbol.
+	local connected, errorCode = VOLT26.GrooveStats.ApplySessionResponse(res)
+	if not connected then
+		local messages = {
+			Blocked = "Access to GrooveStats Host Blocked",
+			CannotConnect = "Machine Offline",
+			Timeout = "Request Timed Out",
+			["response-too-large"] = "Response Too Large",
+			["invalid-json"] = "Invalid Service Response",
+		}
+		groovestats:settext(errorCode == "Timeout" and "Timed Out" or "❌ GrooveStats")
+		service1:settext(messages[errorCode] or "Failed to Load 😞"):visible(true)
 	else
-		groovestats:settext("⚠ GrooveStats")
-		SL.GrooveStats.IsConnected = true
+		local unavailable = {}
+		if not VOLT26.GrooveStats.GetScores then unavailable[#unavailable+1] = "❌ Get Scores" end
+		if not VOLT26.GrooveStats.Leaderboard then unavailable[#unavailable+1] = "❌ Leaderboard" end
+		if not VOLT26.GrooveStats.AutoSubmit then unavailable[#unavailable+1] = "❌ Auto-Submit" end
+		for index, text in ipairs(unavailable) do
+			gsInfo:GetChild("Service"..index):settext(text):visible(true)
+		end
+		groovestats:settext(#unavailable == 0 and "✔ GrooveStats" or "⚠ GrooveStats")
 	end
 
 	VOLT26.Text.DiffuseEmojis(groovestats:ClearAttributes())
@@ -399,10 +306,6 @@ local function DiffuseText(bmt)
 	local shadowLength = 0
 	if ThemePrefs.Get("RainbowMode") and not HolidayCheer() then
 		textColor = Color.Black
-	end
-	if ThemePrefs.Get("VisualStyle") == "SRPG10" then
-		textColor = color(SL.SRPG10.TextColor)
-		shadowLength = 0.4
 	end
 
 	bmt:diffuse(textColor):shadowlength(shadowLength)
@@ -476,11 +379,7 @@ t[#t+1] = Def.ActorFrame{
 	RequestResponseActor(5, 0)..{
 		SendRequestCommand=function(self)
 			if ThemePrefs.Get("EnableGrooveStats") then
-				-- These default to false, but may have changed throughout the game's lifetime.
-				-- Reset these variable before making a request.
-				SL.GrooveStats.GetScores = false
-				SL.GrooveStats.Leaderboard = false
-				SL.GrooveStats.AutoSubmit = false
+				VOLT26.GrooveStats.ResetCapabilities()
 				self:playcommand("MakeGrooveStatsRequest", {
 					endpoint="?action=newSession&chartHashVersion="..SL.GrooveStats.ChartHashVersion,
 					method="GET",
@@ -492,17 +391,6 @@ t[#t+1] = Def.ActorFrame{
 		end
 	}
 }
-
--- -----------------------------------------------------------------------
--- Loads the UnlocksCache from disk for SRPG unlocks.
-LoadUnlocksCache()
-
--- -----------------------------------------------------------------------
--- Online Lobby Handler
--- We only want one global instance of this, so we create it once but
--- can get the same instance of the actor multiple times.
-
-t[#t+1] = CreateOnlineHandler()
 
 -- -----------------------------------------------------------------------
 -- SystemMessage stuff.
