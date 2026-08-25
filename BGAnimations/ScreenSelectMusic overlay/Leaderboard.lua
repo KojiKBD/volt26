@@ -143,13 +143,14 @@ local getLocalLeaderboard = function(pn)
 end
 local LeaderboardRequestProcessor = function(res, master)
 	if master == nil then return end
+	local data, decodeError = VOLT26.GrooveStats.DecodeResponse(res)
 
-	if res.error or res.statusCode ~= 200 then
-		local error = res.error and ToEnumShortString(res.error) or nil
+	if not data then
+		local error = type(res) == "table" and res.error and ToEnumShortString(res.error) or nil
 		local text = ""
 		if error == "Timeout" then
 			text = "Timed Out"
-		elseif error or (res.statusCode ~= nil and res.statusCode ~= 200) then
+		elseif error or decodeError then
 			text = "Failed to Load 😞"
 		end
 		for i=1, 2 do
@@ -176,50 +177,49 @@ local LeaderboardRequestProcessor = function(res, master)
 		return
 	end
 
-	local data = JsonDecode(res.body)
-
 	for i=1, 2 do
 		local playerStr = "player"..i
 		local pn = "P"..i
 		local leaderboard = master:GetChild(pn.."Leaderboard")
 		local leaderboardList = master[pn]["Leaderboards"]
 
-		if data[playerStr] then
-			master[pn].isRanked = data[playerStr]["isRanked"]
+		local playerData = type(data[playerStr]) == "table" and data[playerStr] or nil
+		if playerData then
+			master[pn].isRanked = playerData["isRanked"]
 			if SL["P"..i].ActiveModifiers.ShowExScore then
 				-- If the player is using EX scoring, then we want to display the EX leaderboard first.
-				if data[playerStr]["exLeaderboard"] then
+				if playerData["exLeaderboard"] then
 					leaderboardList[#leaderboardList + 1] = {
 						Name="GrooveStats",
-						Data=DeepCopy(data[playerStr]["exLeaderboard"]),
+						Data=DeepCopy(playerData["exLeaderboard"]),
 						IsEX=true
 					}
 					master[pn]["LeaderboardIndex"] = 1
 				end
 
-				if data[playerStr]["gsLeaderboard"] then
+				if playerData["gsLeaderboard"] then
 					leaderboardList[#leaderboardList + 1] = {
 						Name="GrooveStats",
-						Data=DeepCopy(data[playerStr]["gsLeaderboard"]),
+						Data=DeepCopy(playerData["gsLeaderboard"]),
 						IsEX=false
 					}
 					master[pn]["LeaderboardIndex"] = 1
 				end
 			else
 				-- Display the main GrooveStats leaderboard first if player is not using EX scoring.
-				if data[playerStr]["gsLeaderboard"] then
+				if playerData["gsLeaderboard"] then
 					leaderboardList[#leaderboardList + 1] = {
 						Name="GrooveStats",
-						Data=DeepCopy(data[playerStr]["gsLeaderboard"]),
+						Data=DeepCopy(playerData["gsLeaderboard"]),
 						IsEX=false
 					}
 					master[pn]["LeaderboardIndex"] = 1
 				end
 
-				if data[playerStr]["exLeaderboard"] then
+				if playerData["exLeaderboard"] then
 					leaderboardList[#leaderboardList + 1] = {
 						Name="GrooveStats",
-						Data=DeepCopy(data[playerStr]["exLeaderboard"]),
+						Data=DeepCopy(playerData["exLeaderboard"]),
 						IsEX=true
 					}
 					master[pn]["LeaderboardIndex"] = 1
@@ -229,31 +229,27 @@ local LeaderboardRequestProcessor = function(res, master)
 			-- Then any event leaderboards.
 			local events = {"rpg", "itl"}
 			for event in ivalues(events) do
-				if data[playerStr][event] and data[playerStr][event][event.."Leaderboard"] then
+				if type(playerData[event]) == "table" and playerData[event][event.."Leaderboard"] then
 					leaderboardList[#leaderboardList + 1] = {
-						Name=data[playerStr][event]["name"],
-						Data=DeepCopy(data[playerStr][event][event.."Leaderboard"]),
+						Name=playerData[event]["name"],
+						Data=DeepCopy(playerData[event][event.."Leaderboard"]),
 						IsEX=(event == "itl")
 					}
 					master[pn]["LeaderboardIndex"] = 1
 				end
 			end
 
-			-- Display the local leaderboard last
-			local localData = getLocalLeaderboard(pn)
-			leaderboardList[#leaderboardList + 1] = {
-				Name="Machine's  Best",
-				Data=DeepCopy(localData),
-				IsEX=false
-			}
-			master[pn]["LeaderboardIndex"] = 1
-
-			if #leaderboardList > 1 then
-				leaderboard:GetChild("PaneIcons"):visible(true)
-			else
-				leaderboard:GetChild("PaneIcons"):visible(false)
-			end
 		end
+
+		-- Always provide a terminal local pane, including valid responses with no player data.
+		local localData = getLocalLeaderboard(pn)
+		leaderboardList[#leaderboardList + 1] = {
+			Name="Machine's  Best",
+			Data=DeepCopy(localData),
+			IsEX=false
+		}
+		master[pn]["LeaderboardIndex"] = 1
+		leaderboard:GetChild("PaneIcons"):visible(#leaderboardList > 1)
 
 		-- We assume that at least one leaderboard has been added.
 		-- If leaderboardData is nil as a result, the SetLeaderboardForPlayer
@@ -318,56 +314,64 @@ local af = Def.ActorFrame{
 	},
 	RequestResponseActor(17, 50)..{
 		SendLeaderboardRequestCommand=function(self)
-			-- If a player does not have an API key or chart hash just show the local leaderboard.
-			for i=1,2 do
-				local pn = "P"..i
-				if SL[pn].ApiKey == "" or SL[pn].Streams.Hash == "" or not IsServiceAllowed(SL.GrooveStats.Leaderboard) then
-					local pn = "P"..i
-					local leaderboard = self:GetParent():GetChild(pn.."Leaderboard")
-					local leaderboardList = self:GetParent()[pn]["Leaderboards"]
-					local localData = getLocalLeaderboard(pn)
-					leaderboardList[#leaderboardList + 1] = {
-						Name="Machine's  Best",
-						Data=DeepCopy(localData),
-						IsEX=false
-					}
-					self:GetParent()[pn]["LeaderboardIndex"] = 1
-				end
-			end
-			if not IsServiceAllowed(SL.GrooveStats.Leaderboard) then
-				if SL.GrooveStats.IsConnected then
-					-- If we disable the service from a previous request, surface it to the user here.
-					for i=1, 2 do
-						local pn = "P"..i
-						local leaderboard = self:GetParent():GetChild(pn.."Leaderboard")
-						local leaderboardList = self:GetParent()[pn]["Leaderboards"]
-						leaderboardList[#leaderboardList + 1] = {
-							Name="GrooveStats",
-							Disabled=true,
-							IsEX=false
-						}
-						SetLeaderboardForPlayer(i, leaderboard, leaderboardList[1], false)
-					end
-				end
-				return
-			end
-
+			local master = self:GetParent()
+			local serviceAllowed = IsServiceAllowed(SL.GrooveStats.Leaderboard)
 			local sendRequest = false
 			local headers = {}
 			local query = {
 				maxLeaderboardResults=NumEntries,
 			}
 
+			-- If a player does not have an API key or chart hash just show the local leaderboard.
 			for i=1,2 do
 				local pn = "P"..i
-				if SL[pn].ApiKey ~= "" and SL[pn].Streams.Hash ~= "" then
-					query["chartHashP"..i] = SL[pn].Streams.Hash
+				local chartHash = ""
+				if serviceAllowed and SL[pn].ApiKey ~= "" and GAMESTATE:IsPlayerEnabled(pn) then
+					local steps = GAMESTATE:GetCurrentSteps(pn)
+					local ok, hash = pcall(VOLT26.ChartHash.Compute, steps, pn)
+					if ok and type(hash) == "string" then
+						chartHash = hash
+					elseif not ok then
+						Warn("Unable to compute the GrooveStats chart hash.")
+					end
+				end
+
+				if serviceAllowed and SL[pn].ApiKey ~= "" and chartHash ~= "" then
+					query["chartHashP"..i] = chartHash
 					headers["x-api-key-player-"..i] = SL[pn].ApiKey
 					sendRequest = true
+				else
+					local leaderboardList = master[pn]["Leaderboards"]
+					local localData = getLocalLeaderboard(pn)
+					leaderboardList[#leaderboardList + 1] = {
+						Name="Machine's  Best",
+						Data=DeepCopy(localData),
+						IsEX=false
+					}
+					master[pn]["LeaderboardIndex"] = 1
 				end
 			end
+			if not serviceAllowed then
+				if SL.GrooveStats.IsConnected then
+					-- If we disable the service from a previous request, surface it to the user here.
+					for i=1, 2 do
+						local pn = "P"..i
+						local leaderboardList = master[pn]["Leaderboards"]
+						leaderboardList[#leaderboardList + 1] = {
+							Name="GrooveStats",
+							Disabled=true,
+							IsEX=false
+						}
+					end
+				end
+				for i=1, 2 do
+					local pn = "P"..i
+					SetLeaderboardForPlayer(i, master:GetChild(pn.."Leaderboard"), master[pn].Leaderboards[1], false)
+				end
+				return
+			end
+
 			-- Only send the request if it's applicable.
-			-- Technically this should always be true since otherwise we wouldn't even get to this screen.
 			if sendRequest then
 				self:playcommand("MakeGrooveStatsRequest", {
 					endpoint="?action=playerLeaderboards&"..NETWORK:EncodeQueryParameters(query),
@@ -375,8 +379,13 @@ local af = Def.ActorFrame{
 					headers=headers,
 					timeout=10,
 					callback=LeaderboardRequestProcessor,
-					args=SCREENMAN:GetTopScreen():GetChild("Overlay"):GetChild("LeaderboardMaster"),
+					args=master,
 				})
+			else
+				for i=1, 2 do
+					local pn = "P"..i
+					SetLeaderboardForPlayer(i, master:GetChild(pn.."Leaderboard"), master[pn].Leaderboards[1], false)
+				end
 			end
 		end
 	}
