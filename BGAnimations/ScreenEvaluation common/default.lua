@@ -44,6 +44,7 @@ if not VOLT26.Gameplay.IsCasual() then
 	end
 	t.DirectInputToEventOverlayHandlerCommand=function(self)
 		if not eventOverlayInputHandler then return end
+		MESSAGEMAN:Broadcast("ResetInputDiagnostics")
 		callbackController:Deactivate("panes")
 		callbackController:Deactivate("diagnostics")
 		callbackController:Deactivate("shortcuts")
@@ -52,6 +53,7 @@ if not VOLT26.Gameplay.IsCasual() then
 		redirectPlayers(true)
 	end
 	t.OffCommand=function(self)
+		MESSAGEMAN:Broadcast("ResetInputDiagnostics")
 		callbackController:Clear()
 		redirectPlayers(false)
 	end

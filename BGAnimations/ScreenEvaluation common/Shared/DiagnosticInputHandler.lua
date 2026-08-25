@@ -1,6 +1,6 @@
 return function(event)
 	if PREFSMAN:GetPreference("OnlyDedicatedMenuButtons")
-		and event and event.type ~= "InputEventType_Repeat" then
+		and VOLT26.InputDiagnostics.ShouldBroadcast(event) then
 		MESSAGEMAN:Broadcast("TestInputEvent", event)
 	end
 	return false

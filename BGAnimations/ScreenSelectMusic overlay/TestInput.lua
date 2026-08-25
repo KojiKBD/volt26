@@ -1,13 +1,19 @@
 if not GAMESTATE:IsEventMode() then return end
 
 local game = GAMESTATE:GetCurrentGame():GetName()
-if not (game=="dance" or game=="pump" or game=="techno") then return end
+if not VOLT26.InputDiagnostics.SupportsPadVisuals(game) then return end
 
 local af = Def.ActorFrame{
 	Name="TestInput",
 	InitCommand=function(self) self:visible(false) end,
-	ShowTestInputCommand=function(self) self:visible(true) end,
-	HideTestInputCommand=function(self) self:visible(false) end,
+	ShowTestInputCommand=function(self)
+		MESSAGEMAN:Broadcast("ResetInputDiagnostics")
+		self:visible(true)
+	end,
+	HideTestInputCommand=function(self)
+		MESSAGEMAN:Broadcast("ResetInputDiagnostics")
+		self:visible(false)
+	end,
 
 	Def.Quad{ InitCommand=function(self) self:FullScreen():diffuse(0,0,0,0.875) end },
 	LoadFont("Common Normal")..{

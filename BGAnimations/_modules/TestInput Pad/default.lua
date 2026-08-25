@@ -59,31 +59,17 @@ if show_menu_buttons then
 end
 
 for panel,values in pairs(Highlights) do
+	local held_sources = {}
 	pad[#pad+1] = LoadActor( values.graphic )..{
 		InitCommand=function(self) self:xy(values.x, values.y):rotationz(values.rotationz):zoom(values.zoom):visible(false) end,
 		TestInputEventMessageCommand=function(self, event)
-			local style = GAMESTATE:GetCurrentStyle()
-			local styletype = style and style:GetStyleType() or nil
-
-			-- if double or routine
-			if styletype == "StyleType_OnePlayerTwoSides" or styletype == "StyleType_TwoPlayersSharedSides" then
-
-				-- in double, we can't rely on checking the input event's "PlayerNumber" key (only one human player is joined)
-				-- so instead, compared the input event's "controller" key from the engine's GameController enum
-				-- "GameController_1" is indexed at 0, and "GameController_2" is indexed at 1, conveniently just like how
-				--  "PlayerNumber_P1" is indexed at 0, and  "PlayerNumber_P2" is indexed at 1
-				if GameController:Reverse()[event.controller]==PlayerNumber:Reverse()[player]
-				and event.button == panel then
-					self:visible(event.type == "InputEventType_FirstPress")
-				end
-
-			-- else single or versus (or style is nil because we're actually on ScreenTestInput)
-			else
-				if event.PlayerNumber == player and event.button == panel then
-					self:visible(event.type == "InputEventType_FirstPress")
-				end
-			end
-		end
+			if event.button ~= panel or not VOLT26.InputDiagnostics.IsEventForPlayer(event, player) then return end
+			self:visible(VOLT26.InputDiagnostics.UpdateHeldSources(held_sources, event))
+		end,
+		ResetInputDiagnosticsMessageCommand=function(self)
+			held_sources = {}
+			self:visible(false)
+		end,
 	}
 end
 

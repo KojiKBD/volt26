@@ -1,6 +1,7 @@
 local held = {}
 local unmapped_list
 local game = GAMESTATE:GetCurrentGame():GetName()
+local callback_screen
 
 -- -----------------------------------------------------------------------
 
@@ -8,24 +9,17 @@ local InputHandler = function(event)
 	if not (event and event.button) then return false end
 
 	-- allow players to back out of ScreenTestInput by pressing Escape on their keyboard
-	if event.GameButton == "Back" then
+	if event.GameButton == "Back" and event.type == "InputEventType_FirstPress" then
 		SCREENMAN:GetTopScreen():StartTransitioningScreen("SM_GoToNextScreen")
 	end
 
-	if event.type ~= "InputEventType_Repeat" then
+	if VOLT26.InputDiagnostics.ShouldBroadcast(event) then
 		MESSAGEMAN:Broadcast("TestInputEvent", event)
 	end
 
 	if event.button == "" then
-		local key = ("%s %s"):format(ToEnumShortString(event.DeviceInput.device), ToEnumShortString(event.DeviceInput.button))
-
-		if event.type == "InputEventType_Release" then
-			held[key] = false
-		else
-			held[key] = true
-		end
-
-		unmapped_list:playcommand("Update")
+		VOLT26.InputDiagnostics.UpdateHeldSources(held, event)
+		if unmapped_list then unmapped_list:playcommand("Update") end
 	end
 
 	return false
@@ -35,13 +29,19 @@ end
 
 local af = Def.ActorFrame {
 	OnCommand=function(self)
-		-- only add a Lua input callback handler for dance, pump, and techno
-		-- where we load in custom visuals
-		if (game=="dance" or game=="pump" or game=="techno") then
-			SCREENMAN:GetTopScreen():AddInputCallback(InputHandler)
+		if VOLT26.InputDiagnostics.SupportsPadVisuals(game) then
+			callback_screen = SCREENMAN:GetTopScreen()
+			callback_screen:AddInputCallback(InputHandler)
 		end
 	end,
-	OffCommand=function(self) self:sleep(0.4) end,
+	OffCommand=function(self)
+		if callback_screen then
+			callback_screen:RemoveInputCallback(InputHandler)
+			callback_screen = nil
+		end
+		MESSAGEMAN:Broadcast("ResetInputDiagnostics")
+		self:sleep(0.4)
+	end,
 
 	Def.DeviceList {
 		Font=THEME:GetPathF("","Common Normal"),
@@ -53,7 +53,7 @@ local af = Def.ActorFrame {
 }
 
 -- for these specific games
-if (game=="dance" or game=="pump" or game=="techno") then
+if VOLT26.InputDiagnostics.SupportsPadVisuals(game) then
 
 	-- load custom visuals to show which inputs are mapped to game buttons
 	for player in ivalues( PlayerNumber ) do
@@ -75,13 +75,11 @@ if (game=="dance" or game=="pump" or game=="techno") then
 			unmapped_list = self
 		end,
 		UpdateCommand=function(self)
-			local s = ""
-			for k, v in pairs(held) do
-				if v then
-					s = s .. ("%s (%s)\n"):format(k, THEME:GetString("ScreenTestInput", "not mapped"))
-				end
+			local labels = VOLT26.InputDiagnostics.GetHeldLabels(held)
+			for i, label in ipairs(labels) do
+				labels[i] = ("%s (%s)"):format(label, THEME:GetString("ScreenTestInput", "not mapped"))
 			end
-			self:settext(s)
+			self:settext(table.concat(labels, "\n"))
 		end
 
 	}
