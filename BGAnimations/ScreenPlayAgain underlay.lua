@@ -154,7 +154,7 @@ local t = Def.ActorFrame{
 	-- screen when it runs out of time, but... it doesn't.  So listen for time remaining
 	-- here and force a screen transition when time runs out.
 	OnCommand=function(self)
-		if PREFSMAN:GetPreference("MenuTimer") then
+		if VOLT26.MenuTimer.IsEnabled() then
 			self:queuecommand("Listen")
 		end
 	end,

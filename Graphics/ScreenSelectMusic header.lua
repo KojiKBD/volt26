@@ -98,7 +98,7 @@ af[#af+1] = LoadFont("Common Header")..{
 		self:zoom( SL_WideScale(0.5, 0.6) )
 
 		-- move the GameMode text further left if MenuTimer is enabled
-		if PREFSMAN:GetPreference("MenuTimer") then
+		if VOLT26.MenuTimer.IsEnabled() then
 			self:x(_screen.w - SL_WideScale(110, 125))
 		else
 			self:x(_screen.w - SL_WideScale(55, 62))
@@ -115,7 +115,7 @@ af[#af+1] = LoadFont("Common Header")..{
 -- P1 pad
 af[#af+1] = LoadActor( THEME:GetPathB("ScreenSelectStyle", "underlay/pad.lua"), {nil, nil, 1, nil} )..{
 	InitCommand=function(self)
-		self:x(_screen.w - (PREFSMAN:GetPreference("MenuTimer") and SL_WideScale(90, 105) or SL_WideScale(35, 41)))
+		self:x(_screen.w - (VOLT26.MenuTimer.IsEnabled() and SL_WideScale(90, 105) or SL_WideScale(35, 41)))
 		self:y( SL_WideScale(22, 23.5) ):zoom(0.24)
 		self:playcommand("Set", {Player=PLAYER_1})
 	end,
@@ -129,7 +129,7 @@ af[#af+1] = LoadActor( THEME:GetPathB("ScreenSelectStyle", "underlay/pad.lua"), 
 -- P2 pad
 af[#af+1] = LoadActor( THEME:GetPathB("ScreenSelectStyle", "underlay/pad.lua"), {nil, nil, 2, nil} )..{
 	InitCommand=function(self)
-		self:x(_screen.w - (PREFSMAN:GetPreference("MenuTimer") and SL_WideScale(70, 81) or SL_WideScale(15, 17)))
+		self:x(_screen.w - (VOLT26.MenuTimer.IsEnabled() and SL_WideScale(70, 81) or SL_WideScale(15, 17)))
 		self:y( SL_WideScale(22, 23.5) ):zoom(0.24)
 		self:playcommand("Set", {Player=PLAYER_2})
 	end,

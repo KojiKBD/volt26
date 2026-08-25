@@ -19,6 +19,21 @@ function Navigation.SelectMusicOrCourse()
 end
 
 function Navigation.AfterScreenRankingDouble()
+	if Navigation.ShouldShowPaidPlayDemonstration() then return "ScreenDemonstration" end
+	return PREFSMAN:GetPreference("MemoryCards") and "ScreenMemoryCard" or "ScreenRainbow"
+end
+
+function Navigation.IsPaidPlayWithoutCredits()
+	if GAMESTATE:GetCoinMode() ~= "CoinMode_Pay" then return false end
+	local credits = GetCredits()
+	return credits and (tonumber(credits.Credits) or 0) <= 0
+end
+
+function Navigation.ShouldShowPaidPlayDemonstration()
+	return Navigation.IsPaidPlayWithoutCredits() and SONGMAN:GetNumSongs() > 0
+end
+
+function Navigation.AfterScreenDemonstration()
 	return PREFSMAN:GetPreference("MemoryCards") and "ScreenMemoryCard" or "ScreenRainbow"
 end
 
@@ -169,6 +184,7 @@ end
 
 -- Engine metrics still resolve the fallback Branch table. Keep these as thin adapters.
 Branch.AfterScreenRankingDouble = Navigation.AfterScreenRankingDouble
+Branch.AfterScreenDemonstration = Navigation.AfterScreenDemonstration
 Branch.AllowScreenSelectProfile = Navigation.AllowScreenSelectProfile
 Branch.AfterSelectProfile = Navigation.AfterSelectProfile
 Branch.AllowScreenSelectColor = Navigation.AllowScreenSelectColor

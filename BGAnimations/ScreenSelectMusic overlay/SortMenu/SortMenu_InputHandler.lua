@@ -44,7 +44,7 @@ local input = function(event)
 				GAMESTATE:SetCurrentPlayMode(focus.change)
 
 				-- Save menu timer value.
-				if PREFSMAN:GetPreference("MenuTimer") then
+				if VOLT26.MenuTimer.IsEnabled() then
 					overlay:playcommand("ShowPressStartForOptions")
 				end
 				screen:SetNextScreenName("ScreenReloadSSM")
@@ -55,7 +55,7 @@ local input = function(event)
 				-- If the MenuTimer is in effect, we need to make sure the current number of seconds
 				-- remaining is preserved so we can reinstate it later. ShowPressStartForOptions
 				-- will save the current number of seconds before transitioning to the next screen.
-				if PREFSMAN:GetPreference("MenuTimer") then
+				if VOLT26.MenuTimer.IsEnabled() then
 					overlay:playcommand("ShowPressStartForOptions")
 				end
 				-- We have to turn off autosetstyle to switch styles

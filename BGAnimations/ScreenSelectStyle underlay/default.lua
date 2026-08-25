@@ -251,7 +251,7 @@ local t = Def.ActorFrame{
 		end
 	end,
 	OnCommand=function(self)
-		if PREFSMAN:GetPreference("MenuTimer") then
+		if VOLT26.MenuTimer.IsEnabled() then
 			self:queuecommand("Listen")
 		end
 	end,

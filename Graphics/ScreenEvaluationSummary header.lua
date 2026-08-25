@@ -9,7 +9,7 @@ af[#af+1] = LoadFont("Common Header")..{
 		self:diffusealpha(0):zoom( WideScale(0.5,0.6)):halign(1):y(15)
 
 		-- move the GameMode text further left if MenuTimer is enabled
-		if PREFSMAN:GetPreference("MenuTimer") then
+		if VOLT26.MenuTimer.IsEnabled() then
 			self:x(_screen.w - 70)
 		else
 			self:x(_screen.w - 10)

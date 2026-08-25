@@ -502,8 +502,10 @@ do
             -- ScreenInit is a separate screen and never contributes to this
             -- timer. When its visual handoff is present, wait for that final
             -- dissolve before considering the title menu idle.
-            local arrival_delay = _G.Volt26InitHandoff == true and 0.90 or 0
-            self:sleep(arrival_delay):queuecommand("ArmAFKTimer")
+            if VOLT26.TitleMenu.ShouldUseAFK() then
+                local arrival_delay = _G.Volt26InitHandoff == true and 0.90 or 0
+                self:sleep(arrival_delay):queuecommand("ArmAFKTimer")
+            end
         end,
         ArmAFKTimerCommand=function(self)
             idle_elapsed = 0
@@ -652,7 +654,8 @@ do
     local video_path = THEME:GetPathG("", "VOLT26/afk.mp4")
     local audio_path = THEME:GetPathG("", "VOLT26/afk.ogg")
     local blank_path = THEME:GetPathG("", "_blank.png")
-    if FILEMAN:DoesFileExist(video_path) and FILEMAN:DoesFileExist(audio_path) then
+    if VOLT26.TitleMenu.ShouldUseAFK()
+    and FILEMAN:DoesFileExist(video_path) and FILEMAN:DoesFileExist(audio_path) then
         local elapsed = 0
         local length = 0
 

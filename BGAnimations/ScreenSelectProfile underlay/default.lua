@@ -77,7 +77,7 @@ local t = Def.ActorFrame {
 		-- FIXME: I need to find time to look at how the engine actually handles MenuTimers because
 		-- including an Actor command that queues itself every 0.5 seconds to check the MenuTimer on custom
 		-- screens like this (and ScreenPlayAgain, etc.) seems like it should be unnecessary.)
-		if PREFSMAN:GetPreference("MenuTimer") then
+		if VOLT26.MenuTimer.IsEnabled() then
 			self:queuecommand("CheckMenuTimer")
 		end
 	end,

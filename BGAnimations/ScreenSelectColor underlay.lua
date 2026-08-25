@@ -203,7 +203,7 @@ local t = Def.ActorFrame{
         self:GetChild("ColorWheel"):SetDrawByZPosition(true)
     end,
     OnCommand=function(self)
-        if PREFSMAN:GetPreference("MenuTimer") then
+        if VOLT26.MenuTimer.IsEnabled() then
             self:queuecommand("Listen")
         end
     end,

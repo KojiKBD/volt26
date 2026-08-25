@@ -3034,6 +3034,18 @@ function VOLT26.TitleMenu.GetAFKTimeoutSeconds()
 	return VOLT26.TitleMenu.AFKTimeoutSeconds
 end
 
+function VOLT26.TitleMenu.ShouldUseAFK()
+	return GAMESTATE:GetCoinMode() ~= "CoinMode_Pay"
+end
+
+VOLT26.MenuTimer = {}
+
+-- Keep the engine preference authoritative while giving custom screens one
+-- shared policy for timer behavior and presentation.
+function VOLT26.MenuTimer.IsEnabled()
+	return PREFSMAN:GetPreference("MenuTimer")
+end
+
 VOLT26.Navigation = {}
 
 
