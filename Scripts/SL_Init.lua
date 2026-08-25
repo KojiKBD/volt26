@@ -149,12 +149,11 @@ local GlobalDefaults = {
 				PlayerOptions3 = Branch.GameplayScreen(),
 			}
 			self.ContinuesRemaining = ThemePrefs.Get("NumberOfContinuesAllowed") or 0
-			self.GameMode = ThemePrefs.Get("DefaultGameMode") or "ITG"
+			self.GameMode = "ITG"
 			self.ScreenshotTexture = nil
 			self.MenuTimer = {
 				ScreenGrooveStatsLogin  = ThemePrefs.Get("ScreenGrooveStatsLoginMenuTimer"),
 				ScreenSelectMusic       = ThemePrefs.Get("ScreenSelectMusicMenuTimer"),
-				ScreenSelectMusicCasual = ThemePrefs.Get("ScreenSelectMusicCasualMenuTimer"),
 				ScreenPlayerOptions     = ThemePrefs.Get("ScreenPlayerOptionsMenuTimer"),
 				ScreenEvaluation        = ThemePrefs.Get("ScreenEvaluationMenuTimer"),
 				ScreenEvaluationNonstop = ThemePrefs.Get("ScreenEvaluationNonstopMenuTimer"),
@@ -825,6 +824,7 @@ VOLT26.ThemePrefs = {
 
 function VOLT26.ThemePrefs.ApplyGameMode(gameMode)
 	local mode = gameMode or VOLT26.State.Global.GameMode
+	if mode == "Casual" then mode = "ITG" end
 	local preferences = VOLT26.Preferences[mode]
 	if not preferences then return false end
 	VOLT26.State.Global.GameMode = mode
@@ -1115,7 +1115,6 @@ local songBrowsingActions = {
 
 	-- These inherited integrations remain installed but are not exposed until
 	-- their owning inventory capabilities are explicitly accepted.
-	CasualMode = false,
 	Leaderboard = false,
 	LoadNewSongs = false,
 	OnlineLobbies = false,
@@ -1246,11 +1245,12 @@ end
 VOLT26.Gameplay = {}
 
 function VOLT26.Gameplay.GetMode()
+	if VOLT26.State.Global.GameMode == "Casual" then VOLT26.State.Global.GameMode = "ITG" end
 	return VOLT26.State.Global.GameMode
 end
 
 function VOLT26.Gameplay.IsCasual()
-	return VOLT26.Gameplay.GetMode() == "Casual"
+	return false
 end
 
 function VOLT26.Gameplay.GetCurrentStageIndex()

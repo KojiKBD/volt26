@@ -281,7 +281,6 @@ local t = Def.ActorFrame {
 			{ {"WhereforeArtThou", "SongSearch"}, IsActionEnabled("SongSearch") and not GAMESTATE:IsCourseMode() and ThemePrefs.Get("KeyboardFeatures") },
 			{ {"ImLovinIt", "AddFavorite"}, function() return IsActionEnabled("AddFavorite") and GAMESTATE:GetCurrentSong() ~= nil end},
 			{ {"MixTape", "Preferred"}, AddFavorites },
-			{ {"ChangeMode", "Casual"}, IsActionEnabled("CasualMode") and VOLT26.State.Global.Stages.PlayedThisGame == 0 and VOLT26.State.Global.GameMode ~= "Casual" },
 			{ {"ChangePlayMode", "Nonstop"}, IsActionEnabled("ChangePlayMode") and not GAMESTATE:IsCourseMode() and ChangePlayModeAvailable() },
 			{ {"ChangePlayMode", "Regular"}, IsActionEnabled("ChangePlayMode") and GAMESTATE:IsCourseMode() and ChangePlayModeAvailable() },
 			{

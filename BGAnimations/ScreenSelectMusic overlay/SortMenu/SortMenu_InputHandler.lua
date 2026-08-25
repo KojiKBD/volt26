@@ -35,26 +35,6 @@ local input = function(event)
 				if VOLT26.SongBrowsing.UsePlaylist(path, screen) then
 					overlay:queuecommand("DirectInputToEngine")
 				end
-			-- the player wants to change modes, for example from ITG to Casual
-			elseif focus.kind == "ChangeMode" then
-				VOLT26.State.Global.GameMode = focus.change
-				for player in ivalues(GAMESTATE:GetHumanPlayers()) do
-					ApplyMods(player)
-				end
-				SetGameModePreferences()
-				THEME:ReloadMetrics()
-				-- Broadcast that the SL GameMode has changed
-				-- SSM's header will update its text and highscore names in the PaneDisplays will refresh
-				MESSAGEMAN:Broadcast("SLGameModeChanged")
-				-- Reload the SortMenu's available options and queue "DirectInputToEngine"
-				-- to return input from Lua back to the engine and hide the SortMenu from view
-				sortmenu:playcommand("AssessAvailableChoices"):queuecommand("DirectInputToEngine")
-				-- the player is switching to casual mode which uses a different SelectMusic screen
-				if focus.change == "Casual" then
-					screen:SetNextScreenName("ScreenSelectMusicCasual")
-					screen:StartTransitioningScreen("SM_GoToNextScreen")
-				end
-
 			-- Change between Course (aka Marathon aka Nonstop) and Regular mode.
 			elseif focus.kind == "ChangePlayMode" then
 				-- Unselect song/course first to avoid getting to a state where
