@@ -40,8 +40,12 @@
 --           args: The provided args passed as is.
 -- args: any, arguments that will be made accesible to the callback function. This
 --       can of any type as long as the callback knows what to do with it.
+local requestActorSequence = 0
+
 RequestResponseActor = function(x, y)
 	local url_prefix = "https://apiservice.groovestats.com/api/"
+	requestActorSequence = requestActorSequence + 1
+	local requestActorId = requestActorSequence
 
 	return Def.ActorFrame{
 		InitCommand=function(self)
@@ -81,11 +85,23 @@ RequestResponseActor = function(x, y)
 			end
 			self:GetChild("Spinner"):visible(true)
 
-			local timeout = params.timeout or 60
+			local timeout = math.max(1, math.min(tonumber(params.timeout) or 60, 60))
 			local endpoint = params.endpoint or ""
-			local method = params.method
+			local method = tostring(params.method or "GET"):upper()
 			local body = params.body
 			local headers = params.headers
+			local allowedMethods = {GET=true, POST=true, PUT=true, PATCH=true, DELETE=true}
+			if type(endpoint) ~= "string" or endpoint:sub(1, 1) ~= "?" or endpoint:find("://", 1, true) then
+				Warn("Rejected invalid GrooveStats endpoint.")
+				self:GetChild("Spinner"):visible(false)
+				return
+			end
+			if not allowedMethods[method] or (body ~= nil and (type(body) ~= "string" or #body > 1024 * 1024)) then
+				Warn("Rejected invalid GrooveStats request.")
+				self:GetChild("Spinner"):visible(false)
+				return
+			end
+			if headers ~= nil and type(headers) ~= "table" then headers = nil end
 
 			self.timeout = timeout
 
@@ -99,16 +115,20 @@ RequestResponseActor = function(x, y)
 				transferTimeout=timeout,
 				onResponse=function(response)
 					self.request_handler = nil
+					if type(response.body) == "string" and #response.body > 1024 * 1024 then
+						Warn("Rejected oversized GrooveStats response.")
+						response = {statusCode=413}
+					end
 					-- If we get a permanent error, make sure we "disconnect" from
 					-- GrooveStats until we recheck on ScreenTitleMenu.
 					if response.statusCode then
 						local body = nil
 						local code = response.statusCode
 						if code == 200 then
-							body = JsonDecode(response.body)
+							body = VOLT26.GrooveStats.DecodeResponse(response)
 						end
-						if (code >= 400 and code < 499 and code ~= 429) or (code == 200 and body and body.error and #body.error) then
-							SL.GrooveStats.IsConnected = false
+						if (code >= 400 and code < 499 and code ~= 429) or (code == 200 and body and body.error ~= nil) then
+							VOLT26.GrooveStats.ResetCapabilities()
 						end
 					end
 
@@ -118,11 +138,12 @@ RequestResponseActor = function(x, y)
 					
 					if params.callback then
 						if not response.error or ToEnumShortString(response.error) ~= "Cancelled" then
-							params.callback(response, params.args)
+							local ok = pcall(params.callback, response, params.args)
+							if not ok then Warn("GrooveStats response handler rejected malformed data.") end
 						end
 					end
 
-					MESSAGEMAN:Broadcast("GrooveStatsRequestFinished", {id=request_actor_id})
+					MESSAGEMAN:Broadcast("GrooveStatsRequestFinished", {id=requestActorId})
 				end,
 			}
 			-- Keep track of when we started making the request
@@ -131,7 +152,7 @@ RequestResponseActor = function(x, y)
 			self:queuecommand("GrooveStatsRequestLoop")
 		end,
 		GrooveStatsRequestFinishedMessageCommand=function(self, params)
-			if params and params.id == request_actor_id then
+			if params and params.id == requestActorId then
 				self:GetChild("Spinner"):visible(false)
 			end
 		end,
@@ -191,93 +212,12 @@ end
 -- Sets the API key for a player if it's found in their profile.
 
 ParseGrooveStatsIni = function(player)
-	if not player then return end
-
-	local profile_slot = {
-		[PLAYER_1] = "ProfileSlot_Player1",
-		[PLAYER_2] = "ProfileSlot_Player2"
-	}
-	
-	if not profile_slot[player] then return "" end
-
-	local dir = PROFILEMAN:GetProfileDir(profile_slot[player])
-	local pn = ToEnumShortString(player)
-	-- We require an explicit profile to be loaded.
-	if not dir or #dir == 0 then return "" end
-
-	local path = dir .. "GrooveStats.ini"
-
-	if not FILEMAN:DoesFileExist(path) then
-		-- The file doesn't exist. We will create it for this profile, and then just return.
-		IniFile.WriteFile(path, {
-			["GrooveStats"]={
-				["ApiKey"]="",
-				["Username"]="",
-				["IsPadPlayer"]=0,
-			}
-		})
-	else
-		local contents = IniFile.ReadFile(path)
-		for k,v in pairs(contents["GrooveStats"]) do
-			if k == "ApiKey" then
-				if #v ~= 64 then
-					-- Print the error only if the ApiKey is non-empty.
-					if #v ~= 0 then
-						SM(ToEnumShortString(player).." has invalid ApiKey length!")
-					end
-					SL[pn].ApiKey = ""
-				else
-					SL[pn].ApiKey = v
-				end
-			elseif k == "Username" then
-				SL[pn].GrooveStatsUsername = v
-			elseif k == "IsPadPlayer" then
-				-- Must be explicitly set to 1.
-				if v == 1 then
-					SL[pn].IsPadPlayer = true
-				else
-					SL[pn].IsPadPlayer = false
-				end
-			end
-		end
-
-		-- Always write the file back to disk to ensure it's up to date with
-		-- any new fields that may have been added.
-		IniFile.WriteFile(path, {
-			["GrooveStats"]={
-				["ApiKey"]=SL[pn].ApiKey,
-				["Username"]=SL[pn].GrooveStatsUsername,
-				["IsPadPlayer"]=SL[pn].IsPadPlayer and "1" or "0",
-			}
-		})
-	end
+	return player and VOLT26.GrooveStats.LoadPlayerIdentity(player) or false
 end
 
 -- -----------------------------------------------------------------------
 WriteGrooveStatsIni = function(player)
-	if not player then return end
-
-	local profile_slot = {
-		[PLAYER_1] = "ProfileSlot_Player1",
-		[PLAYER_2] = "ProfileSlot_Player2"
-	}
-	
-	if not profile_slot[player] then return "" end
-
-	local dir = PROFILEMAN:GetProfileDir(profile_slot[player])
-	local pn = ToEnumShortString(player)
-	-- We require an explicit profile to be loaded.
-	if not dir or #dir == 0 then return "" end
-
-	local path = dir .. "GrooveStats.ini"
-
-	IniFile.WriteFile(path, {
-		["GrooveStats"]={
-			["ApiKey"]=SL[pn].ApiKey,
-			["Username"]=SL[pn].GrooveStatsUsername,
-			["IsPadPlayer"]=SL[pn].IsPadPlayer and "1" or "0",
-		}
-	})
+	return player and VOLT26.GrooveStats.SavePlayerIdentity(player) or false
 end
 
 -- -----------------------------------------------------------------------
@@ -290,12 +230,7 @@ end
 --  - At least one Api Key must be available (this condition may be relaxed in the future)
 --  - We must not be in course mode (ZANKOKU: moving this specific check to autosubmitscore instead, since otherwise it blocks scorebox when playing course mode).
 IsServiceAllowed = function(condition)
-	return (condition and
-		ThemePrefs.Get("EnableGrooveStats") and
-		SL.GrooveStats.IsConnected and
-		(GAMESTATE:GetCurrentGame():GetName() == "dance" or GAMESTATE:GetCurrentGame():GetName() == "pump") and
-		SL.Global.GameMode == "ITG" and
-		(SL.P1.ApiKey ~= "" or SL.P2.ApiKey ~= ""))
+	return VOLT26.GrooveStats.IsServiceAllowed(condition)
 end
 
 -- -----------------------------------------------------------------------
@@ -1127,12 +1062,22 @@ GetPlayerOptionsJsonForGrooveStats = function(player)
 end
 
 SetPlayerOptionsJsonFromGroovestats = function(player, jsonStr)
-	if not jsonStr or #jsonStr == 0 then return end
+	if type(jsonStr) ~= "string" or #jsonStr == 0 or #jsonStr > 64 * 1024 then return end
 
-	local options = JsonDecode(jsonStr)
-	if not options then
-		Trace("Failed to parse GrooveStats player options JSON: "..jsonStr)
+	local decoded, options = pcall(JsonDecode, jsonStr)
+	if not decoded or type(options) ~= "table" then
+		Trace("Failed to parse GrooveStats player options JSON.")
 		return
+	end
+	local numericBounds = {
+		BackgroundFilter={0, 1}, HideLookahead={0, 3}, Mini={-200, 200},
+		Flip={-1, 1}, VisualDelay={-1000, 1000}, NoteFieldOffsetX={-1000, 1000},
+		NoteFieldOffsetY={-1000, 1000},
+	}
+	local function ValidRemoteNumber(key, value)
+		if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then return false end
+		local bounds = numericBounds[key] or {-10000, 10000}
+		return value >= bounds[1] and value <= bounds[2]
 	end
 
 	local pn = ToEnumShortString(player)
@@ -1150,7 +1095,7 @@ SetPlayerOptionsJsonFromGroovestats = function(player, jsonStr)
 					else
 						Trace("Tried to set option for key: "..key.." but the value: "..value.." is not in the map.")
 					end
-				elseif keyData.Type == "number" and type(value) == "number" then
+				elseif keyData.Type == "number" and ValidRemoteNumber(key, value) then
 					-- Some mods are special and need custom handling.
 					-- Mini and VisualDelay are special in that we use strings to actually represent them in the SL table.
 					-- Background Filter is saved as a number (for Zmod/DD) but SL saves it as a string

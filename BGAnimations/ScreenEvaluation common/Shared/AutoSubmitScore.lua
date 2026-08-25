@@ -153,7 +153,15 @@ local AutoSubmitRequestProcessor = function(res, overlay)
 
 	-- Hijack the leaderboard pane to display the GrooveStats leaderboards.
 	if panes then
-		local data = JsonDecode(res.body)
+		local data = VOLT26.GrooveStats.DecodeResponse(res)
+		for side=1,2 do
+			local playerData = data and data["player"..side]
+			if type(playerData) == "table" then
+				-- Event and tournament payloads are handled by EVENT-01/EVENT-02.
+				playerData.rpg = nil
+				playerData.itl = nil
+			end
+		end
 		for i=1,2 do
 			local playerStr = "player"..i
 			local entryNum = 1
@@ -312,10 +320,6 @@ local AutoSubmitRequestProcessor = function(res, overlay)
 		overlay:queuecommand("DirectInputToEventOverlayHandler")
 	end
 
-	if ThemePrefs.Get("AutoDownloadUnlocks") then
-		-- This will only download if the expected data exists.
-		AttemptDownloads(res)
-	end
 end
 
 local af = Def.ActorFrame {
