@@ -298,6 +298,22 @@ end
 -- -----------------------------------------------------------------------
 -- USB profiles
 
+local function AddCurrentPositiveValue(values, choices, preference, formatter)
+	local current = tonumber(PREFSMAN:GetPreference(preference))
+	if not current or current <= 0 then return end
+	if VOLT26.Util.FindIndex(current, values) then return end
+	table.insert(values, current)
+	table.insert(choices, formatter(current))
+end
+
+local function FormatCustomSongDuration(seconds)
+	local hours = math.floor(seconds / 3600)
+	if hours > 0 then
+		return ("%d:%02d:%02d"):format(hours, math.floor(seconds / 60) % 60, seconds % 60)
+	end
+	return SecondsToMSS(seconds)
+end
+
 -- the engine doesn't seem to have a conf definition
 -- for the MemoryCards preference, so make one here
 VOLT26.OperatorOptions.MemoryCards = function()
@@ -326,11 +342,14 @@ end
 
 VOLT26.OperatorOptions.CustomSongsMaxSeconds = function()
 	-- first, define a reasonable range of 1:45 to 15:00
-	local choices = VOLT26.Util.Map(SecondsToMSS, VOLT26.Util.Range(105,900,15))
 	local values  = VOLT26.Util.Range(105,900,15)
+	local choices = VOLT26.Util.Map(FormatCustomSongDuration, values)
 	-- top it off by including 2 hours as a choice
-	table.insert(choices, "2:00:00")
 	table.insert(values, 7200)
+	table.insert(choices, FormatCustomSongDuration(7200))
+
+	-- preserve a valid engine value even when it is outside VOLT26's suggested list
+	AddCurrentPositiveValue(values, choices, "CustomSongsMaxSeconds", FormatCustomSongDuration)
 
 	return {
 		Name="CustomSongsMaxSeconds",
@@ -340,8 +359,8 @@ VOLT26.OperatorOptions.CustomSongsMaxSeconds = function()
 		OneChoiceForAllPlayers = true,
 		ExportOnChange = false,
 		LoadSelections = function(self, list, pn)
-			local time = SecondsToMMSS(PREFSMAN:GetPreference("CustomSongsMaxSeconds")):gsub("^0*", "")
-			local i = VOLT26.Util.FindIndex(time, choices) or 1
+			local current = tonumber(PREFSMAN:GetPreference("CustomSongsMaxSeconds"))
+			local i = VOLT26.Util.FindIndex(current, values) or 1
 			list[i] = true
 		end,
 		SaveSelections = function(self, list, pn)
@@ -371,9 +390,14 @@ VOLT26.OperatorOptions.CustomSongsMaxMegabytes = function()
 		end
 	end
 
-	-- lmao
+	-- include an explicit high-limit option for private installations
 	table.insert(values, 1000)
 	table.insert(choices, "1 GB 😮")
+
+	-- preserve a valid engine value even when it is outside VOLT26's suggested list
+	AddCurrentPositiveValue(values, choices, "CustomSongsMaxMegabytes", function(value)
+		return ("%g MB"):format(value)
+	end)
 
 	return {
 		Name="CustomSongsMaxMegabytes",
@@ -383,7 +407,7 @@ VOLT26.OperatorOptions.CustomSongsMaxMegabytes = function()
 		OneChoiceForAllPlayers = true,
 		ExportOnChange = false,
 		LoadSelections = function(self, list, pn)
-			local pref = PREFSMAN:GetPreference("CustomSongsMaxMegabytes")
+			local pref = tonumber(PREFSMAN:GetPreference("CustomSongsMaxMegabytes"))
 			local i = VOLT26.Util.FindIndex(pref, values) or 1
 			list[i] = true
 		end,
@@ -400,12 +424,12 @@ end
 
 VOLT26.OperatorOptions.CustomSongsLoadTimeout = function()
 	-- first, define a reasonable range of integers from [3,10]
-	local choices = VOLT26.Util.Range(3,10)
-	table.insert(choices, 60)
+	local values = VOLT26.Util.Range(3,10)
+	table.insert(values, 60)
+	local choices = VOLT26.Util.Map(tostring, values)
 
-	-- accommodate custom values rather than steamrolling over them
-	local pref = PREFSMAN:GetPreference("CustomSongsLoadTimeout")
-	if not VOLT26.Util.FindIndex(pref, choices) then table.insert(choices, pref) end
+	-- preserve a valid engine value even when it is outside VOLT26's suggested list
+	AddCurrentPositiveValue(values, choices, "CustomSongsLoadTimeout", tostring)
 
 	return {
 		Name="CustomSongsLoadTimeout",
@@ -415,13 +439,14 @@ VOLT26.OperatorOptions.CustomSongsLoadTimeout = function()
 		OneChoiceForAllPlayers = true,
 		ExportOnChange = false,
 		LoadSelections = function(self, list, pn)
-			local i = VOLT26.Util.FindIndex(pref, choices) or 1
+			local current = tonumber(PREFSMAN:GetPreference("CustomSongsLoadTimeout"))
+			local i = VOLT26.Util.FindIndex(current, values) or 1
 			list[i] = true
 		end,
 		SaveSelections = function(self, list, pn)
 			for i=1, #choices do
 				if list[i] then
-					PREFSMAN:SetPreference("CustomSongsLoadTimeout", choices[i])
+					PREFSMAN:SetPreference("CustomSongsLoadTimeout", values[i])
 					break
 				end
 			end
