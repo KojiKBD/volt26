@@ -1,11 +1,11 @@
-local candidatesScroller, af = ...
+local candidatesScroller = ...
 
 local input = function(event)
 	if not (event and event.PlayerNumber and event.button) then
 		return false
 	end
 
-	if event.type ~= "InputEventType_Release" then
+	if event.type == "InputEventType_FirstPress" then
 		local index = candidatesScroller.info_pos
 		local num_items = #candidatesScroller.info_set
 		local num_rows = candidatesScroller.num_items

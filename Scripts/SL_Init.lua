@@ -499,7 +499,7 @@ VOLT26 = {
 	--              (either success or failure).
 	-- If a request fails, there will be another key:
 	--    ErrorMessage: string, the reasoning for the failure.
-	Downloads = {},
+	Downloads = {Registry={}},
 
 	-- Latest versions available for ITGmania and Simply Love.
 	ITGmaniaLatestVersion = nil,
@@ -2762,6 +2762,54 @@ function VOLT26.InputDiagnostics.GetHeldLabels(held)
 	for key in pairs(held) do labels[#labels + 1] = key end
 	table.sort(labels)
 	return labels
+end
+
+VOLT26.Downloads.States = {
+	queued=true, downloading=true, verifying=true, extracting=true,
+	completed=true, failed=true, cancelled=true,
+}
+
+function VOLT26.Downloads.IsTransportEnabled()
+	return false
+end
+
+function VOLT26.Downloads.NormalizeJob(id, raw)
+	if type(raw) ~= "table" then return nil end
+	local total = math.max(0, tonumber(raw.TotalBytes) or 0)
+	local current = math.max(0, tonumber(raw.CurrentBytes) or 0)
+	if total > 0 then current = math.min(current, total) end
+	local state = type(raw.State) == "string" and raw.State:lower() or nil
+	if not VOLT26.Downloads.States[state] then
+		if raw.Complete then state = raw.ErrorMessage and "failed" or "completed"
+		else state = "downloading" end
+	end
+	return {
+		Id=tostring(id or ""),
+		Name=type(raw.Name) == "string" and raw.Name or "Download",
+		CurrentBytes=current,
+		TotalBytes=total,
+		State=state,
+		Complete=state == "completed" or state == "failed" or state == "cancelled",
+		ErrorMessage=type(raw.ErrorMessage) == "string" and raw.ErrorMessage or nil,
+	}
+end
+
+function VOLT26.Downloads.Snapshot()
+	local snapshot = {}
+	for id, raw in pairs(VOLT26.Downloads.Registry) do
+		local job = VOLT26.Downloads.NormalizeJob(id, raw)
+		if job then snapshot[#snapshot + 1] = job end
+	end
+	table.sort(snapshot, function(a, b) return a.Id < b.Id end)
+	return snapshot
+end
+
+function VOLT26.Downloads.GetCounts(snapshot)
+	local finished = 0
+	for _, job in ipairs(snapshot or {}) do
+		if job.Complete then finished = finished + 1 end
+	end
+	return finished, #(snapshot or {})
 end
 
 VOLT26.Tournament = {}

@@ -626,7 +626,7 @@ DownloadEventUnlock = function(url, unlockName, packName)
 
 	-- Then check that the same download isn't already active in the Downloads
 	-- table.
-	for _, downloadInfo in pairs(SL.Downloads) do
+	for _, downloadInfo in pairs(VOLT26.Downloads.Registry) do
 		if downloadInfo.Url == url and downloadInfo.Destination == packName then
 			return
 		end
@@ -635,7 +635,7 @@ DownloadEventUnlock = function(url, unlockName, packName)
 	local uuid = CRYPTMAN:GenerateRandomUUID()
 	local downloadfile = uuid..".zip"
 
-	SL.Downloads[uuid] = {
+	VOLT26.Downloads.Registry[uuid] = {
 		Name=unlockName,
 		Url=url,
 		Destination=packName,
@@ -645,19 +645,19 @@ DownloadEventUnlock = function(url, unlockName, packName)
 	}
 
 	-- Create the request separately. If the host is blocked it's possible that
-	-- the SL.Downloads[uuid] table is assigned.
-	SL.Downloads[uuid].Request = NETWORK:HttpRequest{
+	-- the registry entry is assigned.
+	VOLT26.Downloads.Registry[uuid].Request = NETWORK:HttpRequest{
 		url=url,
 		downloadFile=downloadfile,
 		onProgress=function(currentBytes, totalBytes)
-			local downloadInfo = SL.Downloads[uuid]
+			local downloadInfo = VOLT26.Downloads.Registry[uuid]
 			if downloadInfo == nil then return end
 
 			downloadInfo.CurrentBytes = currentBytes
 			downloadInfo.TotalBytes = totalBytes
 		end,
 		onResponse=function(response)
-			local downloadInfo = SL.Downloads[uuid]
+			local downloadInfo = VOLT26.Downloads.Registry[uuid]
 			if downloadInfo == nil then return end
 			
 			downloadInfo.Complete = true
