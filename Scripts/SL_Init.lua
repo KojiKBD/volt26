@@ -1193,6 +1193,7 @@ end
 
 function VOLT26.MusicSelection.PrepareScreen()
 	VOLT26.State.Global.GameplayReloadCheck = false
+	VOLT26.Tournament.RestoreAllPlayers()
 	VOLT26.Favorites.LoadAll()
 	GAMESTATE:GetSongOptionsObject("ModsLevel_Preferred"):MusicRate(VOLT26.MusicSelection.GetMusicRate())
 end
@@ -2650,6 +2651,93 @@ function VOLT26.EvaluationInput.GetScreenshotTexture()
 	return VOLT26.Core.GetGlobalState().ScreenshotTexture
 end
 
+VOLT26.Tournament = {}
+local TournamentForcedSpeed = {}
+
+function VOLT26.Tournament.IsEnabled()
+	return ThemePrefs.Get("EnableTournamentMode") == true
+end
+
+function VOLT26.Tournament.GetScoringSystem()
+	return ThemePrefs.Get("ScoringSystem") == "ITG" and "ITG" or "EX"
+end
+
+function VOLT26.Tournament.ShouldShowStepStats(player)
+	return VOLT26.Core.GetPlayerState(player).ActiveModifiers.DataVisualizations == "Step Statistics"
+end
+
+function VOLT26.Tournament.ApplyPlayerModifiers(player)
+	local modifiers = VOLT26.Core.GetPlayerState(player).ActiveModifiers
+	if VOLT26.Tournament.IsEnabled() then
+		modifiers.ShowExScore = VOLT26.Tournament.GetScoringSystem() == "EX"
+		modifiers.ShowFaPlusPane = true
+		VOLT26.Core.GetPlayerState(player).EvalPanePrimary = 2
+	end
+	return modifiers
+end
+
+function VOLT26.Tournament.SongForbidsCMod(song)
+	if not song then return false end
+	local labels = {
+		song:GetDisplayFullTitle(), song:GetTranslitFullTitle(),
+		song:GetDisplaySubTitle(), song:GetTranslitSubTitle(),
+	}
+	for _, label in ipairs(labels) do
+		if type(label) == "string" and label:lower():find("no cmod", 1, true) then return true end
+	end
+	return false
+end
+
+function VOLT26.Tournament.GetCModViolation(player)
+	if not VOLT26.Tournament.IsEnabled() or ThemePrefs.Get("EnforceNoCmod") ~= true then return nil end
+	local modifiers = VOLT26.Core.GetPlayerState(player).ActiveModifiers
+	if modifiers.SpeedModType ~= "C" or not VOLT26.Tournament.SongForbidsCMod(GAMESTATE:GetCurrentSong()) then return nil end
+	return modifiers.SpeedMod
+end
+
+function VOLT26.Tournament.PreparePlayer(player)
+	local pn = ToEnumShortString(player)
+	local speed = VOLT26.Tournament.GetCModViolation(player)
+	if not pn or not speed then return nil end
+	TournamentForcedSpeed[pn] = {type="C", speed=speed}
+	local modifiers = VOLT26.Core.GetPlayerState(player).ActiveModifiers
+	modifiers.SpeedModType = "M"
+	for _, level in ipairs({"ModsLevel_Preferred", "ModsLevel_Stage", "ModsLevel_Song"}) do
+		GAMESTATE:GetPlayerState(player):GetPlayerOptions(level):MMod(speed)
+	end
+	return speed
+end
+
+function VOLT26.Tournament.GetForcedSpeed(player)
+	local forced = TournamentForcedSpeed[ToEnumShortString(player)]
+	return forced and forced.speed or nil
+end
+
+function VOLT26.Tournament.RestorePlayer(player)
+	local pn = ToEnumShortString(player)
+	local forced = pn and TournamentForcedSpeed[pn] or nil
+	if not forced then return false end
+	local modifiers = VOLT26.Core.GetPlayerState(player).ActiveModifiers
+	modifiers.SpeedModType = forced.type
+	modifiers.SpeedMod = forced.speed
+	GAMESTATE:GetPlayerState(player):GetPlayerOptions("ModsLevel_Preferred"):CMod(forced.speed)
+	VOLT26.Core.GetPlayerState(player).PlayerOptionsString =
+		GAMESTATE:GetPlayerState(player):GetPlayerOptionsString("ModsLevel_Preferred")
+	TournamentForcedSpeed[pn] = nil
+	return true
+end
+
+function VOLT26.Tournament.RestoreAllPlayers()
+	for player in ivalues(GAMESTATE:GetHumanPlayers()) do
+		VOLT26.Tournament.RestorePlayer(player)
+	end
+end
+
+-- Annual ITL persistence remains disabled until a versioned provider and active dates are defined.
+function VOLT26.Tournament.IsLocalItlEnabled()
+	return false
+end
+
 VOLT26.Options = {}
 
 function VOLT26.Options.GetPlayerModifiers(player)
@@ -2719,7 +2807,7 @@ local OperatorMenuLines = {
 	"SystemOptions", "MapControllers", "TestInput", "InputOptions",
 	"GraphicsSoundOptions", "VisualOptions", "ArcadeOptions", "Bookkeeping",
 	"AdvancedOptions", "MenuTimerOptions", "USBProfileOptions",
-	"OptionsManageProfiles", "ThemeOptions", "GrooveStatsOptions", "StepManiaCredits", "ClearCredits", "Reload",
+	"OptionsManageProfiles", "ThemeOptions", "GrooveStatsOptions", "TournamentModeOptions", "StepManiaCredits", "ClearCredits", "Reload",
 }
 
 local ThemeOptionLines = {

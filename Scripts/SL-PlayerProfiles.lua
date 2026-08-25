@@ -125,7 +125,7 @@ LoadProfileCustom = function(profile, dir)
 
 		SL[pn]:initialize()
 		ParseGrooveStatsIni(player)
-		ReadItlFile(player)
+		if VOLT26.Tournament.IsLocalItlEnabled() then ReadItlFile(player) end
 
 		SL[pn].Stages = stages
 	end
@@ -184,6 +184,7 @@ SaveProfileCustom = function(profile, dir)
 
 	for player in ivalues( GAMESTATE:GetHumanPlayers() ) do
 		if profile == PROFILEMAN:GetProfile(player) then
+			VOLT26.Tournament.RestorePlayer(player)
 			local pn = ToEnumShortString(player)
 			local output = {}
 			for k,v in pairs(SL[pn].ActiveModifiers) do
@@ -201,7 +202,7 @@ SaveProfileCustom = function(profile, dir)
 			WriteGrooveStatsIni(player)
 			-- Write to the ITL file if we need to.
 			-- This is relevant for memory cards.
-			WriteItlFile(player)
+			if VOLT26.Tournament.IsLocalItlEnabled() then WriteItlFile(player) end
 			break
 		end
 	end

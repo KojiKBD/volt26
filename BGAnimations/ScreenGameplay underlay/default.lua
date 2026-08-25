@@ -6,6 +6,10 @@ end
 local Players = GAMESTATE:GetHumanPlayers()
 local holdingCtrl = false
 
+for player in ivalues(Players) do
+	VOLT26.Tournament.PreparePlayer(player)
+end
+
 local RestartHandler = function(event)
 	if not event then return end
 
@@ -56,6 +60,8 @@ local t = Def.ActorFrame{
 }
 
 for player in ivalues(Players) do
+	-- Apply tournament scoring policy before dependent gameplay actors are assembled.
+	t[#t+1] = LoadActor("./PerPlayer/TournamentMode.lua", player)
 	t[#t+1] = LoadActor("./PerPlayer/Danger.lua", player)
 	t[#t+1] = LoadActor("./PerPlayer/StepStatistics/default.lua", player)
 	t[#t+1] = LoadActor("./PerPlayer/BackgroundFilter.lua", player)
@@ -69,10 +75,6 @@ t[#t+1] = LoadActor("./Shared/SongInfoBar.lua") -- song title and progress bar
 
 -- per-player UI elements
 for player in ivalues(Players) do
-	-- Tournament Mode modifications. Put this before everything as it sets
-	-- player mods and other actors below might depend on it.
-	t[#t+1] = LoadActor("./PerPlayer/TournamentMode.lua", player)
-
 	t[#t+1] = LoadActor("./PerPlayer/UpperNPSGraph.lua", player)
 	t[#t+1] = LoadActor("./PerPlayer/Score.lua", player)
 	t[#t+1] = LoadActor("./PerPlayer/DifficultyMeter.lua", player)
