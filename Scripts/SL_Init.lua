@@ -2763,6 +2763,12 @@ function VOLT26.Tournament.IsLocalItlEnabled()
 	return false
 end
 
+VOLT26.CustomSongs = {}
+
+function VOLT26.CustomSongs.IsSupported()
+	return PREFSMAN:PreferenceExists("CustomSongsEnable")
+end
+
 VOLT26.Options = {}
 
 function VOLT26.Options.GetPlayerModifiers(player)
