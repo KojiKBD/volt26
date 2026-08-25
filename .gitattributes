@@ -1,1 +1,8 @@
 * text=auto eol=lf
+
+.agents/ export-ignore
+AGENTS.md export-ignore
+docs/ export-ignore
+tools/ export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore
