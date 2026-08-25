@@ -30,14 +30,18 @@ The primary standalone route is implemented:
 - profile selection;
 - music selection;
 - player options;
-- gameplay telemetry and failure handling;
-- stage evaluation.
+- gameplay scoring, telemetry, and failure handling;
+- stage evaluation, performance graphs, and screenshots;
+- evaluation summary, name entry, and game-over session statistics;
+- curated service options.
 
 Advanced and optional Simply Love-derived capabilities are still being reviewed individually. The current scope and verification status are tracked in the [functional inventory](docs/simply-love-functional-inventory.md).
 
 GrooveStats is available as an optional integration for persistent profiles. See the [GrooveStats setup and security notes](docs/groovestats.md).
 
 Tournament Mode is available from the service options and can enforce scoring display and `no cmod` chart rules before the NoteField is constructed, without overriding the player's gameplay-statistics layout. A temporarily forced MMod is restored to the previous CMod after the song. Annual ITL event records are not currently enabled.
+
+Custom songs stored in USB profiles are supported through **USB Profile Options** when the installed ITGmania build exposes the required engine preferences. ITGmania remains responsible for removable-media discovery, validation, loading, limits, and cleanup. See the [custom songs from USB profiles guide](Other/Documentation/CustomSongsFromUSB-README.md) for setup details.
 
 ## Supported languages
 
