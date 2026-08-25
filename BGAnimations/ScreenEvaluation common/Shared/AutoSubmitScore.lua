@@ -456,7 +456,7 @@ af[#af+1] = LoadFont("Common Normal").. {
 	end,
 	SubmitFailedCommand=function(self)
 		self:settext(THEME:GetString("GrooveStats", "SubmitFailed"))
-		DiffuseEmojis(self)
+		VOLT26.Text.DiffuseEmojis(self)
 	end,
 	TimedOutCommand=function(self)
 		self:settext(THEME:GetString("GrooveStats", "TimedOut"))
@@ -478,7 +478,7 @@ af[#af+1] = LoadFont("Common Normal").. {
 	end,
 	SubmitFailedCommand=function(self)
 		self:settext(THEME:GetString("GrooveStats", "SubmitFailed"))
-		DiffuseEmojis(self)
+		VOLT26.Text.DiffuseEmojis(self)
 	end,
 	TimedOutCommand=function(self)
 		self:settext(THEME:GetString("GrooveStats", "TimedOut"))

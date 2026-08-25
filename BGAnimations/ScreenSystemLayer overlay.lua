@@ -299,9 +299,9 @@ local NewSessionRequestProcessor = function(res, gsInfo)
 			SL.GrooveStats.AutoSubmit = false
 			groovestats:settext("❌ GrooveStats")
 
-			DiffuseEmojis(service1:ClearAttributes())
+			VOLT26.Text.DiffuseEmojis(service1:ClearAttributes())
 		end
-		DiffuseEmojis(groovestats:ClearAttributes())
+		VOLT26.Text.DiffuseEmojis(groovestats:ClearAttributes())
 		return
 	end
 
@@ -388,10 +388,10 @@ local NewSessionRequestProcessor = function(res, gsInfo)
 		SL.GrooveStats.IsConnected = true
 	end
 
-	DiffuseEmojis(groovestats:ClearAttributes())
-	DiffuseEmojis(service1:ClearAttributes())
-	DiffuseEmojis(service2:ClearAttributes())
-	DiffuseEmojis(service3:ClearAttributes())
+	VOLT26.Text.DiffuseEmojis(groovestats:ClearAttributes())
+	VOLT26.Text.DiffuseEmojis(service1:ClearAttributes())
+	VOLT26.Text.DiffuseEmojis(service2:ClearAttributes())
+	VOLT26.Text.DiffuseEmojis(service3:ClearAttributes())
 end
 
 local function DiffuseText(bmt)

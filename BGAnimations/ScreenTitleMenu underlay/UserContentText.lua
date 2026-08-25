@@ -42,8 +42,8 @@ local sl_name = THEME:GetCurThemeName()
 -- so, start with a string like "StepMania 5.0.12" or "StepMania 5.1.0"
 local sm_version = ("%s %s"):format(ProductFamily(), ProductVersion())
 
--- GetThemeVersion() is defined in ./Scripts/SL-Helpers.lua and returns the SL version from ThemeInfo.ini
-local sl_version = GetThemeVersion()
+-- Read the active theme metadata through the VOLT26 compatibility service.
+local sl_version = VOLT26.Compatibility.GetThemeMetadata().Version
 
 -- "git" appears in ProductVersion() for non-release builds of StepMania.
 -- If a non-release executable is being used, append date information about when it
@@ -64,13 +64,13 @@ end
 -- build a 3-line string to display info about this version of SL, this version of SM, and installed song content
 local GetText = function()
 	local newer_sl_exists = false
-	local sl_parts = GetVersionParts(sl_version:match("^(%S+)"))
+	local sl_parts = VOLT26.Compatibility.ParseVersion(sl_version and sl_version:match("^(%S+)") or "")
 	if SL.Global.SimplyLoveLatestVersion then
 		newer_sl_exists = IsNewer(SL.Global.SimplyLoveLatestVersion, sl_parts)
 	end
 
 	local newer_itgmania_exists = false
-	local itgmania_parts = GetProductVersion()
+	local itgmania_parts = VOLT26.Compatibility.GetProductVersionParts()
 	if SL.Global.ITGmaniaLatestVersion then
 		newer_itgmania_exists = IsNewer(SL.Global.ITGmaniaLatestVersion, itgmania_parts)
 	end

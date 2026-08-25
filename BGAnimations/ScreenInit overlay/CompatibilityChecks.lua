@@ -15,7 +15,7 @@ return Def.Actor{
 	OnCommand=function()
 		local supported, message = VOLT26.Compatibility.CheckCurrent()
 		if supported then return end
-		SM(message)
+		VOLT26.Util.SystemMessage(message)
 		SCREENMAN:SetNewScreen("ScreenSystemOptions")
 	end
 }

@@ -6,12 +6,12 @@ local sprite = Def.Sprite{InitCommand=function(self) self:draworder(200) end}
 sprite.CaptureScreenshotMessageCommand=function(self, params)
 	local success = VOLT26.EvaluationInput.CaptureScreenshot(params.PlayerNumber)
 	if not success then
-		SM(THEME:GetString("ScreenEvaluation", "ScreenshotFailed"))
+		VOLT26.Util.SystemMessage(THEME:GetString("ScreenEvaluation", "ScreenshotFailed"))
 		return
 	end
 
 	requestingPlayer = params.PlayerNumber
-	SM(THEME:GetString("ScreenEvaluation", "ScreenshotSaved"))
+	VOLT26.Util.SystemMessage(THEME:GetString("ScreenEvaluation", "ScreenshotSaved"))
 	MESSAGEMAN:Broadcast("ScreenshotCurrentScreen")
 end
 

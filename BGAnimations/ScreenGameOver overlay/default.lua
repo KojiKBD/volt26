@@ -73,7 +73,7 @@ for player in ivalues(Players) do
 						:xy(x_pos, (line_height*(i-1)) + profilestats_y)
 						:maxwidth(150):vertspacing(-1)
 
-					DiffuseEmojis(self)
+					VOLT26.Text.DiffuseEmojis(self)
 				end
 			}
 		end

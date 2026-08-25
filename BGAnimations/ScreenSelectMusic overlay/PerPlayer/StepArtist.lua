@@ -142,7 +142,7 @@ return Def.ActorFrame{
 			self:settext( text )
 
 			-- check for emojis; they shouldn't be diffused to Color.Black
-			DiffuseEmojis(self, text)
+			VOLT26.Text.DiffuseEmojis(self, text)
 
 			if not GAMESTATE:IsCourseMode() then
 				-- sleep 2 seconds before queueing the next Marquee command to do this again

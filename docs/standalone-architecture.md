@@ -7,6 +7,9 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 ## CORE domains
 
 - `VOLT26.Core`: bootstrap, lifecycle, and access to runtime state.
+- `VOLT26.Util`: deterministic table, range, mapping, formatting, lookup, and system-message primitives.
+- `VOLT26.Text`: UTF-8-aware emoji attributes, wrapping, and truncation behavior for text actors.
+- `VOLT26.Compatibility`: engine/game policy, version parsing, theme metadata, and renderer capability checks.
 - `VOLT26.State`: global, per-player, per-stage, and per-session state.
 - `VOLT26.ThemePrefs`: persistent theme configuration.
 - `VOLT26.Profile`: guest/profile lifecycle, persistence callbacks, avatar lookup, and profile-flow state.

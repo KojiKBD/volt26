@@ -167,10 +167,10 @@ local input = function(event)
 						if VOLT26.SongBrowsing.UsePlaylist(VOLT26.Favorites.GetPath(event.PlayerNumber), screen) then
 							overlay:queuecommand("DirectInputToEngine")
 						else 
-							SM(THEME:GetString("ScreenSelectMusic", "NoFavoritesAvailable"))
+							VOLT26.Util.SystemMessage(THEME:GetString("ScreenSelectMusic", "NoFavoritesAvailable"))
 						end
 					else
-						SM(THEME:GetString("ScreenSelectMusic", "NoFavoritesAvailable"))
+						VOLT26.Util.SystemMessage(THEME:GetString("ScreenSelectMusic", "NoFavoritesAvailable"))
 					end
 				elseif focus.new_overlay == "SetSummary" then
 					SCREENMAN:GetTopScreen():SetNextScreenName("ScreenEvaluationSummarySet")

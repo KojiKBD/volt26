@@ -465,7 +465,7 @@ for player in ivalues(PlayerNumber) do
 			local SongOrCourse, StepsOrTrail = GetSongAndSteps(player)
 			local machineScore = GetScoreFromProfile(machine_profile, SongOrCourse, StepsOrTrail)
 			self:settext(machineScore and machineScore:GetName() or "----")
-			DiffuseEmojis(self:ClearAttributes())
+			VOLT26.Text.DiffuseEmojis(self:ClearAttributes())
 		end
 	}
 
@@ -517,7 +517,7 @@ for player in ivalues(PlayerNumber) do
 		SetDefaultCommand=function(self)
 			local playerScore = GetScoreForPlayer(player)
 			self:settext(playerScore and playerScore:GetName() or "----")
-			DiffuseEmojis(self:ClearAttributes())
+			VOLT26.Text.DiffuseEmojis(self:ClearAttributes())
 		end
 	}
 
