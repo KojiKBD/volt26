@@ -1,55 +1,9 @@
-OperatorMenuOptionRows = {}
+VOLT26.OperatorOptions = {}
 
 -- -----------------------------------------------------------------------
 -- System Options
 
-OperatorMenuOptionRows.Theme = function()
-	return {
-		Name = "Theme",
-		Choices = THEME:GetSelectableThemeNames(),
-		LayoutType = "ShowAllInRow",
-		SelectType = "SelectOne",
-		OneChoiceForAllPlayers = true,
-		ExportOnChange = false,
-		LoadSelections = function(self, list, pn)
-			local theme = THEME:GetCurThemeName()
-			if not theme then return end
-
-			local i = FindInTable(theme, self.Choices) or 1
-			list[i] = true
-		end,
-		SaveSelections = function(self, list, pn)
-			for i=1, #list do
-				if list[i] then
-					if self.Choices[i] ~= THEME:GetCurThemeName() then
-						-- if the user is switching to some other version of SL they have installed
-						-- don't bother them with the ResetPreferences prompt; just switch to that theme
-						-- try a simple check first
-						if self.Choices[i]:match("Simply Love")	then
-							THEME:SetTheme( self.Choices[i] )
-							return
-						end
-
-						-- if not, attempt a more roundabout check by peeking into the new theme's ThemeInfo.ini
-						if FILEMAN:DoesFileExist("/Themes/"..self.Choices[i].."/ThemeInfo.ini") then
-							local info = IniFile.ReadFile("/Themes/"..self.Choices[i].."/ThemeInfo.ini")
-							if info and info.ThemeInfo and info.ThemeInfo.DisplayName and info.ThemeInfo.DisplayName:match("Simply Love") then
-								THEME:SetTheme( self.Choices[i] )
-								return
-							end
-						end
-
-						-- if not, we'll assume the new theme is different enough to warrant prompting the user
-						SL.NextTheme = self.Choices[i]
-						SCREENMAN:GetTopScreen():SetNextScreenName("ScreenPromptToResetPreferencesToStock")
-					end
-				end
-			end
-		end,
-	}
-end
-
-OperatorMenuOptionRows.EditorNoteskin = function()
+VOLT26.OperatorOptions.EditorNoteskin = function()
 	local skins = NOTESKIN:GetNoteSkinNames()
 	return {
 		Name = "EditorNoteSkin",
@@ -64,7 +18,7 @@ OperatorMenuOptionRows.EditorNoteskin = function()
 				THEME:GetMetric("Common", "DefaultNoteSkinName")
 			if not skin then return end
 
-			local i = FindInTable(skin, skins) or 1
+			local i = VOLT26.Util.FindIndex(skin, skins) or 1
 			list[i] = true
 		end,
 		SaveSelections = function(self, list, pn)
@@ -83,7 +37,7 @@ end
 -- Advanced Options
 
 
-OperatorMenuOptionRows.DefaultFailType = function()
+VOLT26.OperatorOptions.DefaultFailType = function()
 	local failTypes = { "Immediate", "ImmediateContinue", "Off" }
 	return {
 		Name = "DefaultFailType",
@@ -95,7 +49,7 @@ OperatorMenuOptionRows.DefaultFailType = function()
 		LoadSelections = function(self, list, pn)
 			local failType = GetDefaultFailType()
 			if not failType then return end
-			local i = FindInTable(ToEnumShortString(failType), failTypes) or 1
+			local i = VOLT26.Util.FindIndex(ToEnumShortString(failType), failTypes) or 1
 			list[i] = true
 		end,
 		SaveSelections = function(self, list, pn)
@@ -154,14 +108,14 @@ OperatorMenuOptionRows.DefaultFailType = function()
 	}
 end
 
-OperatorMenuOptionRows.LongAndMarathonTime = function( str )
+VOLT26.OperatorOptions.LongAndMarathonTime = function( str )
 	-- define a range of reasonable choices first
 	-- 150 seconds is 2.5 minutes
 	-- 300 seconds is 5   minutes
 	-- 600 seconds is 10  minutes
 	local choices = {
-		Long=    {Choices=map(SecondsToMSS, range(150, 300, 15)), Values=range(150, 300, 15)},
-		Marathon={Choices=map(SecondsToMSS, range(300, 600, 15)), Values=range(300, 600, 15)}
+		Long=    {Choices=VOLT26.Util.Map(SecondsToMSS, VOLT26.Util.Range(150, 300, 15)), Values=VOLT26.Util.Range(150, 300, 15)},
+		Marathon={Choices=VOLT26.Util.Map(SecondsToMSS, VOLT26.Util.Range(300, 600, 15)), Values=VOLT26.Util.Range(300, 600, 15)}
 	}
 
 	-- 999999 seconds ≅ 11 days, 13 hours
@@ -184,7 +138,7 @@ OperatorMenuOptionRows.LongAndMarathonTime = function( str )
 				list[#list] = true
 			else
 				local time = SecondsToMMSS(PREFSMAN:GetPreference(str.."VerSongSeconds")):gsub("^0*", "")
-				local i = FindInTable(time, choices[str].Choices) or 1
+				local i = VOLT26.Util.FindIndex(time, choices[str].Choices) or 1
 				list[i] = true
 			end
 		end,
@@ -199,7 +153,7 @@ OperatorMenuOptionRows.LongAndMarathonTime = function( str )
 	}
 end
 
-OperatorMenuOptionRows.MusicWheelSpeed = function()
+VOLT26.OperatorOptions.MusicWheelSpeed = function()
 
 	local choices = { "Slow", "Normal", "Fast", "Faster", "Ridiculous", "Ludicrous", "Plaid" }
 	local values = { 5, 10, 15, 25, 30, 45, 100 }
@@ -212,9 +166,9 @@ OperatorMenuOptionRows.MusicWheelSpeed = function()
 	-- it's possible the user has manually edited Preferences.ini and set an arbitrary value
 	-- try to accommodate, rather than obliterating that custom setting
 	local user_setting = PREFSMAN:GetPreference("MusicWheelSwitchSpeed") or 15
-	if not FindInTable(user_setting, values) then
+	if not VOLT26.Util.FindIndex(user_setting, values) then
 		values[#values+1] = user_setting
-		choices[ #choices+1 ] = THEME:GetString("MusicWheelSpeed", "Custom")
+		localized_choices[#localized_choices+1] = THEME:GetString("MusicWheelSpeed", "Custom")
 	end
 
 	return {
@@ -225,7 +179,7 @@ OperatorMenuOptionRows.MusicWheelSpeed = function()
 		ExportOnChange = false,
 		Choices = localized_choices,
 		LoadSelections = function(self, list, pn)
-			local i = FindInTable(user_setting, values) or 1
+			local i = VOLT26.Util.FindIndex(user_setting, values) or 1
 			list[i] = true
 		end,
 		SaveSelections = function(self, list, pn)
@@ -242,7 +196,7 @@ end
 ------------------------------------------------------------
 -- Graphics/Sound Options
 
-OperatorMenuOptionRows.VideoRenderer = function()
+VOLT26.OperatorOptions.VideoRenderer = function()
 
 	-- opengl is a valid VideoRenderer for all platforms right now
 	-- so start by assuming it is the only choice.
@@ -268,7 +222,7 @@ OperatorMenuOptionRows.VideoRenderer = function()
 		OneChoiceForAllPlayers = true,
 		ExportOnChange = false,
 		LoadSelections = function(self, list, pn)
-			local pref = PREFSMAN:GetPreference("VideoRenderers")
+			local pref = tostring(PREFSMAN:GetPreference("VideoRenderers") or "")
 
 			-- Multiple comma-delimited VideoRenderers may be listed, but
 			-- we only want the first because that's the one actually in use.
@@ -281,7 +235,7 @@ OperatorMenuOptionRows.VideoRenderer = function()
 
 			if not pref then return end
 
-			local i = FindInTable(pref, self.Choices) or 1
+			local i = VOLT26.Util.FindIndex(pref, self.Choices) or 1
 			list[i] = true
 		end,
 		SaveSelections = function(self, list, pn)
@@ -295,7 +249,7 @@ OperatorMenuOptionRows.VideoRenderer = function()
 	}
 end
 
-function offsetMS(pref, low, high)
+local function OffsetMillisecondsRow(pref, low, high)
 	local val = PREFSMAN:GetPreference(pref)
 	local ms = round(val * 1000)	-- convert seconds to milliseconds
 
@@ -306,8 +260,8 @@ function offsetMS(pref, low, high)
 
 	-- _values as a temp table of values * 1000 as an intermediate step, not presented to players
 	--  choices as millisecond integers with "ms" appended, presented to players
-	local _values  = range(low, high)
-	local choices  = stringify(_values, "%ims")
+	local _values  = VOLT26.Util.Range(low, high)
+	local choices  = VOLT26.Util.Stringify(_values, "%ims")
 
 	return {
 		Name=pref,
@@ -331,14 +285,14 @@ function offsetMS(pref, low, high)
 	}
 end
 
-OperatorMenuOptionRows.GlobalOffsetSeconds = function()
+VOLT26.OperatorOptions.GlobalOffsetSeconds = function()
 	-- up to 1s of audio delay (via HDMI), because some TVs are really slow
-	return offsetMS("GlobalOffsetSeconds", -1000, 1000)
+	return OffsetMillisecondsRow("GlobalOffsetSeconds", -1000, 1000)
 end
 
-OperatorMenuOptionRows.VisualDelaySeconds = function()
+VOLT26.OperatorOptions.VisualDelaySeconds = function()
 	-- up to 1s of visual delay, because some TVs are really slow
-	return offsetMS("VisualDelaySeconds", -1000, 1000)
+	return OffsetMillisecondsRow("VisualDelaySeconds", -1000, 1000)
 end
 
 -- -----------------------------------------------------------------------
@@ -346,7 +300,7 @@ end
 
 -- the engine doesn't seem to have a conf definition
 -- for the MemoryCards preference, so make one here
-OperatorMenuOptionRows.MemoryCards = function()
+VOLT26.OperatorOptions.MemoryCards = function()
 
 	local values = {false, true}
 	local choices = {THEME:GetString("OptionNames","Off"), THEME:GetString("OptionNames","On")}
@@ -370,10 +324,10 @@ OperatorMenuOptionRows.MemoryCards = function()
 end
 
 
-OperatorMenuOptionRows.CustomSongsMaxSeconds = function()
+VOLT26.OperatorOptions.CustomSongsMaxSeconds = function()
 	-- first, define a reasonable range of 1:45 to 15:00
-	local choices = map(SecondsToMSS, range(105,900,15))
-	local values  = range(105,900,15)
+	local choices = VOLT26.Util.Map(SecondsToMSS, VOLT26.Util.Range(105,900,15))
+	local values  = VOLT26.Util.Range(105,900,15)
 	-- top it off by including 2 hours as a choice
 	table.insert(choices, "2:00:00")
 	table.insert(values, 7200)
@@ -387,7 +341,7 @@ OperatorMenuOptionRows.CustomSongsMaxSeconds = function()
 		ExportOnChange = false,
 		LoadSelections = function(self, list, pn)
 			local time = SecondsToMMSS(PREFSMAN:GetPreference("CustomSongsMaxSeconds")):gsub("^0*", "")
-			local i = FindInTable(time, choices) or 1
+			local i = VOLT26.Util.FindIndex(time, choices) or 1
 			list[i] = true
 		end,
 		SaveSelections = function(self, list, pn)
@@ -401,13 +355,13 @@ OperatorMenuOptionRows.CustomSongsMaxSeconds = function()
 	}
 end
 
-OperatorMenuOptionRows.CustomSongsMaxMegabytes = function()
+VOLT26.OperatorOptions.CustomSongsMaxMegabytes = function()
 	-- first, define a reasonable range of integers from [3,9]
-	local values = range(3,9)
-	local choices = stringify(values, "%d MB")
+	local values = VOLT26.Util.Range(3,9)
+	local choices = VOLT26.Util.Stringify(values, "%d MB")
 
 	-- then, a second range of slightly larger values, more spaced out
-	for i, x in ipairs(range(10,30,2.5)) do
+	for i, x in ipairs(VOLT26.Util.Range(10,30,2.5)) do
 		table.insert(values, x)
 
 		if i % 2 == 0 then
@@ -430,7 +384,7 @@ OperatorMenuOptionRows.CustomSongsMaxMegabytes = function()
 		ExportOnChange = false,
 		LoadSelections = function(self, list, pn)
 			local pref = PREFSMAN:GetPreference("CustomSongsMaxMegabytes")
-			local i = FindInTable(pref, values) or 1
+			local i = VOLT26.Util.FindIndex(pref, values) or 1
 			list[i] = true
 		end,
 		SaveSelections = function(self, list, pn)
@@ -444,14 +398,14 @@ OperatorMenuOptionRows.CustomSongsMaxMegabytes = function()
 	}
 end
 
-OperatorMenuOptionRows.CustomSongsLoadTimeout = function()
+VOLT26.OperatorOptions.CustomSongsLoadTimeout = function()
 	-- first, define a reasonable range of integers from [3,10]
-	local choices = range(3,10)
+	local choices = VOLT26.Util.Range(3,10)
 	table.insert(choices, 60)
 
 	-- accommodate custom values rather than steamrolling over them
 	local pref = PREFSMAN:GetPreference("CustomSongsLoadTimeout")
-	if not FindInTable(pref, choices) then table.insert(choices, pref) end
+	if not VOLT26.Util.FindIndex(pref, choices) then table.insert(choices, pref) end
 
 	return {
 		Name="CustomSongsLoadTimeout",
@@ -461,7 +415,7 @@ OperatorMenuOptionRows.CustomSongsLoadTimeout = function()
 		OneChoiceForAllPlayers = true,
 		ExportOnChange = false,
 		LoadSelections = function(self, list, pn)
-			local i = FindInTable(pref, choices) or 1
+			local i = VOLT26.Util.FindIndex(pref, choices) or 1
 			list[i] = true
 		end,
 		SaveSelections = function(self, list, pn)
