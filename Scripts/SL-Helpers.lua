@@ -326,58 +326,7 @@ end
 -- -----------------------------------------------------------------------
 
 SetGameModePreferences = function()
-	-- apply the preferences associated with this SL GameMode (Casual, ITG)
-	for key,val in pairs(SL.Preferences[SL.Global.GameMode]) do
-		PREFSMAN:SetPreference(key, val)
-	end
-
-	--------------------------------------------
-	-- loop through human players and apply whatever mods need to be set now
-	for player in ivalues(GAMESTATE:GetHumanPlayers()) do
-		local pn = ToEnumShortString(player)
-		-- If we're switching to Casual mode,
-		-- we want to reduce the number of judgments,
-		-- so turn Decents and WayOffs off now.
-		if SL.Global.GameMode == "Casual" then
-			SL[pn].ActiveModifiers.TimingWindows = {true,true,true,false,false}
-		end
-
-		-- Now that we've set the SL table for TimingWindows appropriately,
-		-- use it to apply TimingWindows.
-		local TW_OptRow = CustomOptionRow( "TimingWindows" )
-		TW_OptRow:LoadSelections( TW_OptRow.Choices, player )
-
-
-		local player_modslevel = GAMESTATE:GetPlayerState(player):GetPlayerOptions("ModsLevel_Preferred")
-
-		-- using PREFSMAN to set the preference for MinTNSToHideNotes apparently isn't
-		-- enough when switching gamemodes because MinTNSToHideNotes is also a PlayerOption.
-		-- so, set the PlayerOption version of it now, too, to ensure that arrows disappear
-		-- at the appropriate judgments during gameplay for this gamemode.
-		player_modslevel:MinTNSToHideNotes(SL.Preferences[SL.Global.GameMode].MinTNSToHideNotes)
-
-		-- FailSetting is also a modifier that can be set per-player per-stage in SM5, but I'm
-		-- opting to enforce it in Simply Love using what the machine operator sets
-		-- as the default FailType in Advanced Options in the operator menu
-		player_modslevel:FailSetting( GetDefaultFailType() )
-	end
-
-	--------------------------------------------
-	-- finally, load the Stats.xml file appropriate for this SL GameMode
-
-	-- these are the prefixes that are prepended to each custom Stats.xml, resulting in
-	-- Stats.xml, ECFA-Stats.xml, Casual-Stats.xml
-	local prefix = {}
-
-	-- ITG has no prefix and scores go directly into the main Stats.xml
-	-- this was probably a Bad Decision™ on my part in hindsight  -quietly
-	prefix["ITG"] = ""
-
-	prefix["Casual"] = "Casual-"
-
-	if PROFILEMAN:GetStatsPrefix() ~= prefix[SL.Global.GameMode] then
-		PROFILEMAN:SetStatsPrefix(prefix[SL.Global.GameMode])
-	end
+	return VOLT26.ThemePrefs.ApplyGameMode()
 end
 
 -- -----------------------------------------------------------------------
@@ -395,12 +344,7 @@ end
 -- Thus, this global function.
 
 ResetPreferencesToStockSM5 = function()
-	-- loop through all the Preferences that SL forcibly manages and reset them
-	for key, value in pairs(SL.Preferences[SL.Global.GameMode]) do
-		PREFSMAN:SetPreferenceToDefault(key)
-	end
-	-- now that those Preferences are reset to default values, write Preferences.ini to disk now
-	PREFSMAN:SavePreferences()
+	return VOLT26.ThemePrefs.ResetManagedEnginePreferences()
 end
 
 -- -----------------------------------------------------------------------
