@@ -6,14 +6,15 @@
 if #GAMESTATE:GetHumanPlayers() < 2 then return end
 
 -- if displaying different scoring mechanisms, don't bother.
-if SL["P1"].ActiveModifiers.ShowExScore ~= SL["P2"].ActiveModifiers.ShowExScore then return end
+if VOLT26.Options.GetPlayerModifiers(PLAYER_1).ShowExScore
+	~= VOLT26.Options.GetPlayerModifiers(PLAYER_2).ShowExScore then return end
 
 local p1_score, p2_score
 local p1_dp = 0
 local p2_dp = 0
 local p1_pss = STATSMAN:GetCurStageStats():GetPlayerStageStats(PLAYER_1)
 local p2_pss = STATSMAN:GetCurStageStats():GetPlayerStageStats(PLAYER_2)
-local IsEX = SL["P1"].ActiveModifiers.ShowExScore
+local IsEX = VOLT26.Options.GetPlayerModifiers(PLAYER_1).ShowExScore
 
 -- allow for HideScore, which outright removes score actors
 local try_diffusealpha = function(af, alpha)
@@ -39,7 +40,7 @@ return Def.Actor{
 			self:queuecommand("Winning")
 		end
 	end,
-	ExCountsChangedMessageCommand=function(self, params)
+	VOLT26ScoreChangedMessageCommand=function(self, params)
 		if IsEX then
 			if params.Player == PLAYER_1 then
 				p1_dp = params.ExScore

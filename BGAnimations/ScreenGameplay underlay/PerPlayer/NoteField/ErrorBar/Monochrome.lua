@@ -68,7 +68,7 @@ local function DisplayTick(self, params)
 
         -- Check if we need to adjust the color for the white fantastic window.
         if mods.ShowFaPlusWindow and ToEnumShortString(params.TapNoteScore) == "W1" and
-            not IsW0Judgment(params, player) then
+            not VOLT26.Scoring.IsW0Judgment(params, player) then
             color = SL.JudgmentColors["FA+"][2]
         end
 

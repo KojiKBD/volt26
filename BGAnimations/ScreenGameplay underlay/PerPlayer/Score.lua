@@ -1,10 +1,10 @@
 local player = ...
 local pn = ToEnumShortString(player)
 
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26.Options.GetPlayerModifiers(player)
 local IsUltraWide = (GetScreenAspectRatio() > 21/9)
 local NumPlayers = #GAMESTATE:GetHumanPlayers()
-local IsEX = SL[pn].ActiveModifiers.ShowExScore
+local IsEX = mods.ShowExScore
 
 -- -----------------------------------------------------------------------
 -- first, check for conditions where we might not draw the score actor at all
@@ -168,7 +168,7 @@ return LoadFont("Wendy/_wendy monospace numbers")..{
 			self:settext(percent)
 		end
 	end,
-	ExCountsChangedMessageCommand=function(self, params)
+	VOLT26ScoreChangedMessageCommand=function(self, params)
 		if params.Player ~= player then return end
 
 		if IsEX then

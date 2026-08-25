@@ -10,6 +10,10 @@ return Def.Actor{
 	end,
 	JudgmentMessageCommand=function(self, params)
 		local update = VOLT26.Telemetry.RecordExJudgment(player, params)
-		if update then MESSAGEMAN:Broadcast("ExCountsChanged", update) end
+		if update then
+			MESSAGEMAN:Broadcast("VOLT26ScoreChanged", update)
+			-- Temporary integration adapter for unassessed online/event consumers.
+			MESSAGEMAN:Broadcast("ExCountsChanged", update)
+		end
 	end,
 }

@@ -117,7 +117,7 @@ for player in ivalues(Players) do
                         self:settext(percent)
                     end
                 end,
-                ExCountsChangedMessageCommand=function(self, params)
+                VOLT26ScoreChangedMessageCommand=function(self, params)
                     if params.Player ~= player then return end
             
                     if IsEX then
