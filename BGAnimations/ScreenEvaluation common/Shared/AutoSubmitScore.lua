@@ -59,8 +59,6 @@ local GetJudgmentCounts = function(player)
 end
 
 local GetRescoredJudgmentCounts = function(player)
-	local pn = ToEnumShortString(player)
-
 	local translation = {
 		["W0"] = "fantasticPlus",
 		["W1"] = "fantastic",
@@ -78,10 +76,13 @@ local GetRescoredJudgmentCounts = function(player)
 		["decent"] = 0,
 		["wayOff"] = 0
 	}
-	
+	local stage = VOLT26.Gameplay.GetPlayerStageState(player)
+	local columnJudgments = stage and stage.column_judgments or {}
+
 	for i=1,GAMESTATE:GetCurrentStyle():ColumnsPerPlayer() do
 		for window, name in pairs(translation) do
-			rescored[name] = rescored[name] + SL[pn].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1].column_judgments[i]["Early"][window]
+			local early = columnJudgments[i] and columnJudgments[i].Early or {}
+			rescored[name] = rescored[name] + (early[window] or 0)
 		end
 	end
 

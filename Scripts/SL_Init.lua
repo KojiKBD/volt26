@@ -1043,7 +1043,12 @@ end
 VOLT26.MusicSelection = {}
 
 function VOLT26.MusicSelection.GetMusicRate()
-	return tonumber(VOLT26.State.Global.ActiveModifiers.MusicRate) or 1
+	return VOLT26.MusicSelection.NormalizeMusicRate(VOLT26.State.Global.ActiveModifiers.MusicRate)
+end
+
+function VOLT26.MusicSelection.NormalizeMusicRate(value)
+	local rate = tonumber(value)
+	return rate and rate > 0 and rate or 1
 end
 
 function VOLT26.MusicSelection.PrepareScreen()
@@ -1220,14 +1225,20 @@ function VOLT26.Gameplay.GetCurrentStageIndex()
 	return VOLT26.State.Global.Stages.PlayedThisGame + 1
 end
 
+function VOLT26.Gameplay.GetActiveStageIndex()
+	return VOLT26.State.Global.Stages.ActiveIndex or VOLT26.Gameplay.GetCurrentStageIndex()
+end
+
 function VOLT26.Gameplay.GetPlayerStageState(player)
 	local state = VOLT26.Core.GetPlayerState(player)
-	return state.Stages.Stats[VOLT26.Gameplay.GetCurrentStageIndex()]
+	return state.Stages.Stats[VOLT26.Gameplay.GetActiveStageIndex()]
 end
 
 function VOLT26.Gameplay.BeginPlayerStage(player)
 	local state = VOLT26.Core.GetPlayerState(player)
-	state.Stages.Stats[VOLT26.Gameplay.GetCurrentStageIndex()] = {}
+	local stageIndex = VOLT26.Gameplay.GetCurrentStageIndex()
+	VOLT26.State.Global.Stages.ActiveIndex = stageIndex
+	state.Stages.Stats[stageIndex] = {}
 	return VOLT26.Gameplay.GetPlayerStageState(player)
 end
 
@@ -2038,6 +2049,93 @@ end
 
 VOLT26.Evaluation = {}
 
+function VOLT26.Evaluation.GetStageCount()
+	return math.max(0, tonumber(VOLT26.State.Global.Stages.PlayedThisGame) or 0)
+end
+
+function VOLT26.Evaluation.GetStageContext(stageIndex)
+	local context = VOLT26.State.Global.Stages.Stats[stageIndex]
+	return type(context) == "table" and DeepCopy(context) or nil
+end
+
+function VOLT26.Evaluation.GetPlayerStageSnapshot(player, stageIndex)
+	local state = VOLT26.Core.GetPlayerState(player)
+	local stage = state and state.Stages.Stats[stageIndex] or nil
+	if type(stage) ~= "table" then return nil end
+	return DeepCopy(stage.result_snapshot or stage)
+end
+
+function VOLT26.Evaluation.GetProfilesUsed(player)
+	local profiles, seen = {}, {}
+	for stageIndex=1,VOLT26.Evaluation.GetStageCount() do
+		local snapshot = VOLT26.Evaluation.GetPlayerStageSnapshot(player, stageIndex)
+		local profile = snapshot and snapshot.profile or nil
+		if profile and not seen[profile] then
+			profiles[#profiles + 1] = profile
+			seen[profile] = true
+		end
+	end
+	return profiles
+end
+
+function VOLT26.Evaluation.BuildPlayerSnapshot(player)
+	local pn = ToEnumShortString(player)
+	local modifiers = VOLT26.Options.GetPlayerModifiers(player)
+	local pss = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
+	local result = VOLT26.Results.GetCurrent(player)
+	local judgments = DeepCopy(result.judgments)
+	local showEx = (modifiers.ShowFaPlusWindow and modifiers.ShowFaPlusPane) or modifiers.ShowExScore
+	if showEx then
+		judgments.W0 = result.exJudgments.W0 or 0
+		judgments.W1 = result.exJudgments.W1 or 0
+	end
+
+	local steps, difficulty, meter, stepartist
+	if GAMESTATE:IsCourseMode() then
+		steps = GAMESTATE:GetCurrentTrail(player)
+		if steps then
+			difficulty = steps:GetDifficulty()
+			meter = steps:GetMeter()
+		end
+		local course = GAMESTATE:GetCurrentCourse(player)
+		stepartist = course and course:GetScripter() or nil
+	else
+		steps = GAMESTATE:GetCurrentSteps(player)
+		local playedSteps = pss:GetPlayedSteps()[1] or steps
+		if playedSteps then
+			difficulty = playedSteps:GetDifficulty()
+			meter = playedSteps:GetMeter()
+			stepartist = playedSteps:GetAuthorCredit()
+		end
+	end
+
+	return {
+		schema_version=1,
+		profile=PROFILEMAN:IsPersistentProfile(pn)
+			and PROFILEMAN:GetProfile(player):GetDisplayName() or "[GUEST]",
+		grade=result.grade,
+		score=result.percentDP,
+		exscore=result.exPercent,
+		judgments=judgments,
+		showex=modifiers.ShowExScore == true,
+		steps=steps,
+		difficulty=difficulty,
+		meter=meter,
+		stepartist=stepartist,
+		timingwindows=DeepCopy(modifiers.TimingWindows),
+	}
+end
+
+function VOLT26.Evaluation.StorePlayerSnapshot(player)
+	local stage = VOLT26.Gameplay.GetPlayerStageState(player)
+	if not stage then return nil end
+	local snapshot = VOLT26.Evaluation.BuildPlayerSnapshot(player)
+	stage.result_snapshot = DeepCopy(snapshot)
+	-- Compatibility aliases for inherited actors that are outside EVAL-01.
+	for key, value in pairs(snapshot) do stage[key] = DeepCopy(value) end
+	return DeepCopy(snapshot)
+end
+
 function VOLT26.Evaluation.AllPlayersFailed()
 	local players = GAMESTATE:GetHumanPlayers()
 	if #players == 0 then return false end
@@ -2050,17 +2148,34 @@ function VOLT26.Evaluation.AllPlayersFailed()
 end
 
 function VOLT26.Evaluation.StoreStageContext()
-	VOLT26.State.Global.Stages.Stats[VOLT26.Gameplay.GetCurrentStageIndex()] = {
-		song = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentCourse() or GAMESTATE:GetCurrentSong(),
-		MusicRate = VOLT26.MusicSelection.GetMusicRate(),
+	local stageIndex = VOLT26.Gameplay.GetActiveStageIndex()
+	local existing = VOLT26.State.Global.Stages.Stats[stageIndex] or {}
+	local item = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentCourse() or GAMESTATE:GetCurrentSong()
+	local musicRate = VOLT26.MusicSelection.GetMusicRate()
+	VOLT26.State.Global.Stages.Stats[stageIndex] = {
+		schema_version=1,
+		item=item,
+		music_rate=musicRate,
+		completed=existing.completed == true,
+		-- Compatibility aliases for inherited actors that are outside EVAL-01.
+		song=item,
+		MusicRate=musicRate,
 	}
 	for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 		VOLT26.Session.MarkStageCompleted(player, GetTimeSinceStart())
 	end
+	return VOLT26.Evaluation.GetStageContext(stageIndex)
 end
 
 function VOLT26.Evaluation.CompleteStage()
-	VOLT26.State.Global.Stages.PlayedThisGame = VOLT26.State.Global.Stages.PlayedThisGame + 1
+	local stageIndex = VOLT26.Gameplay.GetActiveStageIndex()
+	local context = VOLT26.State.Global.Stages.Stats[stageIndex]
+	if type(context) ~= "table" or context.completed == true then return false end
+	context.completed = true
+	VOLT26.State.Global.Stages.PlayedThisGame = math.max(
+		VOLT26.Evaluation.GetStageCount(), stageIndex
+	)
+	return true
 end
 
 VOLT26.EvaluationInput = {}

@@ -3,7 +3,7 @@ local Players = GAMESTATE:GetHumanPlayers()
 
 ---------------------------------------------------------------------------
 -- The number of stages that were played this game cycle
-local NumStages = SL.Global.Stages.PlayedThisGame
+local NumStages = VOLT26.Evaluation.GetStageCount()
 -- The duration (in seconds) each stage should display onscreen before cycling to the next
 local DurationPerStage = 4
 ---------------------------------------------------------------------------
@@ -123,7 +123,8 @@ t[#t+1] = Def.ActorFrame {
 -- Banner(s) and Title(s)
 for i=1,NumStages do
 
-	local SongOrCourse = SL.Global.Stages.Stats[i].song
+	local stage = VOLT26.Evaluation.GetStageContext(i)
+	local SongOrCourse = stage and (stage.item or stage.song) or nil
 
 	-- Create an ActorFrame for each (Name + Banner) pair
 	-- so that we can display/hide all children simultaneously.
@@ -151,7 +152,8 @@ for i=1,NumStages do
 		InitCommand=function(self) self:xy(_screen.cx, 54):maxwidth(294):shadowlength(0.333) end,
 		OnCommand=function(self)
 			if SongOrCourse then
-				self:settext( GAMESTATE:IsCourseMode() and SongOrCourse:GetDisplayFullTitle() or SongOrCourse:GetDisplayMainTitle() )
+				self:settext(SongOrCourse.GetCourseType
+					and SongOrCourse:GetDisplayFullTitle() or SongOrCourse:GetDisplayMainTitle())
 			end
 		end
 	}
@@ -162,7 +164,7 @@ for i=1,NumStages do
 		InitCommand=function(self) self:xy(_screen.cx, 121.5) end,
 		OnCommand=function(self)
 			if SongOrCourse then
-				if GAMESTATE:IsCourseMode() then
+				if SongOrCourse.GetCourseType then
 					self:LoadFromCourse(SongOrCourse)
 				else
 					self:LoadFromSong(SongOrCourse)

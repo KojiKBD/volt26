@@ -2,15 +2,16 @@ local player = ...
 local pn = ToEnumShortString(player)
 
 -- get the number of stages that were played
-local NumStages = SL.Global.Stages.PlayedThisGame
+local NumStages = VOLT26.Evaluation.GetStageCount()
 local durationPerSong = 4
 
 local af = Def.ActorFrame{}
 
 for i=1,NumStages do
 	local StepsOrTrail
-	local SongOrCourse = SL.Global.Stages.Stats[i].song
-	local stats = SL[pn].Stages.Stats[i]
+	local stage = VOLT26.Evaluation.GetStageContext(i)
+	local SongOrCourse = stage and (stage.item or stage.song) or nil
+	local stats = VOLT26.Evaluation.GetPlayerStageSnapshot(player, i)
 
 	-- stats might exist for one player but not the other due to latejoin
 	if stats then

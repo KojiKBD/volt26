@@ -16,7 +16,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.ChartData`: immutable snapshots of engine-backed density, NPS, technique counts, and column cues.
 - `VOLT26.ChartAnalysis`: pure stream-sequence, breakdown-text, and measure-total derivation over chart snapshots.
 - `VOLT26.ChartHash`: explicit access to cached GrooveStats-compatible hashing for optional online consumers; ordinary song browsing must not invoke it.
-- `VOLT26.Gameplay`: stage lifecycle, reload state, and player-stage storage.
+- `VOLT26.Gameplay`: explicit active-stage lifecycle, reload state, and player-stage storage.
 - `VOLT26.Session`: monotonic gameplay timing, pause accounting, completed-stage state, normalized tap totals, Game Over summaries, and profile-summary snapshots.
 - `VOLT26.Telemetry`: normalized EX, timing-offset, and per-column judgment capture for the current stage.
 - `VOLT26.Scoring`: score calculations over telemetry snapshots and chart radar data.
@@ -24,7 +24,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.Analysis`: timing statistics, histogram smoothing, bounded scatter batches, and shared song/course timeline coordinates.
 - `VOLT26.EvaluationInput`: available-pane selection, callback ownership, replay/practice policy, and screenshot capture state.
 - `VOLT26.Failure`: failure-position records and gameplay-exit reconciliation policy.
-- `VOLT26.Evaluation`: result-context storage and completed-stage lifecycle.
+- `VOLT26.Evaluation`: versioned song/course contexts, immutable per-player result snapshots, profile history, and idempotent completed-stage lifecycle.
 - `VOLT26.Options`: player-modifier access, options-screen routing, and return policy.
 - `VOLT26.TitleMenu`: title-menu behavior and inactivity policy.
 - `VOLT26.Navigation`: route decisions and supported-mode policy.

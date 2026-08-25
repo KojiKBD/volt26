@@ -36,7 +36,7 @@ local af = Def.ActorFrame{
 		LetterGradesAF = self:GetParent():GetParent():GetChild("LetterGradesAF")
 	end,
 	DrawStageCommand=function(self, params)
-		playerStats = SL[ToEnumShortString(player)].Stages.Stats[params.StageNum]
+		playerStats = VOLT26.Evaluation.GetPlayerStageSnapshot(player, params.StageNum)
 
 		if playerStats then
 			profile = playerStats.profile
