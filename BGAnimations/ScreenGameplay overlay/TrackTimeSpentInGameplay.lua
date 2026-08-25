@@ -8,14 +8,18 @@
 ------------------------------------------------------------
 
 local player = ...
-local start_time
-
 local actor = Def.Actor{
 	OnCommand=function(self)
-		start_time = GetTimeSinceStart()
+		VOLT26.Session.BeginGameplay(player, GetTimeSinceStart())
+		self:SetUpdateFunction(function()
+			local screen = SCREENMAN:GetTopScreen()
+			local paused = screen and screen.IsPaused and screen:IsPaused() or false
+			VOLT26.Session.SetGameplayPaused(player, paused, GetTimeSinceStart())
+		end)
 	end,
 	OffCommand=function(self)
-		VOLT26.Gameplay.StoreDuration(player, GetTimeSinceStart() - start_time)
+		self:SetUpdateFunction(nil)
+		VOLT26.Session.FinishGameplay(player, GetTimeSinceStart())
 	end
 }
 

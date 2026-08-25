@@ -1,5 +1,18 @@
 local Players = GAMESTATE:GetHumanPlayers();
-local style = ThemePrefs.Get("VisualStyle")
+
+local function ReadablePlayerColor(player)
+	local source = PlayerColor(player)
+	local luminance = source[1] * 0.2126 + source[2] * 0.7152 + source[3] * 0.0722
+	if luminance >= 0.55 then return source end
+	local blend = (0.55 - luminance) / (1 - luminance)
+	return {
+		source[1] + (1 - source[1]) * blend,
+		source[2] + (1 - source[2]) * blend,
+		source[3] + (1 - source[3]) * blend,
+		source[4],
+	}
+end
+
 local t = Def.ActorFrame{
 		LoadFont("Wendy/_wendy white")..{
 			Text="GAME",
@@ -40,6 +53,7 @@ for player in ivalues(Players) do
 
 	local stats
 	local x_pos = player==PLAYER_1 and 80 or _screen.w-80
+	local textColor = ReadablePlayerColor(player)
 	local PlayerStatsAF = Def.ActorFrame{ Name="PlayerStatsAF_"..ToEnumShortString(player) }
 
 
@@ -55,7 +69,7 @@ for player in ivalues(Players) do
 			PlayerStatsAF[#PlayerStatsAF+1] = LoadFont("Common Normal")..{
 				Text=stat,
 				InitCommand=function(self)
-					self:diffuse(PlayerColor(player)):zoom(0.95)
+					self:diffuse(textColor):zoom(0.95)
 						:xy(x_pos, (line_height*(i-1)) + profilestats_y)
 						:maxwidth(150):vertspacing(-1)
 
@@ -71,7 +85,7 @@ for player in ivalues(Players) do
 	PlayerStatsAF[#PlayerStatsAF+1] = Def.Quad{
 		InitCommand=function(self)
 			self:zoomto(120,1):xy(x_pos, horiz_line_y)
-				:diffuse( PlayerColor(player) )
+				:diffuse(textColor)
 		end
 	}
 
@@ -83,7 +97,7 @@ for player in ivalues(Players) do
 		PlayerStatsAF[#PlayerStatsAF+1] = LoadFont("Common Normal")..{
 			Text=stat,
 			InitCommand=function(self)
-				self:diffuse(PlayerColor(player)):zoom(0.95)
+				self:diffuse(textColor):zoom(0.95)
 					:xy(x_pos, (line_height*i) + normalstats_y)
 					:maxwidth(150):vertspacing(-1)
 			end
