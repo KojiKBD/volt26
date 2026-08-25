@@ -1,26 +1,20 @@
 local player = ...
-local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+VOLT26.Tournament.ApplyPlayerModifiers(player)
 
---Let's see if we need to let  the player know that they are nice.
-if ThemePrefs.Get("EnableTournamentMode") and ThemePrefs.Get("EnforceNoCmod") then
-    return Def.ActorFrame{
-        OnCommand=function(self)
-            local song = GAMESTATE:GetCurrentSong()
-            if song then
-                if (song:GetDisplayFullTitle():lower():match("no cmod") or
-                    song:GetTranslitFullTitle():lower():match("no cmod")) then
-                    if mods.SpeedModType == "C" then
-                        -- SL[pn].ActiveModifiers.SpeedModType = "M"
+return Def.ActorFrame{
+	OnCommand=function(self)
+		local speed = VOLT26.Tournament.GetForcedSpeed(player)
+		if speed then self:GetChild("SpeedNotice"):playcommand("ShowSpeedNotice", {speed=speed}) end
+	end,
 
-                        local topscreen = SCREENMAN:GetTopScreen():GetName()
-                        local modslevel = topscreen  == "ScreenEditOptions" and "ModsLevel_Stage" or "ModsLevel_Preferred"
-                        local playeroptions = GAMESTATE:GetPlayerState(player):GetPlayerOptions(modslevel)
-
-                        playeroptions["MMod"](playeroptions, mods.SpeedMod)
-                    end
-                end
-            end
-        end
-    }
-end
+	LoadFont("Common Normal")..{
+		Name="SpeedNotice",
+		InitCommand=function(self)
+			self:xy(_screen.cx, 105):zoom(0.8):draworder(200):diffuse(Color.Yellow):strokecolor(Color.Black):diffusealpha(0)
+		end,
+		ShowSpeedNoticeCommand=function(self, params)
+			self:settext(("Tournament Mode: C%g forced to M%g"):format(params.speed, params.speed))
+				:stoptweening():diffusealpha(1):sleep(6):linear(0.25):diffusealpha(0)
+		end,
+	}
+}

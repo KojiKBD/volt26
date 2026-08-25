@@ -1,6 +1,7 @@
 local player = ...
 
-if (SL.Global.GameMode == "Casual" or
+if (not VOLT26.Tournament.IsLocalItlEnabled() or
+		SL.Global.GameMode == "Casual" or
 		GAMESTATE:IsCourseMode() or
 		not IsItlActive() or
 		not IsItlSong(player) or

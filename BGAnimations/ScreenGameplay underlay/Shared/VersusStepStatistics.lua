@@ -3,8 +3,7 @@ local IsUltraWide = (GetScreenAspectRatio() > 21/9)
 local FilterAlpha = BackgroundFilterValues()
 
 local ShouldDisplayStatsForPlayer = function(player)
-    return (VOLT26.Options.GetPlayerModifiers(player).DataVisualizations == "Step Statistics" or
-            ThemePrefs.Get("EnableTournamentMode") and ThemePrefs.Get("StepStats") == "Show")
+	return VOLT26.Tournament.ShouldShowStepStats(player)
 end
 
 local ShouldDisplayStats = function()
@@ -81,7 +80,7 @@ for player in ivalues(Players) do
         af[#af+1] = judgments
 
         -- Add a score to Step Stats if it's hidden by the NPS graph or we're in Tournament Mode.
-        if VOLT26.Options.GetPlayerModifiers(player).NPSGraphAtTop or ThemePrefs.Get("EnableTournamentMode") then
+		if VOLT26.Options.GetPlayerModifiers(player).NPSGraphAtTop or VOLT26.Tournament.IsEnabled() then
             local pn = ToEnumShortString(player)
             local IsEX = VOLT26.Options.GetPlayerModifiers(player).ShowExScore
 

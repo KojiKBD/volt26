@@ -10,12 +10,9 @@ local NoteFieldIsCentered = (GetNotefieldX(player) == _screen.cx)
 
 local stylename = GAMESTATE:GetCurrentStyle():GetName()
 
-if mods.DataVisualizations ~= "Step Statistics" then return end
+if not VOLT26.Tournament.ShouldShowStepStats(player) then return end
 
 if (not IsUltraWide and stylename == "versus")
-	or (not ThemePrefs.Get("EnableTournamentMode") and
-	    mods.DataVisualizations ~= "Step Statistics")
-	or (ThemePrefs.Get("EnableTournamentMode") and ThemePrefs.Get("StepStats") == "Hide")
 	or VOLT26.Gameplay.IsCasual()
 	or (GetNotefieldWidth() > _screen.w/2 and stylename ~= "double")
 	or (NoteFieldIsCentered and not IsUsingWideScreen())

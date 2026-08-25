@@ -37,6 +37,8 @@ Advanced and optional Simply Love-derived capabilities are still being reviewed 
 
 GrooveStats is available as an optional integration for persistent profiles. See the [GrooveStats setup and security notes](docs/groovestats.md).
 
+Tournament Mode is available from the service options and can enforce scoring display and `no cmod` chart rules before the NoteField is constructed, without overriding the player's gameplay-statistics layout. A temporarily forced MMod is restored to the previous CMod after the song. Annual ITL event records are not currently enabled.
+
 ## Supported languages
 
 VOLT26 currently inherits translations for English, German, Spanish, French, Italian, Japanese, Polish, Brazilian Portuguese, and Russian. Translation completeness varies by language, and VOLT26-specific wording is still being reviewed.
