@@ -803,7 +803,7 @@ for player in ivalues(PlayerNumber) do
 				-- All other cases should be handled by normal ItlFile.lua write.
 				local song = GAMESTATE:GetCurrentSong()
 				local song_dir = song:GetSongDir()
-				if SL[pn].ITLData["pathMap"][song_dir] == nil then
+				if VOLT26.Tournament.IsLocalItlEnabled() and SL[pn].ITLData["pathMap"][song_dir] == nil then
 					UpdateItlData(player)
 				end
 			end

@@ -157,9 +157,9 @@ local AutoSubmitRequestProcessor = function(res, overlay)
 		for side=1,2 do
 			local playerData = data and data["player"..side]
 			if type(playerData) == "table" then
-				-- Event and tournament payloads are handled by EVENT-01/EVENT-02.
-				playerData.rpg = nil
-				playerData.itl = nil
+				local events = VOLT26.Events.NormalizePlayerData(playerData)
+				playerData.rpg = events.rpg
+				playerData.itl = events.itl
 			end
 		end
 		for i=1,2 do
@@ -246,7 +246,7 @@ local AutoSubmitRequestProcessor = function(res, overlay)
 						eventAf:playcommand("Show", {data=data[playerStr]})
 						shouldDisplayOverlay = true
 
-						if data[playerStr]["itl"] then
+						if data[playerStr]["itl"] and VOLT26.Tournament.IsLocalItlEnabled() then
 							-- Check for downloadFolders
 							local itlData = data[playerStr]["itl"]
 							if itlData["progress"] and itlData["progress"]["questsCompleted"] then

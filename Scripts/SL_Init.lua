@@ -930,6 +930,31 @@ function VOLT26.GrooveStats.IsServiceAllowed(capability)
 	return VOLT26.GrooveStats.IsConditionAllowed(condition)
 end
 
+VOLT26.Events = {}
+
+local function NormalizeEventPayload(payload)
+	if type(payload) ~= "table" or type(payload.name) ~= "string" then return nil end
+	local name = payload.name:gsub("[%c]", ""):sub(1, 96)
+	if name == "" then return nil end
+	local normalized = DeepCopy(payload)
+	normalized.name = name
+	if normalized.result ~= nil and type(normalized.result) ~= "string" then return nil end
+	if type(normalized.result) == "string" then
+		normalized.result = normalized.result:gsub("[%c]", ""):sub(1, 64)
+	end
+	return normalized
+end
+
+function VOLT26.Events.NormalizePlayerData(playerData)
+	local events = {}
+	if type(playerData) ~= "table" then return events end
+	for _, eventType in ipairs({"rpg", "itl"}) do
+		local payload = NormalizeEventPayload(playerData[eventType])
+		if payload then events[eventType] = payload end
+	end
+	return events
+end
+
 function VOLT26.ThemePrefs.ApplyGameMode(gameMode)
 	local mode = gameMode or VOLT26.State.Global.GameMode
 	if mode == "Casual" then mode = "ITG" end
