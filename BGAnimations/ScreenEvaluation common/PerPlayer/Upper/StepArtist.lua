@@ -49,7 +49,7 @@ return LoadFont("Common Normal")..{
 
 		-- set this BitmapText actor to display that text
 		self:settext( text )
-		DiffuseEmojis(self, text)
+		VOLT26.Text.DiffuseEmojis(self, text)
 
 		-- sleep 2 seconds before queueing the next Marquee command to do this again
 		if #info > 1 then

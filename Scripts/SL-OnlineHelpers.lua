@@ -748,7 +748,7 @@ CreateOnlineHandler = function()
           end,
           ResizeCommand=function(self, params)
             self:settext(params.text)
-            DiffuseEmojis(self)
+            VOLT26.Text.DiffuseEmojis(self)
             -- We don't want text to be cut off.
             -- Incrementally adjust the zoom while checking the width until it fits.
             -- Not the prettiest solution but it works.

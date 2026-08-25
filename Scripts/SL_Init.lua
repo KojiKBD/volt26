@@ -519,6 +519,10 @@ VOLT26.Meta = {
 	UpstreamCompatibility = "Simply Love 5.9.0",
 }
 
+-- Utility primitives are bootstrapped before ThemePrefs and attached here once
+-- the authoritative VOLT26 runtime namespace exists.
+VOLT26.Util = VOLT26Utility
+
 VOLT26.State = {
 	P1 = VOLT26.P1,
 	P2 = VOLT26.P2,
@@ -554,6 +558,28 @@ function VOLT26.Compatibility.ParseVersion(version)
 		result[#result + 1] = tonumber(part)
 	end
 	return result
+end
+
+function VOLT26.Compatibility.GetProductVersionParts()
+	local version = type(ProductVersion) == "function" and ProductVersion() or ""
+	return VOLT26.Compatibility.ParseVersion(version)
+end
+
+function VOLT26.Compatibility.GetThemeMetadata()
+	local path = THEME:GetCurrentThemeDirectory() .. "ThemeInfo.ini"
+	local contents = IniFile.ReadFile(path) or {}
+	local metadata = contents.ThemeInfo or {}
+	return {
+		Name = THEME:GetCurThemeName(),
+		Version = metadata.Version or false,
+		Author = metadata.Author or false,
+	}
+end
+
+function VOLT26.Compatibility.SupportsRenderToTexture()
+	local architecture = HOOKS:GetArchName():lower()
+	local renderers = PREFSMAN:GetPreference("VideoRenderers") or ""
+	return not (architecture:match("windows") and renderers:sub(1, 3):lower() == "d3d")
 end
 
 function VOLT26.Compatibility.MinimumVersionString()
@@ -2452,7 +2478,7 @@ function VOLT26.EvaluationInput.CreateReplayPracticeHandler()
 		end
 		if destination then
 			-- The evaluated stage remains complete; replay/practice starts a new route.
-			SM(message)
+			VOLT26.Util.SystemMessage(message)
 			SCREENMAN:GetTopScreen():SetNextScreenName(destination):StartTransitioningScreen("SM_GoToNextScreen")
 		end
 		return false

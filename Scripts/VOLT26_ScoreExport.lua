@@ -226,7 +226,7 @@ function VOLT26.ScoreExport.WriteCurrent()
 	end
 	if #summary.errors > 0 then
 		for _, errorMessage in ipairs(summary.errors) do Warn("VOLT26 score export: "..errorMessage) end
-		SM(THEME:GetString("VOLT26ScoreExport", "WriteFailed"):format(#summary.errors))
+		VOLT26.Util.SystemMessage(THEME:GetString("VOLT26ScoreExport", "WriteFailed"):format(#summary.errors))
 	end
 	return summary
 end

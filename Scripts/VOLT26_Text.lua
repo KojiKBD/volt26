@@ -9,7 +9,9 @@
 -- If you have string that might have emojis in it, do your normal diffuse() first,
 -- then use DiffuseEmojis() to remove that diffuse property from emoji characters.
 
-DiffuseEmojis = function(bmt, text)
+VOLT26.Text = {}
+
+function VOLT26.Text.DiffuseEmojis(bmt, text)
 	text = text or bmt:GetText()
 
 	-- loop through each char in the string, checking for emojis; if any are found
@@ -24,6 +26,9 @@ DiffuseEmojis = function(bmt, text)
 		end
 	end
 end
+
+-- Compatibility adapter for integrations that have not yet been assessed.
+DiffuseEmojis = VOLT26.Text.DiffuseEmojis
 
 -- -----------------------------------------------------------------------
 -- There's surely a better way to do this.  I need to research this more.
@@ -72,7 +77,7 @@ end
 -- needs of JP text in Simply Love.  Feel free to copy+paste this method to /r/shittyprogramming,
 -- private Discord servers, etc., for didactic and comedic purposes alike.
 
-BitmapText._wrapwidthpixels = function(bmt, w)
+function VOLT26.Text.WrapWidth(bmt, w)
 	local text = bmt:GetText()
 
 	if not is8bit(text) then
@@ -123,7 +128,9 @@ BitmapText._wrapwidthpixels = function(bmt, w)
 	return bmt
 end
 
-BitmapText.Truncate = function(bmt, m)
+BitmapText._wrapwidthpixels = VOLT26.Text.WrapWidth
+
+function VOLT26.Text.Truncate(bmt, m)
 	local text = bmt:GetText()
 	local l = text:len()
 
@@ -155,3 +162,5 @@ BitmapText.Truncate = function(bmt, m)
 	-- return the BitmapText actor in case the theme is chaining actor commands
 	return bmt
 end
+
+BitmapText.Truncate = VOLT26.Text.Truncate

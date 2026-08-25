@@ -1,7 +1,7 @@
 -- Simply Thonk needs render-to-texture, and render-to-texture doesn't work with SM5's D3D implementation
 local ThonkAndRTTOkay = function()
-	if ThemePrefs.Get("VisualStyle") == "Thonk" and not SupportsRenderToTexture() then
-		SM( THEME:GetString("ScreenThemeOptions", "ThonkRequiresRenderToTexture") )
+	if ThemePrefs.Get("VisualStyle") == "Thonk" and not VOLT26.Compatibility.SupportsRenderToTexture() then
+		VOLT26.Util.SystemMessage( THEME:GetString("ScreenThemeOptions", "ThonkRequiresRenderToTexture") )
 		return false
 	end
 	return true
@@ -10,7 +10,10 @@ end
 local InputHandler = function(event)
 	if not event then return false end
 	if event.type == "InputEventType_FirstPress" and event.GameButton == "Back" then
-		 if ThonkAndRTTOkay() and CurrentGameIsSupported() and StepManiaVersionIsSupported() then
+		 local game = GAMESTATE:GetCurrentGame()
+		 local gameSupported = game and VOLT26.Compatibility.IsGameSupported(game:GetName())
+		 local engineSupported = VOLT26.Compatibility.IsEngineSupported(ProductFamily(), ProductVersion())
+		 if ThonkAndRTTOkay() and gameSupported and engineSupported then
 			 SCREENMAN:GetTopScreen():Cancel()
 		 end
 	end
@@ -55,13 +58,13 @@ a.OffCommand=function(self)
 			SCREENMAN:SetNewScreen("ScreenOptionsService")
 		end
 
-		if not CurrentGameIsSupported() then
-			SM( THEME:GetString("ScreenInit", "UnsupportedGame"):format(GAMESTATE:GetCurrentGame():GetName()) )
+		if not VOLT26.Compatibility.IsGameSupported(GAMESTATE:GetCurrentGame():GetName()) then
+			VOLT26.Util.SystemMessage( THEME:GetString("ScreenInit", "UnsupportedGame"):format(GAMESTATE:GetCurrentGame():GetName()) )
 			SCREENMAN:SetNewScreen("ScreenSystemOptions")
 		end
 
-		if not StepManiaVersionIsSupported() then
-			SM( THEME:GetString("ScreenInit", "UnsupportedSMVersion"):format(ProductFamily(), ProductVersion(), MinimumVersionString()) )
+		if not VOLT26.Compatibility.IsEngineSupported(ProductFamily(), ProductVersion()) then
+			VOLT26.Util.SystemMessage( THEME:GetString("ScreenInit", "UnsupportedSMVersion"):format(ProductFamily(), ProductVersion(), VOLT26.Compatibility.MinimumVersionString()) )
 			SCREENMAN:SetNewScreen("ScreenSystemOptions")
 		end
 	end
