@@ -35,7 +35,7 @@ The primary standalone route is implemented:
 - evaluation summary, name entry, and game-over session statistics;
 - curated service options.
 
-Advanced and optional Simply Love-derived capabilities are still being reviewed individually. The current scope and verification status are tracked in the [functional inventory](docs/simply-love-functional-inventory.md).
+The inherited Simply Love functionality has been reviewed capability by capability. Retained behavior now uses VOLT26-owned boundaries, while intentionally omitted or dormant integrations are documented explicitly. Extended verification coverage is tracked in the [functional inventory](docs/simply-love-functional-inventory.md).
 
 GrooveStats is available as an optional integration for persistent profiles. See the [GrooveStats setup and security notes](docs/groovestats.md).
 
