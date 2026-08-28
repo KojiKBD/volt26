@@ -1,11 +1,11 @@
 local animationPath = "VOLT26/Song_Select_Animation/ssa_"
 local firstFrame = 0
-local lastFrame = 59
-local frameDelay = 1 / 20
+local lastFrame = 149
+local frameDelay = 1 / 30
 local currentFrame = firstFrame
 
 local function framePath(frame)
-	return THEME:GetPathG("", animationPath..string.format("%05d", frame)..".png")
+	return THEME:GetPathG("", animationPath..string.format("%05d", frame)..".jpg")
 end
 
 local background = Def.Sprite{
