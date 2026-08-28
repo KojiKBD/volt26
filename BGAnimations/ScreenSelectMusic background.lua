@@ -20,7 +20,7 @@ local background = Def.Sprite{
 	end,
 	NextFrameCommand=function(self)
 		currentFrame = currentFrame < lastFrame and currentFrame + 1 or firstFrame
-		self:Load(framePath(currentFrame))
+		self:Load(framePath(currentFrame)):setsize(_screen.w, _screen.h)
 		self:sleep(frameDelay):queuecommand("NextFrame")
 	end,
 }
