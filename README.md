@@ -43,6 +43,20 @@ Tournament Mode is available from the service options and can enforce scoring di
 
 Custom songs stored in USB profiles are supported through **USB Profile Options** when the installed ITGmania build exposes the required engine preferences. ITGmania remains responsible for removable-media discovery, validation, loading, limits, and cleanup. See the [custom songs from USB profiles guide](Other/Documentation/CustomSongsFromUSB-README.md) for setup details.
 
+## Screenshots
+
+### Song and chart preview
+
+The redesigned Song Select screen combines the music wheel, live chart preview, difficulty selection, density graph, and player-specific chart information in one dark-mode layout.
+
+![VOLT26 Song Select showing the chart preview and player chart information](docs/screenshots/song-select-chart-preview.png)
+
+### Pack preview
+
+Selecting a pack expands its artwork in the wheel and displays a scrollable overview of the songs it contains.
+
+![VOLT26 Song Select showing an expanded pack and its song list](docs/screenshots/song-select-pack-preview.png)
+
 ## Supported languages
 
 VOLT26 currently inherits translations for English, German, Spanish, French, Italian, Japanese, Polish, Brazilian Portuguese, and Russian. Translation completeness varies by language, and VOLT26-specific wording is still being reviewed.
