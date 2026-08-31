@@ -1,35 +1,18 @@
-local animationPath = "VOLT26/Song_Select_Animation/ssa_"
-local firstFrame = 0
-local lastFrame = 149
-local frameDelay = 1 / 30
-local currentFrame = firstFrame
-
-local function framePath(frame)
-	return THEME:GetPathG("", animationPath..string.format("%05d", frame)..".jpg")
-end
-
-local background = Def.Sprite{
-	Name="SongSelectBackgroundAnimation",
-	Texture=framePath(firstFrame),
-	InitCommand=function(self)
-		self:Center():setsize(_screen.w, _screen.h)
-		currentFrame = firstFrame
-	end,
-	OnCommand=function(self)
-		self:sleep(frameDelay):queuecommand("NextFrame")
-	end,
-	NextFrameCommand=function(self)
-		currentFrame = currentFrame < lastFrame and currentFrame + 1 or firstFrame
-		self:Load(framePath(currentFrame)):setsize(_screen.w, _screen.h)
-		self:sleep(frameDelay):queuecommand("NextFrame")
-	end,
-}
-
 return Def.ActorFrame{
-	background,
+	Def.Sprite{
+		Name="SongSelectBackground",
+		Texture=THEME:GetPathG("", "VOLT26/bg_ss@2x.png"),
+		InitCommand=function(self)
+			self:Center():scaletoclipped(_screen.w, _screen.h)
+		end,
+	},
 	Def.Quad{
-		InitCommand=function(self) self:FullScreen():Center():diffuse(Color.Black) end,
-		OnCommand=function(self) self:linear(0.25):diffusealpha(0):queuecommand("Hide") end,
-		HideCommand=function(self) self:visible(false) end
+		Name="WheelRail",
+		InitCommand=function(self)
+			local scale = math.min(_screen.w/854, _screen.h/480)
+			local left = _screen.cx - 427*scale
+			self:align(0.5,0):xy(left+32*scale, 0)
+				:zoomto(math.max(1,scale), _screen.h):diffuse(color("#840000"))
+		end,
 	}
 }

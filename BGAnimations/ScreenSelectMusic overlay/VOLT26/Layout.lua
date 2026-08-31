@@ -1,17 +1,27 @@
--- Standalone VOLT26 SongSelect composition.
+-- VOLT26 Song Select composition.
 
 local H = {
 	W = 854,
 	H = 480,
-	Font = "P5hatty",
-	P1 = color("#ed1c24"),
-	P2 = color("#1687ff"),
-	Black = color("#050505"),
-	White = color("#f5f5f2"),
-	Muted = color("#a9a9a9"),
+	Font = "Helvetica Normal",
+	FontBold = "Helvetica Bold",
+	FontZoom = 116 / 28,
+	FontBoldZoom = 116 / 29,
+	P1 = color("#d9666b"),
+	P2 = color("#6f9fb5"),
+	Black = color("#f6eeee"),
+	White = color("#ffffff"),
+	Muted = color("#bdaeb0"),
+	Line = color("#8c5d61"),
+	Surface = color("#181818"),
+	SurfaceAlpha = 0.88,
 	Dash = "--",
 	ChartCache = {},
+	LastStepsPlayer = PLAYER_1,
 }
+
+function H.NormalZoom(value) return value * H.FontZoom end
+function H.BoldZoom(value) return value * H.FontBoldZoom end
 
 H.Scale = math.min(_screen.w/H.W, _screen.h/H.H)
 H.Left = _screen.cx - H.W*H.Scale/2
@@ -21,6 +31,12 @@ function H.SelectedType()
 	local screen = SCREENMAN:GetTopScreen()
 	local wheel = screen and screen.GetMusicWheel and screen:GetMusicWheel()
 	return wheel and wheel:GetSelectedType() or nil
+end
+
+function H.SelectedSection()
+	local screen = SCREENMAN:GetTopScreen()
+	local wheel = screen and screen.GetMusicWheel and screen:GetMusicWheel()
+	return wheel and wheel:GetSelectedSection() or nil
 end
 
 function H.Item()
@@ -36,20 +52,13 @@ function H.Chart(player)
 	return GAMESTATE:GetCurrentSteps(player)
 end
 
-function H.Accent(player)
-	return player == PLAYER_1 and H.P1 or H.P2
-end
+function H.Accent(player) return player == PLAYER_1 and H.P1 or H.P2 end
 
 function H.PlayerName(player)
 	if not GAMESTATE:IsHumanPlayer(player) then return "" end
 	local profile = PROFILEMAN:GetProfile(player)
 	local name = profile and profile:GetDisplayName() or ""
-	if name == "" then name = ToEnumShortString(player) end
-	return name
-end
-
-function H.Avatar(player)
-	return GAMESTATE:IsHumanPlayer(player) and GetPlayerAvatarPath(player) or nil
+	return name ~= "" and name or ToEnumShortString(player)
 end
 
 function H.Title(item)
@@ -60,10 +69,7 @@ function H.Title(item)
 end
 
 function H.Artist(item)
-	if not item then return "" end
-	if item.GetDisplayArtist then return item:GetDisplayArtist() end
-	if item.GetDescription then return item:GetDescription() end
-	return ""
+	return item and item.GetDisplayArtist and item:GetDisplayArtist() or ""
 end
 
 function H.Length()
@@ -80,11 +86,11 @@ function H.Length()
 end
 
 function H.BPM(player, chart)
-	if not H.Item() then return H.Dash end
-	local ok, text = pcall(function()
+	if not chart then return H.Dash end
+	local ok, value = pcall(function()
 		return StringifyDisplayBPMs(player, chart, VOLT26.MusicSelection.GetMusicRate())
 	end)
-	return ok and text and text ~= "" and text or H.Dash
+	return ok and value and value ~= "" and value or H.Dash
 end
 
 function H.Radar(chart, player, category)
@@ -97,9 +103,6 @@ end
 
 local function appendChartData(data, steps, player)
 	if not steps then return end
-	-- ITGmania exposes cached, timing-aware NPS values per measure but does not
-	-- expose note timestamps cheaply to theme Lua. Plot those real samples
-	-- across the chart instead of fabricating fixed-second density bins.
 	local okNps, nps = pcall(function() return steps:GetNpsPerMeasure(player) end)
 	if okNps and nps then
 		for _, value in ipairs(nps) do
@@ -108,16 +111,14 @@ local function appendChartData(data, steps, player)
 			data.peak = math.max(data.peak, value)
 		end
 	end
-	-- Adapter for engine-provided tech classifications. Only categories
-	-- reported by GetTechCounts() are shown; none are inferred.
 	local okTech, tech = pcall(function() return steps:GetTechCounts(player) end)
 	if okTech and tech then
 		local keys = {
-			{"JACKS", "TechCountsCategory_Jacks"},
-			{"CROSSOVERS", "TechCountsCategory_Crossovers"},
-			{"FOOTSWITCHES", "TechCountsCategory_Footswitches"},
-			{"SIDESWITCHES", "TechCountsCategory_Sideswitches"},
-			{"BRACKETS", "TechCountsCategory_Brackets"},
+			{"FS", "TechCountsCategory_Footswitches"},
+			{"XO", "TechCountsCategory_Crossovers"},
+			{"SW", "TechCountsCategory_Sideswitches"},
+			{"BR", "TechCountsCategory_Brackets"},
+			{"JA", "TechCountsCategory_Jacks"},
 		}
 		for _, pair in ipairs(keys) do
 			local value = tech:GetValue(pair[2]) or 0
@@ -148,11 +149,19 @@ function H.ChartData(player)
 	return data
 end
 
-function H.GradeText(grade)
-	if not grade then return H.Dash end
-	local key = ToEnumShortString(grade)
-	if THEME:HasString("Grade", key) then return THEME:GetString("Grade", key) end
-	return key:gsub("Tier", "T")
+function H.PreviewSource()
+	local humans = GAMESTATE:GetHumanPlayers()
+	if #humans == 0 then return PLAYER_1, nil end
+	if #humans == 1 then return humans[1], H.Chart(humans[1]) end
+	local p1Chart, p2Chart = H.Chart(PLAYER_1), H.Chart(PLAYER_2)
+	if not p1Chart then return PLAYER_2, p2Chart end
+	if not p2Chart then return PLAYER_1, p1Chart end
+	local p1Meter = tonumber(p1Chart:GetMeter()) or 0
+	local p2Meter = tonumber(p2Chart:GetMeter()) or 0
+	if p1Meter > p2Meter then return PLAYER_1, p1Chart end
+	if p2Meter > p1Meter then return PLAYER_2, p2Chart end
+	local player = H.LastStepsPlayer or PLAYER_1
+	return player, H.Chart(player)
 end
 
 function H.AddRefresh(actor)
@@ -170,16 +179,6 @@ function H.AddRefresh(actor)
 	return actor
 end
 
-function H.Polygon(points, tint)
-	local vertices = {}
-	for _, point in ipairs(points) do vertices[#vertices+1] = {{point[1], point[2], 0}, tint} end
-	return Def.ActorMultiVertex{
-		InitCommand=function(self)
-			self:SetDrawState({Mode="DrawMode_Fan"}):SetVertices(vertices)
-		end,
-	}
-end
-
 local af = Def.ActorFrame{
 	Name="VOLT26SongSelect",
 	InitCommand=function(self) self:xy(H.Left, H.Top):zoom(H.Scale) end,
@@ -190,7 +189,7 @@ local af = Def.ActorFrame{
 			if not GAMESTATE:IsCourseMode() and GAMESTATE:GetSortOrder() ~= "SortOrder_Group" then
 				wheel:ChangeSort("SortOrder_Group")
 			end
-			wheel:xy(H.Left + 15*H.Scale, H.Top + 242*H.Scale):rotationz(-1.5)
+			wheel:xy(H.Left + 32*H.Scale, H.Top + 240*H.Scale)
 		end
 		self._refreshElapsed = 0
 		self._refreshKey = ""
@@ -199,7 +198,7 @@ local af = Def.ActorFrame{
 			if frame._refreshElapsed < 0.10 then return end
 			frame._refreshElapsed = 0
 			local key = table.concat({
-				tostring(H.SelectedType()), tostring(H.Item()),
+				tostring(H.SelectedType()), tostring(H.SelectedSection()), tostring(H.Item()),
 				tostring(H.Chart(PLAYER_1)), tostring(H.Chart(PLAYER_2)),
 				tostring(#GAMESTATE:GetHumanPlayers())
 			}, "|")
@@ -210,19 +209,24 @@ local af = Def.ActorFrame{
 			end
 		end)
 	end,
+	CurrentStepsP1ChangedMessageCommand=function(self) H.LastStepsPlayer=PLAYER_1 end,
+	CurrentStepsP2ChangedMessageCommand=function(self) H.LastStepsPlayer=PLAYER_2 end,
 }
 
-local componentPath = function(file)
+local function componentPath(file)
 	return THEME:GetPathB("ScreenSelectMusic", "overlay/VOLT26/"..file)
 end
 
 af[#af+1] = LoadActor(componentPath("Frame.lua"), H)
-af[#af+1] = LoadActor(componentPath("Banner.lua"), H)
-af[#af+1] = LoadActor(componentPath("PlayerChart.lua"), {H=H, Player=PLAYER_1, Y=164})
-af[#af+1] = LoadActor(componentPath("PlayerChart.lua"), {H=H, Player=PLAYER_2, Y=266})
-af[#af+1] = LoadActor(componentPath("Leaderboard.lua"), H)
-af[#af+1] = LoadActor(componentPath("PlayerCard.lua"), {H=H, Player=PLAYER_1, Y=390})
-af[#af+1] = LoadActor(componentPath("PlayerCard.lua"), {H=H, Player=PLAYER_2, Y=430})
-af[#af+1] = LoadActor(componentPath("Controls.lua"), H)
+af[#af+1] = LoadActor(componentPath("FocusedBanner.lua"), H)
+af[#af+1] = LoadActor(componentPath("PreviewBackdrop.lua"), H)
+af[#af+1] = LoadActor(componentPath("SongInfo.lua"), H)
+af[#af+1] = LoadActor(componentPath("ChartPreview.lua"), H)
+af[#af+1] = LoadActor(componentPath("GroupPreview.lua"), H)
+af[#af+1] = LoadActor(componentPath("DifficultyStrip.lua"), H)
+af[#af+1] = LoadActor(componentPath("PlayerChart.lua"), {H=H, Player=PLAYER_1})
+af[#af+1] = LoadActor(componentPath("PlayerChart.lua"), {H=H, Player=PLAYER_2})
+af[#af+1] = LoadActor(componentPath("PlayerName.lua"), {H=H, Player=PLAYER_1})
+af[#af+1] = LoadActor(componentPath("PlayerName.lua"), {H=H, Player=PLAYER_2})
 
 return af

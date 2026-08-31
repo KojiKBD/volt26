@@ -143,7 +143,7 @@ af[#af+1] = Def.CourseContentsList {
 
 		-- song title
 		Def.BitmapText{
-			Font="Common Normal",
+			Font="Helvetica Normal",
 			InitCommand=function(self)
 				self:xy(-160, 0)
 					:horizalign(left)
@@ -160,7 +160,7 @@ af[#af+1] = Def.CourseContentsList {
 
 		-- PLAYER_1 song difficulty
 		Def.BitmapText{
-			Font="Common Normal",
+			Font="Helvetica Normal",
 			InitCommand=function(self)
 				self:xy(-170, 0):horizalign(right)
 			end,
@@ -173,7 +173,7 @@ af[#af+1] = Def.CourseContentsList {
 
 		-- PLAYER_2 song difficulty
 		Def.BitmapText{
-			Font="Common Normal",
+			Font="Helvetica Normal",
 			InitCommand=function(self)
 				self:xy(114,0):horizalign(right)
 			end,

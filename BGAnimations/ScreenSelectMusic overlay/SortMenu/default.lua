@@ -16,6 +16,7 @@ local leaderboard_input = LoadActor("Leaderboard_InputHandler.lua")
 local SongSearchSettings = LoadActor("../SongSearch/SongSearchSettings.lua")
 
 local sortmenu_dimensions = { w=210, h=204 }
+local helveticaScale = 0.42
 
 -- "MT" is my personal means of denoting that this thing (the file, the variable, whatever)
 -- has something to do with a Lua metatable.
@@ -489,10 +490,10 @@ local t = Def.ActorFrame {
 	},
 	-- "Options" text
 	Def.BitmapText{
-		Font="Common Bold",
+		Font="Helvetica Bold",
 		Text=ScreenString("Options"),
 		InitCommand=function(self)
-			self:xy(_screen.cx, _screen.cy-92):zoom(0.4)
+			self:xy(_screen.cx, _screen.cy-92):zoom(0.4*helveticaScale)
 				:diffuse( Color.Black )
 		end
 	},
@@ -520,13 +521,13 @@ local t = Def.ActorFrame {
 	},
 	-- "Press SELECT To Cancel" text
 	Def.BitmapText{
-		Font="Common Bold",
+		Font="Helvetica Bold",
 		Text=ScreenString("Cancel"),
 		InitCommand=function(self)
 			if PREFSMAN:GetPreference("ThreeKeyNavigation") then
 				self:visible(false)
 			else
-				self:Center():valign(0):y(self:GetY()+sortmenu_dimensions.h/2 + 15):zoom(0.3):diffuse(0.7,0.7,0.7,1)
+				self:Center():valign(0):y(self:GetY()+sortmenu_dimensions.h/2 + 15):zoom(0.3*helveticaScale):diffuse(0.7,0.7,0.7,1)
 			end
 		end
 	},
