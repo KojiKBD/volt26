@@ -121,7 +121,7 @@ af2[#af2]["CurrentSteps"..pn.."ChangedMessageCommand"] = nil
 
 -- The Peak NPS text
 local peakNPSText = THEME:GetString(Branch.GameplayScreen(), "PeakNPS")
-af2[#af2+1] = LoadFont("Common Normal")..{
+af2[#af2+1] = LoadFont("Helvetica Normal")..{
 	Name="NPS",
 	Text=peakNPSText..": ",
 	InitCommand=function(self)
@@ -173,7 +173,7 @@ af2[#af2+1] = Def.ActorFrame{
 		end
 	},
 
-	LoadFont("Common Normal")..{
+	LoadFont("Helvetica Normal")..{
 		Text="",
 		Name="BreakdownText",
 		InitCommand=function(self)
@@ -253,7 +253,7 @@ local totalStreamText = THEME:GetString("SLPlayerOptions", "TotalStream")
 
 for i, row in ipairs(layout) do
 	for j, col in pairs(row) do
-		af3[#af3+1] = LoadFont("Common normal")..{
+		af3[#af3+1] = LoadFont("Helvetica Normal")..{
 			Text=(col ~= totalStreamText and "0" or noneText).." (0.0%)",
 			Name=col .. "Value",
 			InitCommand=function(self)
@@ -290,7 +290,7 @@ for i, row in ipairs(layout) do
 			end
 		}
 
-		af3[#af3+1] = LoadFont("Common Normal")..{
+		af3[#af3+1] = LoadFont("Helvetica Normal")..{
 			Text=THEME:GetString("TechCategory", col),
 			Name=col,
 			InitCommand=function(self)

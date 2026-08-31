@@ -308,7 +308,7 @@ local af = Def.ActorFrame{
 	end,
 
 	Def.Quad{ InitCommand=function(self) self:FullScreen():diffuse(0,0,0,0.875) end },
-	LoadFont("Common Normal")..{
+	LoadFont("Helvetica Normal")..{
 		Text=THEME:GetString("Common", "PopupDismissText"),
 		InitCommand=function(self) self:xy(_screen.cx, _screen.h-50):zoom(1.1) end
 	},
@@ -464,7 +464,7 @@ for player in ivalues( PlayerNumber ) do
 		},
 
 		-- Header Text
-		LoadFont("Wendy/_wendy small").. {
+		LoadFont("Helvetica Bold").. {
 			Name="Header",
 			Text="GrooveStats",
 			InitCommand=function(self)
@@ -474,7 +474,7 @@ for player in ivalues( PlayerNumber ) do
 		},
 
 		-- EX Text
-		LoadFont("Wendy/_wendy small").. {
+		LoadFont("Helvetica Bold").. {
 			Name="EX",
 			Text="EX",
 			InitCommand=function(self)
@@ -553,7 +553,7 @@ for player in ivalues( PlayerNumber ) do
 				self:visible(false)
 			end,
 
-			LoadFont("Common Normal").. {
+			LoadFont("Helvetica Normal").. {
 				Name="LeftIcon",
 				Text="&MENULEFT;",
 				InitCommand=function(self)
@@ -566,7 +566,7 @@ for player in ivalues( PlayerNumber ) do
 				end,
 			},
 
-			LoadFont("Common Normal").. {
+			LoadFont("Helvetica Normal").. {
 				Name="Text",
 				Text=THEME:GetString("GrooveStats", "MoreLeaderboards"),
 				InitCommand=function(self)
@@ -574,7 +574,7 @@ for player in ivalues( PlayerNumber ) do
 				end,
 			},
 
-			LoadFont("Common Normal").. {
+			LoadFont("Helvetica Normal").. {
 				Name="RightIcon",
 				Text="&MENURiGHT;",
 				InitCommand=function(self)
@@ -607,7 +607,7 @@ for player in ivalues( PlayerNumber ) do
 				self:GetChild("Date"):visible(GAMESTATE:GetNumSidesJoined() == 1)
 			end,
 
-			LoadFont("Common Normal").. {
+			LoadFont("Helvetica Normal").. {
 				Name="Rank",
 				Text="",
 				InitCommand=function(self)
@@ -622,7 +622,7 @@ for player in ivalues( PlayerNumber ) do
 				end
 			},
 
-			LoadFont("Common Normal").. {
+			LoadFont("Helvetica Normal").. {
 				Name="Name",
 				Text=(i==1 and THEME:GetString("GrooveStats", "Loading") or ""),
 				InitCommand=function(self)
@@ -637,7 +637,7 @@ for player in ivalues( PlayerNumber ) do
 				end
 			},
 
-			LoadFont("Common Normal").. {
+			LoadFont("Helvetica Normal").. {
 				Name="Score",
 				Text="",
 				InitCommand=function(self)
@@ -650,7 +650,7 @@ for player in ivalues( PlayerNumber ) do
 					self:diffuse(Color.White)
 				end
 			},
-			LoadFont("Common Normal").. {
+			LoadFont("Helvetica Normal").. {
 				Name="Date",
 				Text="",
 				InitCommand=function(self)

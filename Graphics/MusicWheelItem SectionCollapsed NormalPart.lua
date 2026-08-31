@@ -5,6 +5,11 @@ local num_visible_items = num_items - 2
 
 local item_width = _screen.w / 2.125
 
+local function readableFolderColor(tint)
+	if type(tint) == "table" and math.max(tint[1] or 0, tint[2] or 0, tint[3] or 0) >= 0.45 then return tint end
+	return color("#a78f92")
+end
+
 local standard = Def.ActorFrame{
 	-- the MusicWheel is centered via metrics under [ScreenSelectMusic]; offset by a slight amount to the right here
 	InitCommand=function(self) self:x(WideScale(28,33)) end,
@@ -22,15 +27,15 @@ local standard = Def.ActorFrame{
 		end
 	},
 	Def.ActorFrame{
-		Name="FolderStack",
-		InitCommand=function(self)
-			self:x(-3)
+	Name="FolderStack",
+	InitCommand=function(self)
+		self:x(-3):visible(false)
 		end,
 		SetCommand=function(self, params)
 			local is_parent = params and params.IsParentSection
 			self:GetChild("FolderBack"):visible(is_parent)
 			self:GetChild("FolderFront"):visible(is_parent)
-			self:GetChild("FolderMid"):visible(true):diffuse(params.Color)
+			self:GetChild("FolderMid"):visible(true):diffuse(readableFolderColor(params.Color))
 			if not is_parent and params.ParentSection ~= "" then
 				self:x(8)
 			else
@@ -61,7 +66,7 @@ local standard = Def.ActorFrame{
 			SetCommand=function(self, params)
 				local is_parent = params and params.IsParentSection
 				if not is_parent then
-					self:diffuse(params.Color)
+					self:diffuse(readableFolderColor(params.Color))
 				else
 					self:diffuse(color("#74818b"))
 				end
@@ -79,4 +84,7 @@ local standard = Def.ActorFrame{
 	},
 }
 
-return standard
+return Def.ActorFrame{
+	standard,
+	LoadActor(THEME:GetPathG("", "VOLT26/SongSelection/MusicWheelItem.lua"), "Section"),
+}

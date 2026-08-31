@@ -19,7 +19,7 @@ return {
 
 			-- Song Name
 			af[#af+1] = Def.BitmapText{
-				Font="Common Normal",
+				Font="Helvetica Normal",
 				Name="Song",
 				InitCommand=function(subself)
 					self.song_name = subself
@@ -32,7 +32,7 @@ return {
 
 			-- Song Name
 			af[#af+1] = Def.BitmapText{
-				Font="Common Bold",
+				Font="Helvetica Bold",
 				Name="Exit",
 				Text="Exit",
 				InitCommand=function(subself)

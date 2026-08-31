@@ -3027,7 +3027,7 @@ function VOLT26.Options.GetMenuTimerLineNames()
 end
 
 VOLT26.TitleMenu = {
-	AFKTimeoutSeconds = 5 * 60,
+	AFKTimeoutSeconds = 30,
 }
 
 function VOLT26.TitleMenu.GetAFKTimeoutSeconds()

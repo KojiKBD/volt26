@@ -1,5 +1,6 @@
 local sortmenu_dimensions = unpack(...)
 local row_height = 36
+local helveticaScale = 0.42
 
 -- the metatable for an item in the sort_wheel
 return {
@@ -71,10 +72,10 @@ return {
 				-- top text
 				Def.BitmapText{
 					Name="top text",
-					Font="Common Normal",
+					Font="Helvetica Normal",
 					InitCommand=function(subself)
 						self.top_text = subself
-						subself:zoom(1.15):xy(33,-8):diffusealpha(0)
+						subself:zoom(1.15*helveticaScale):xy(33,-8):diffusealpha(0):maxwidth(340)
 						subself:horizalign(left)
 					end,
 					OnCommand=function(subself)
@@ -91,10 +92,10 @@ return {
 				-- bottom text
 				Def.BitmapText{
 					Name="bottom text",
-					Font="Common Bold",
+					Font="Helvetica Bold",
 					InitCommand=function(subself)
 						self.bottom_text = subself
-						subself:zoom(0.8):y(10):diffusealpha(0):maxwidth(405)
+						subself:zoom(0.8*helveticaScale):y(10):diffusealpha(0):maxwidth(405)
 						subself:horizalign(left)
 					end,
 					OnCommand=function(subself)
