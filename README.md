@@ -3,7 +3,7 @@
 VOLT26 is a standalone theme for ITGmania. It began as a Simply Love visual style and is being developed into an independently installable theme with its own identity, screen flow, runtime services, and selected inherited behavior.
 
 > [!IMPORTANT]
-> VOLT26 `0.1.0-rc.1` is a release candidate intended for final installation and compatibility testing before the first stable release.
+> VOLT26 `0.1.0-rc.2` is a release candidate intended for final installation and compatibility testing before the first stable release.
 
 ## Requirements
 
