@@ -8,11 +8,12 @@ local FONT = "Helvetica Normal"
 local FONT_BOLD = "Helvetica Bold"
 local FONT_ZOOM = 116 / 28
 local FONT_BOLD_ZOOM = 116 / 29
-local WHITE = color("#f6eeee")
-local MUTED = color("#bdaeb0")
-local SURFACE = color("#181818")
-local P1 = color("#d9666b")
-local P2 = color("#6f9fb5")
+local WHITE = color("#f1eded")
+local MUTED = color("#989092")
+local SURFACE = color("#151515")
+local LINE = color("#413b3c")
+local P1 = color("#ff4b4b")
+local P2 = color("#4388a6")
 local timerTotal = tonumber(THEME:GetMetric("ScreenGameOver", "TimerSeconds")) or 23
 
 local function normalZoom(value)
@@ -85,7 +86,7 @@ local function localizedName(name, width)
 	}
 end
 
-local function statCell(x, y, width, label, value, accent)
+local function statCell(x, y, width, label, value)
 	return Def.ActorFrame{
 		InitCommand=function(self) self:xy(x, y) end,
 		LoadFont(FONT_BOLD)..{
@@ -98,7 +99,7 @@ local function statCell(x, y, width, label, value, accent)
 		LoadFont(FONT_BOLD)..{
 			Text=tostring(value == nil and "--" or value),
 			InitCommand=function(self)
-				self:halign(0):valign(0):y(15):diffuse(accent):zoom(boldZoom(0.076))
+				self:halign(0):valign(0):y(15):diffuse(WHITE):zoom(boldZoom(0.076))
 					:maxwidth(width / boldZoom(0.076))
 			end,
 		},
@@ -111,7 +112,7 @@ local function avatar(player, x, y, size, accent)
 		InitCommand=function(self) self:xy(x, y) end,
 		Def.Quad{
 			InitCommand=function(self)
-				self:zoomto(size + 4, size + 4):diffuse(accent):diffusealpha(0.82)
+				self:zoomto(size + 4, size + 4):diffuse(LINE)
 			end,
 		},
 		Def.Quad{
@@ -187,14 +188,14 @@ local function playerCard(player, x, y, width, height, delay, direction)
 		Def.Quad{
 			InitCommand=function(self)
 				self:align(0, 0.5):xy(padding, 143):zoomto(width - padding * 2, 1)
-					:diffuse(color("#4a4142")):diffusealpha(0.85)
+					:diffuse(LINE)
 			end,
 		},
-		statCell(padding, 166, statWidth, ScreenString("SongsPlayedThisGame"), session.songs_played, accent),
-		statCell(padding + statWidth + 9, 166, statWidth, ScreenString("NotesHitThisGame"), session.tap_hits, accent),
-		statCell(padding + (statWidth + 9) * 2, 166, statWidth, ScreenString("TimeSpentThisGame"), durationText(session.active_seconds), accent),
-		statCell(padding, 238, lowerWidth, ScreenString("TotalSongsPlayed"), profile and profile.total_songs or nil, accent),
-		statCell(padding + lowerWidth + 12, 238, lowerWidth, ScreenString("CaloriesBurned"), profile and profile.calories or nil, accent),
+		statCell(padding, 166, statWidth, ScreenString("SongsPlayedThisGame"), session.songs_played),
+		statCell(padding + statWidth + 9, 166, statWidth, ScreenString("NotesHitThisGame"), session.tap_hits),
+		statCell(padding + (statWidth + 9) * 2, 166, statWidth, ScreenString("TimeSpentThisGame"), durationText(session.active_seconds)),
+		statCell(padding, 238, lowerWidth, ScreenString("TotalSongsPlayed"), profile and profile.total_songs or nil),
+		statCell(padding + lowerWidth + 12, 238, lowerWidth, ScreenString("CaloriesBurned"), profile and profile.calories or nil),
 	}
 	return card
 end
@@ -246,7 +247,7 @@ layout[#layout+1] = Def.ActorFrame{
 	OffCommand=function(self) self:stoptweening():linear(0.12):diffusealpha(0) end,
 	Def.Quad{
 		InitCommand=function(self)
-			self:align(0, 0.5):x(-120):zoomto(240, 3):diffuse(color("#52484a"))
+			self:align(0, 0.5):x(-120):zoomto(240, 3):diffuse(LINE)
 		end,
 	},
 	Def.Quad{
