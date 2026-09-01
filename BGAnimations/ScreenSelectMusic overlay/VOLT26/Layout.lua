@@ -179,8 +179,10 @@ function H.AddRefresh(actor)
 	return actor
 end
 
-function H.AddSettledRefresh(actor, delay)
-	delay = delay or 0.5
+function H.AddSettledRefresh(actor, delay, offsetX, offsetY)
+	delay = delay or 0.35
+	offsetX = offsetX or 0
+	offsetY = offsetY or 0
 	local priorInit = actor.InitCommand
 	local function schedule(self)
 		self:stoptweening():linear(0.08):diffusealpha(0)
@@ -189,15 +191,17 @@ function H.AddSettledRefresh(actor, delay)
 	actor.InitCommand=function(self)
 		if priorInit then priorInit(self) end
 		self._settledX = self:GetX()
+		self._settledY = self:GetY()
 		self:diffusealpha(0)
 	end
 	actor.OnCommand=schedule
 	actor.SettledRefreshCommand=function(self)
-		self:stoptweening():x(self._settledX or self:GetX())
+		self:stoptweening():xy(self._settledX or self:GetX(), self._settledY or self:GetY())
 		self:playcommand("Refresh")
 		self._settledX = self:GetX()
-		self:x(self._settledX+16):diffusealpha(0)
-			:decelerate(0.20):x(self._settledX):diffusealpha(1)
+		self._settledY = self:GetY()
+		self:xy(self._settledX+offsetX, self._settledY+offsetY):diffusealpha(0)
+			:decelerate(0.20):xy(self._settledX,self._settledY):diffusealpha(1)
 	end
 	actor.CurrentSongChangedMessageCommand=function(self) H.ChartCache={}; schedule(self) end
 	actor.CurrentCourseChangedMessageCommand=function(self) H.ChartCache={}; schedule(self) end
@@ -252,9 +256,14 @@ end
 
 af[#af+1] = LoadActor(componentPath("Frame.lua"), H)
 af[#af+1] = LoadActor(componentPath("FocusedBanner.lua"), H)
-af[#af+1] = LoadActor(componentPath("PreviewBackdrop.lua"), H)
 af[#af+1] = LoadActor(componentPath("SongInfo.lua"), H)
-af[#af+1] = LoadActor(componentPath("ChartPreview.lua"), H)
+local chartPreviewLayer = Def.ActorFrame{
+	Name="ChartPreviewLayer",
+	InitCommand=function(self) self:diffusealpha(0.001) end,
+}
+chartPreviewLayer[#chartPreviewLayer+1] = LoadActor(componentPath("PreviewBackdrop.lua"), H)
+chartPreviewLayer[#chartPreviewLayer+1] = LoadActor(componentPath("ChartPreview.lua"), H)
+af[#af+1] = chartPreviewLayer
 af[#af+1] = LoadActor(componentPath("GroupPreview.lua"), H)
 af[#af+1] = LoadActor(componentPath("DifficultyStrip.lua"), H)
 af[#af+1] = LoadActor(componentPath("PlayerChart.lua"), {H=H, Player=PLAYER_1})

@@ -62,5 +62,5 @@ for i=1,maxDifficulties do
 	}
 end
 
-H.AddRefresh(af)
+H.AddSettledRefresh(af, 0.35, 0, 12)
 return af

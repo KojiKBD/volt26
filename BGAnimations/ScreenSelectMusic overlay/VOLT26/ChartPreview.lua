@@ -352,7 +352,7 @@ local af = Def.ActorFrame{
 		if chartChanged then
 			-- Keep the whole preview effectively hidden while the new chart is
 			-- parsed and its CEL textures receive their first draw call.
-			self:stoptweening():diffusealpha(0.001)
+			self:GetParent():stoptweening():diffusealpha(0.001)
 			self.previewClock = 0
 			self.lastPreviewBeat = nil
 			self.previewWarmupFrames = 0
@@ -384,10 +384,10 @@ local af = Def.ActorFrame{
 				self.previewRevealPending = true
 			elseif chart then
 				-- Do not read or cache transient charts while the wheel is moving.
-				self.parseDelay = 0.5
+				self.parseDelay = 0.35
 				self.pendingParse = {chart=chart, player=player, generation=self.parseGeneration}
 			else
-				self:diffusealpha(1)
+				self:GetParent():diffusealpha(1)
 			end
 		end
 		updateSourceLabel(self, player, chart)
@@ -424,7 +424,7 @@ local af = Def.ActorFrame{
 			self.previewWarmupFrames = self.previewWarmupFrames - 1
 		elseif self.previewRevealPending then
 			self.previewRevealPending = false
-			self:stoptweening():decelerate(0.30):diffusealpha(1)
+			self:GetParent():stoptweening():decelerate(0.30):diffusealpha(1)
 		end
 		if not self.notes or not self.previewTiming then return end
 
