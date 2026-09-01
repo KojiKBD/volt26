@@ -10,6 +10,10 @@ local focusRed = color("#ff0000")
 local black = color("#f6eeee")
 local muted = color("#bdaeb0")
 
+local function hasNonASCII(text)
+	return tostring(text or ""):find("[\128-\255]") ~= nil
+end
+
 local function circleVertices(radius, tint)
 	local vertices = {{{0,0,0}, tint}}
 	for i=0,16 do
@@ -127,8 +131,11 @@ local af = Def.ActorFrame{
 		self:GetChild("Title"):settext(self.section and compactSectionLabel(self.sectionTitle) or label(params))
 		local songs = self.section and sectionSongs(self.section) or nil
 		self.sectionSongCount = songs and #songs or 0
-		self:GetChild("Artist"):settext(params.Song and params.Song:GetDisplayArtist()
-			or (songs and ("PACK   -   "..self.sectionSongCount.." SONGS")) or "")
+		local artistText = params.Song and params.Song:GetDisplayArtist()
+			or (songs and ("PACK   -   "..self.sectionSongCount.." SONGS")) or ""
+		self.artistUsesCJK = hasNonASCII(artistText)
+		self:GetChild("Artist"):settext(artistText)
+		self:GetChild("ArtistCJK"):settext(artistText)
 		self:GetChild("PackMark"):settext("PACK")
 		self.wasFocus = focused(self)
 		self:playcommand("Focus", {Focused=self.wasFocus})
@@ -136,7 +143,11 @@ local af = Def.ActorFrame{
 	FocusCommand=function(self, params)
 		local on = params.Focused
 		local title = self:GetChild("Title")
-		local artist = self:GetChild("Artist")
+		local latinArtist = self:GetChild("Artist")
+		local cjkArtist = self:GetChild("ArtistCJK")
+		latinArtist:visible(false)
+		cjkArtist:visible(false)
+		local artist = self.artistUsesCJK and cjkArtist or latinArtist
 		local compactArt = self:GetChild("Artwork")
 		local hoverArt = self:GetChild("HoverArtwork")
 		local art = compactArt
@@ -145,7 +156,8 @@ local af = Def.ActorFrame{
 		local stroke = self:GetChild("ArtworkStroke")
 		if self.section then
 			title:settext(on and self.sectionTitle or compactSectionLabel(self.sectionTitle))
-			artist:settext("PACK   -   "..self.sectionSongCount.." SONGS")
+			latinArtist:settext("PACK   -   "..self.sectionSongCount.." SONGS")
+			cjkArtist:settext("PACK   -   "..self.sectionSongCount.." SONGS")
 		end
 		local path = on and self.largeArt or self.smallArt
 		hoverArt:visible(false)
@@ -197,14 +209,16 @@ local af = Def.ActorFrame{
 				packMark:xy(90,-10):zoom(0.052*boldFontZoom):maxwidth(104/(0.052*boldFontZoom))
 			else
 				title:horizalign(left):xy(24,30):zoom(0.070*boldFontZoom):maxwidth(226/(0.070*boldFontZoom)):diffuse(black)
-				artist:horizalign(left):xy(24,46):zoom(0.041*fontZoom):maxwidth(226/(0.041*fontZoom)):diffuse(muted)
+				local zoom = self.artistUsesCJK and 0.42 or 0.041*fontZoom
+				artist:horizalign(left):xy(24,46):zoom(zoom):maxwidth(226/zoom):diffuse(muted)
 				packMark:visible(false)
 			end
 		else
 			centerCrop(art,24,-14,28,28)
 			fallback:align(0,0):xy(24,-14):zoomto(28,28)
 			stroke:align(0,0):xy(23,-15):zoomto(30,30)
-			artist:horizalign(left):xy(59,-7):zoom(0.037*fontZoom):maxwidth((self.section and 142 or 184)/(0.037*fontZoom)):diffuse(muted)
+			local zoom = self.artistUsesCJK and 0.38 or 0.037*fontZoom
+			artist:horizalign(left):xy(59,-7):zoom(zoom):maxwidth((self.section and 142 or 184)/zoom):diffuse(muted)
 			title:horizalign(left):xy(59,8):zoom(0.058*boldFontZoom):maxwidth((self.section and 142 or 184)/(0.058*boldFontZoom)):diffuse(black)
 			packMark:xy(38,0):zoom(0.025*boldFontZoom):maxwidth(24/(0.025*boldFontZoom))
 		end
@@ -257,6 +271,10 @@ af[#af+1] = Def.BitmapText{
 af[#af+1] = Def.BitmapText{
 	Name="Artist", Font=font,
 	InitCommand=function(self) self:horizalign(left):diffuse(muted) end,
+}
+af[#af+1] = Def.BitmapText{
+	Name="ArtistCJK", Font="Common Normal",
+	InitCommand=function(self) self:horizalign(left):diffuse(muted):visible(false) end,
 }
 
 return af
