@@ -5,6 +5,18 @@ local pn = ToEnumShortString(player)
 local accent = H.Accent(player)
 local graphW = 186
 
+local function hasNonASCII(text)
+	return tostring(text or ""):find("[\128-\255]") ~= nil
+end
+
+local function setLocalizedText(frame, latinName, cjkName, text, latinZoom, cjkZoom, width)
+	local useCJK = hasNonASCII(text)
+	local latin = frame:GetChild(latinName)
+	local cjk = frame:GetChild(cjkName)
+	latin:visible(not useCJK):settext(text):zoom(latinZoom):maxwidth(width/latinZoom)
+	cjk:visible(useCJK):settext(text):zoom(cjkZoom):maxwidth(width/cjkZoom)
+end
+
 local function graphVertices(data, graphColor, graphH)
 	local vertices = {}
 	if not data or #data.nps == 0 or data.peak <= 0 then return vertices end
@@ -56,8 +68,8 @@ local af = Def.ActorFrame{
 		self:GetChild("PlayerLabel"):settext(H.PlayerName(player)):maxwidth(62/H.BoldZoom(0.045))
 		self:GetChild("Difficulty"):settext(difficulty):diffuse(H.Muted)
 		self:GetChild("Meter"):settext(chart and chart:GetMeter() or H.Dash):diffuse(difficultyColor)
-		self:GetChild("Description"):settext(chartLabel(chart)):maxwidth(183/H.BoldZoom(0.045))
-		self:GetChild("Author"):settext(authorLabel(chart)):maxwidth(82/H.NormalZoom(0.036))
+		setLocalizedText(self, "Description", "DescriptionCJK", chartLabel(chart), H.BoldZoom(0.045), 0.42, 183)
+		setLocalizedText(self, "Author", "AuthorCJK", authorLabel(chart), H.NormalZoom(0.036), 0.32, 82)
 		self:GetChild("Info"):settext(string.format(
 			"BPM %s   -   LENGTH %s   -   RATE %.2fx",
 			H.BPM(player, chart), H.Length(), VOLT26.MusicSelection.GetMusicRate()))
@@ -107,8 +119,16 @@ af[#af+1] = Def.BitmapText{
 	InitCommand=function(self) self:xy(8,29):horizalign(left):zoom(H.BoldZoom(0.045)):diffuse(H.Black) end,
 }
 af[#af+1] = Def.BitmapText{
+	Name="DescriptionCJK", Font="Common Normal",
+	InitCommand=function(self) self:xy(8,29):horizalign(left):zoom(0.42):diffuse(H.Black):visible(false) end,
+}
+af[#af+1] = Def.BitmapText{
 	Name="Author", Font=H.Font,
 	InitCommand=function(self) self:xy(8,43):horizalign(left):zoom(H.NormalZoom(0.036)):diffuse(H.Muted) end,
+}
+af[#af+1] = Def.BitmapText{
+	Name="AuthorCJK", Font="Common Normal",
+	InitCommand=function(self) self:xy(8,43):horizalign(left):zoom(0.32):diffuse(H.Muted):visible(false) end,
 }
 af[#af+1] = Def.BitmapText{
 	Name="Info", Font=H.Font,
