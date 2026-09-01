@@ -21,7 +21,10 @@ end
 return Def.Banner{
 	Name="VOLT26FocusedBanner",
 	InitCommand=function(self)
-		self:xy(146,230):visible(false)
+		-- The wheel is offset 32 units from the layout origin and focused
+		-- artwork begins at x=24 with a width of 132.  Its center is therefore
+		-- 32 + 24 + 66 = 122, directly after the red connector.
+		self:xy(122,230):visible(false)
 	end,
 	RefreshCommand=function(self)
 		local song = GAMESTATE:GetCurrentSong()
@@ -32,7 +35,14 @@ return Def.Banner{
 		end
 		local path = song:GetBannerPath()
 		if self.loadedPath ~= path then
-			local ok = pcall(function() self:LoadFromCachedBanner(path) end)
+			-- Do not reuse the global banner cache here.  ITGmania keeps that
+			-- cache alive across theme changes, so entering VOLT26 after Simply
+			-- Love can otherwise retain the previous theme's movie state.
+			local ok = pcall(function()
+				self:Load(path)
+				self:animate(true)
+				if self.SetDecodeMovie then self:SetDecodeMovie(true) end
+			end)
 			if not ok then
 				self.loadedPath = nil
 				self:visible(false)
