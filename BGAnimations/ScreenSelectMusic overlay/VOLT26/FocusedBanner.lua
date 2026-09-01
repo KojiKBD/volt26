@@ -32,7 +32,14 @@ return Def.Banner{
 		end
 		local path = song:GetBannerPath()
 		if self.loadedPath ~= path then
-			local ok = pcall(function() self:LoadFromCachedBanner(path) end)
+			-- Do not reuse the global banner cache here.  ITGmania keeps that
+			-- cache alive across theme changes, so entering VOLT26 after Simply
+			-- Love can otherwise retain the previous theme's movie state.
+			local ok = pcall(function()
+				self:Load(path)
+				self:animate(true)
+				if self.SetDecodeMovie then self:SetDecodeMovie(true) end
+			end)
 			if not ok then
 				self.loadedPath = nil
 				self:visible(false)

@@ -56,6 +56,7 @@ local function artworkPaths(song)
 	if not song then return nil, nil end
 	local small, large
 	if song:HasJacket() then small = song:GetJacketPath() end
+	if not small and song:HasBanner() then small = song:GetBannerPath() end
 	if not small and song:HasBackground() then small = song:GetBackgroundPath() end
 	large = small
 	return small, large
@@ -157,6 +158,11 @@ local af = Def.ActorFrame{
 				local loadedNew = self[cacheKey] ~= path
 				if loadedNew then
 					art:Load(path)
+					-- Compact wheel artwork is deliberately a still frame.  This keeps
+					-- every song's own banner visible without allowing recycled wheel
+					-- rows to advance the same movie texture multiple times.
+					art:animate(false)
+					if art.SetDecodeMovie then art:SetDecodeMovie(false) end
 					self[cacheKey] = path
 				end
 			end)
@@ -225,7 +231,7 @@ af[#af+1] = Def.Quad{
 	Name="ArtworkFallback",
 	InitCommand=function(self) self:align(0,0):diffuse(color("#1c1214")):visible(false) end,
 }
-af[#af+1] = Def.Sprite{
+af[#af+1] = Def.Banner{
 	Name="Artwork",
 	InitCommand=function(self) self:visible(false) end,
 }
