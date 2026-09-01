@@ -166,5 +166,5 @@ af[#af+1] = Def.BitmapText{
 	Name="Extra", Font=H.Font,
 	InitCommand=function(self) self:horizalign(left):zoom(H.NormalZoom(0.038)):diffuse(H.Black) end,
 }
-H.AddRefresh(af)
+H.AddSettledRefresh(af, 0.5)
 return af

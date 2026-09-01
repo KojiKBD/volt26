@@ -58,5 +58,5 @@ af[#af+1] = Def.BitmapText{
 	InitCommand=function(self) self:xy(1,68):horizalign(left):zoom(0.34):diffuse(H.Black):visible(false) end,
 }
 
-H.AddRefresh(af)
+H.AddSettledRefresh(af, 0.5)
 return af

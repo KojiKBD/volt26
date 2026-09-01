@@ -383,7 +383,8 @@ local af = Def.ActorFrame{
 				self.previewWarmupFrames = 2
 				self.previewRevealPending = true
 			elseif chart then
-				self.parseDelay = 0.06
+				-- Do not read or cache transient charts while the wheel is moving.
+				self.parseDelay = 0.5
 				self.pendingParse = {chart=chart, player=player, generation=self.parseGeneration}
 			else
 				self:diffusealpha(1)

@@ -179,6 +179,35 @@ function H.AddRefresh(actor)
 	return actor
 end
 
+function H.AddSettledRefresh(actor, delay)
+	delay = delay or 0.5
+	local priorInit = actor.InitCommand
+	local function schedule(self)
+		self:stoptweening():linear(0.08):diffusealpha(0)
+			:sleep(math.max(0,delay-0.08)):queuecommand("SettledRefresh")
+	end
+	actor.InitCommand=function(self)
+		if priorInit then priorInit(self) end
+		self:diffusealpha(0)
+	end
+	actor.OnCommand=schedule
+	actor.SettledRefreshCommand=function(self)
+		self:playcommand("Refresh")
+		self:stoptweening():diffusealpha(0):decelerate(0.20):diffusealpha(1)
+	end
+	actor.CurrentSongChangedMessageCommand=function(self) H.ChartCache={}; schedule(self) end
+	actor.CurrentCourseChangedMessageCommand=function(self) H.ChartCache={}; schedule(self) end
+	actor.CurrentStepsP1ChangedMessageCommand=function(self) H.ChartCache[PLAYER_1]=nil; schedule(self) end
+	actor.CurrentStepsP2ChangedMessageCommand=function(self) H.ChartCache[PLAYER_2]=nil; schedule(self) end
+	actor.CurrentTrailP1ChangedMessageCommand=function(self) H.ChartCache[PLAYER_1]=nil; schedule(self) end
+	actor.CurrentTrailP2ChangedMessageCommand=function(self) H.ChartCache[PLAYER_2]=nil; schedule(self) end
+	actor.PlayerJoinedMessageCommand=schedule
+	actor.PlayerUnjoinedMessageCommand=schedule
+	actor.PlayerProfileSetMessageCommand=schedule
+	actor.VOLT26SongSelectRefreshMessageCommand=schedule
+	return actor
+end
+
 local af = Def.ActorFrame{
 	Name="VOLT26SongSelect",
 	InitCommand=function(self) self:xy(H.Left, H.Top):zoom(H.Scale) end,
