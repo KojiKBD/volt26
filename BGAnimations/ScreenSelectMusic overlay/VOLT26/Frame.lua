@@ -1,5 +1,5 @@
 local H = ...
-local showPaidTimer = GAMESTATE:GetCoinMode() == "CoinMode_Pay" and VOLT26.MenuTimer.IsEnabled()
+local showPaidTimer = GAMESTATE:GetCoinMode() == "CoinMode_Pay"
 
 local function updatePaidTimer(self, delta)
 	self.updateElapsed = (self.updateElapsed or 0) + (delta or 0)

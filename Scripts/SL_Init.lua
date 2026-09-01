@@ -3046,6 +3046,10 @@ function VOLT26.MenuTimer.IsEnabled()
 	return PREFSMAN:GetPreference("MenuTimer")
 end
 
+function VOLT26.MenuTimer.IsEnabledForSongSelect()
+	return VOLT26.MenuTimer.IsEnabled() or GAMESTATE:GetCoinMode() == "CoinMode_Pay"
+end
+
 VOLT26.Navigation = {}
 
 
