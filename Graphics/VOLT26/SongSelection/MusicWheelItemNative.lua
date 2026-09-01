@@ -208,6 +208,13 @@ local af = Def.ActorFrame{
 			title:horizalign(left):xy(59,8):zoom(0.058*boldFontZoom):maxwidth((self.section and 142 or 184)/(0.058*boldFontZoom)):diffuse(black)
 			packMark:xy(38,0):zoom(0.025*boldFontZoom):maxwidth(24/(0.025*boldFontZoom))
 		end
+		-- FocusedBanner.lua is the sole owner of selected song banners.  Keeping
+		-- this wheel copy visible underneath it produces a doubled, horizontally
+		-- offset image for static banners and two movie actors for animated ones.
+		if on and self.song and self.song:HasBanner() then
+			art:visible(false)
+			fallback:visible(false)
+		end
 		title:visible(self.song ~= nil or self.course ~= nil or self.section ~= nil)
 		artist:visible(self.song ~= nil or self.section ~= nil)
 	end,
