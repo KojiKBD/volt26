@@ -188,12 +188,16 @@ function H.AddSettledRefresh(actor, delay)
 	end
 	actor.InitCommand=function(self)
 		if priorInit then priorInit(self) end
+		self._settledX = self:GetX()
 		self:diffusealpha(0)
 	end
 	actor.OnCommand=schedule
 	actor.SettledRefreshCommand=function(self)
+		self:stoptweening():x(self._settledX or self:GetX())
 		self:playcommand("Refresh")
-		self:stoptweening():diffusealpha(0):decelerate(0.20):diffusealpha(1)
+		self._settledX = self:GetX()
+		self:x(self._settledX+16):diffusealpha(0)
+			:decelerate(0.20):x(self._settledX):diffusealpha(1)
 	end
 	actor.CurrentSongChangedMessageCommand=function(self) H.ChartCache={}; schedule(self) end
 	actor.CurrentCourseChangedMessageCommand=function(self) H.ChartCache={}; schedule(self) end
