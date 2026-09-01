@@ -72,7 +72,7 @@ local function localizedName(name, width)
 			Text=name,
 			InitCommand=function(self)
 				self:halign(0):visible(not useCommon):diffuse(WHITE)
-					:zoom(boldZoom(7.4)):maxwidth(width / boldZoom(7.4))
+					:zoom(boldZoom(0.074)):maxwidth(width / boldZoom(0.074))
 			end,
 		},
 		LoadFont("Common Bold")..{
@@ -91,15 +91,15 @@ local function statCell(x, y, width, label, value, accent)
 		LoadFont(FONT_BOLD)..{
 			Text=cleanLabel(label):upper(),
 			InitCommand=function(self)
-				self:halign(0):valign(0):diffuse(MUTED):zoom(boldZoom(3.0))
-					:maxwidth(width / boldZoom(3.0))
+				self:halign(0):valign(0):diffuse(MUTED):zoom(boldZoom(0.030))
+					:maxwidth(width / boldZoom(0.030))
 			end,
 		},
 		LoadFont(FONT_BOLD)..{
 			Text=tostring(value == nil and "--" or value),
 			InitCommand=function(self)
-				self:halign(0):valign(0):y(15):diffuse(accent):zoom(boldZoom(7.6))
-					:maxwidth(width / boldZoom(7.6))
+				self:halign(0):valign(0):y(15):diffuse(accent):zoom(boldZoom(0.076))
+					:maxwidth(width / boldZoom(0.076))
 			end,
 		},
 	}
@@ -129,7 +129,7 @@ local function avatar(player, x, y, size, accent)
 		frame[#frame+1] = LoadFont(FONT_BOLD)..{
 			Text=ToEnumShortString(player),
 			InitCommand=function(self)
-				self:diffuse(accent):zoom(boldZoom(8.0)):maxwidth((size - 12) / boldZoom(8.0))
+				self:diffuse(accent):zoom(boldZoom(0.080)):maxwidth((size - 12) / boldZoom(0.080))
 			end,
 		}
 	end
@@ -170,7 +170,7 @@ local function playerCard(player, x, y, width, height, delay, direction)
 		LoadFont(FONT_BOLD)..{
 			Text=ToEnumShortString(player),
 			InitCommand=function(self)
-				self:xy(padding, 24):halign(0):diffuse(accent):zoom(boldZoom(4.0))
+				self:xy(padding, 24):halign(0):diffuse(accent):zoom(boldZoom(0.040))
 			end,
 		},
 		avatar(player, padding + avatarSize / 2, 82, avatarSize, accent),
@@ -180,7 +180,7 @@ local function playerCard(player, x, y, width, height, delay, direction)
 			LoadFont(FONT)..{
 				Text=profile and "VOLT26" or cleanLabel(THEME:GetString("ScreenSelectProfile", "GuestProfile")):upper(),
 				InitCommand=function(self)
-					self:xy(0, 23):halign(0):diffuse(MUTED):zoom(normalZoom(3.2))
+					self:xy(0, 23):halign(0):diffuse(MUTED):zoom(normalZoom(0.032))
 				end,
 			},
 		},
@@ -208,11 +208,11 @@ local layout = Def.ActorFrame{
 		OffCommand=function(self) self:accelerate(0.16):addy(-10):diffusealpha(0) end,
 		LoadFont(FONT_BOLD)..{
 			Text="GAME OVER",
-			InitCommand=function(self) self:diffuse(WHITE):zoom(boldZoom(11.5)) end,
+			InitCommand=function(self) self:diffuse(WHITE):zoom(boldZoom(0.115)) end,
 		},
 		LoadFont(FONT)..{
 			Text="SESSION SUMMARY",
-			InitCommand=function(self) self:y(26):diffuse(MUTED):zoom(normalZoom(3.4)) end,
+			InitCommand=function(self) self:y(26):diffuse(MUTED):zoom(normalZoom(0.034)) end,
 		},
 		Def.Quad{
 			InitCommand=function(self) self:y(44):zoomto(0, 2):diffuse(P1) end,
@@ -262,7 +262,7 @@ layout[#layout+1] = Def.ActorFrame{
 	},
 	LoadFont(FONT)..{
 		Text="NEXT SCREEN",
-		InitCommand=function(self) self:y(12):diffuse(MUTED):zoom(normalZoom(2.7)) end,
+		InitCommand=function(self) self:y(12):diffuse(MUTED):zoom(normalZoom(0.027)) end,
 	},
 }
 
