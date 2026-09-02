@@ -12,7 +12,7 @@ local WHITE = color("#f1eded")
 local MUTED = color("#989092")
 local SURFACE = color("#151515")
 local LINE = color("#413b3c")
-local P1 = color("#ff4b4b")
+local P1 = color("#ff0000")
 local P2 = color("#4388a6")
 local timerTotal = tonumber(THEME:GetMetric("ScreenGameOver", "TimerSeconds")) or 23
 

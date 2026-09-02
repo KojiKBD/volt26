@@ -4,6 +4,9 @@ VOLT26.Brand = {
     "#FF0000",  -- Elite  | Phantom Red (The fiery, rebellious core)
     "#1A1A1A",  -- Mid    | Phantom Black (Sleek, stylish, but lacks the "red" impact)
     "#D8D8D8",  -- Weak   | Metaverse White/Grey (Standard shadows/cognitions)
+	"#00A8E8",  -- Velvet Blue
+	"#FFD400",  -- Investigation Gold
+	"#9B1BFF",  -- Metaverse Violet
 
 	},
 	TextColor = "#ffffff",

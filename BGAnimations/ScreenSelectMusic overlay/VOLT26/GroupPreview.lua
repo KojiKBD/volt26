@@ -4,6 +4,7 @@ local poolCount = rowCount+1
 local rowStart = 31
 local rowSpacing = 36
 local secondsPerSong = 0.5
+local previewBackground = color("#303030")
 
 local function centerCrop(sprite,width,height)
 	sprite:cropleft(0):cropright(0):croptop(0):cropbottom(0):zoom(1):align(0.5,0.5)
@@ -138,7 +139,7 @@ local af = Def.ActorFrame{
 
 af[#af+1] = Def.Quad{
 	Name="Surface",
-	InitCommand=function(self) self:align(0,0):xy(-8,-8):zoomto(370,374):diffuse(H.Surface):diffusealpha(H.SurfaceAlpha) end,
+	InitCommand=function(self) self:align(0,0):xy(-8,-8):zoomto(370,374):diffuse(previewBackground):diffusealpha(H.SurfaceAlpha) end,
 }
 af[#af+1] = Def.BitmapText{
 	Name="Heading", Font=H.FontBold,
@@ -146,7 +147,7 @@ af[#af+1] = Def.BitmapText{
 }
 af[#af+1] = Def.BitmapText{
 	Name="Count", Font=H.FontBold,
-	InitCommand=function(self) self:xy(354,4):horizalign(right):zoom(H.BoldZoom(0.034)):diffuse(color("#ff4b4b")) end,
+	InitCommand=function(self) self:xy(354,4):horizalign(right):zoom(H.BoldZoom(0.034)):diffuse(color("#ff0000")) end,
 }
 
 af[#af+1] = Def.Quad{
@@ -161,7 +162,7 @@ for i=1,poolCount do
 	row[#row+1] = Def.Quad{InitCommand=function(self) self:align(0,0.5):xy(0,0):zoomto(354,34):diffuse(H.Surface):diffusealpha(i%2==0 and 0.76 or 0.90) end}
 	row[#row+1] = Def.Quad{Name="Fallback", InitCommand=function(self) self:xy(17,0):zoomto(32,32):diffuse(color("#291d20")) end}
 		row[#row+1] = Def.Sprite{Name="Artwork", InitCommand=function(self) self:xy(17,0):visible(false) end}
-	row[#row+1] = Def.BitmapText{Name="Index", Font=H.FontBold, InitCommand=function(self) self:xy(17,0):zoom(H.BoldZoom(0.039)):diffuse(color("#d9666b")):visible(false) end}
+	row[#row+1] = Def.BitmapText{Name="Index", Font=H.FontBold, InitCommand=function(self) self:xy(17,0):zoom(H.BoldZoom(0.039)):diffuse(color("#ff0000")):visible(false) end}
 	row[#row+1] = Def.BitmapText{Name="Title", Font=H.FontBold, InitCommand=function(self) self:xy(40,-6):horizalign(left):zoom(H.BoldZoom(0.047)):diffuse(H.Black) end}
 	row[#row+1] = Def.BitmapText{Name="Artist", Font=H.Font, InitCommand=function(self) self:xy(40,9):horizalign(left):zoom(H.NormalZoom(0.033)):diffuse(H.Muted) end}
 	af[#af+1] = row

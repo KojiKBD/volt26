@@ -83,20 +83,20 @@ local t = Def.ActorFrame{
 	Def.ActorFrame{
 		InitCommand=function(self) self:x(-188) end,
 		Def.Quad{
-			InitCommand=function(self) self:diffuse(0.2,0.2,0.2,1):zoomto(90,38):y(-60) end,
+			InitCommand=function(self) self:diffuse(color("#151515")):zoomto(90,38):y(-60) end,
 			OffCommand=function(self) self:sleep(0.4):linear(0.1):diffusealpha(0) end
 		},
 		Def.Quad{
-			InitCommand=function(self) self:diffuse(0.2,0.2,0.2,1):zoomto(90,38):y(-20) end,
+			InitCommand=function(self) self:diffuse(color("#151515")):zoomto(90,38):y(-20) end,
 			OffCommand=function(self) self:sleep(0.3):linear(0.1):diffusealpha(0) end
 		},
 		Def.Quad{
-			InitCommand=function(self) self:diffuse(0.2,0.2,0.2,1):zoomto(90,38):y(20) end,
+			InitCommand=function(self) self:diffuse(color("#151515")):zoomto(90,38):y(20) end,
 			OnCommand=function(self) if choices[3]==nil then self:visible(false) end end,
 			OffCommand=function(self) self:sleep(0.2):linear(0.1):diffusealpha(0) end
 		},
 		Def.Quad{
-			InitCommand=function(self) self:diffuse(0.2,0.2,0.2,1):zoomto(90,38):y(60) end,
+			InitCommand=function(self) self:diffuse(color("#151515")):zoomto(90,38):y(60) end,
 			OnCommand=function(self) if choices[4]==nil then self:visible(false) end end,
 			OffCommand=function(self) self:sleep(0.1):linear(0.1):diffusealpha(0) end
 		},
@@ -104,12 +104,12 @@ local t = Def.ActorFrame{
 
 	-- border
 	Def.Quad{
-		InitCommand=function(self) self:zoomto(302, 162):diffuse(1,1,1,1) end,
+		InitCommand=function(self) self:zoomto(304, 164):diffuse(color("#413b3c")) end,
 		OffCommand=function(self) self:sleep(0.6):linear(0.2):cropleft(1) end
 	},
 	-- background
 	Def.Quad{
-		InitCommand=function(self) self:zoomto(300, 160):diffuse(0,0,0,1) end,
+		InitCommand=function(self) self:zoomto(300, 160):diffuse(color("#151515")):diffusealpha(0.94) end,
 		OffCommand=function(self) self:sleep(0.6):linear(0.2):cropleft(1) end
 	},
 
@@ -140,7 +140,7 @@ local t = Def.ActorFrame{
 		end,
 
 		Def.Quad{
-			InitCommand=function(self) self:zoomtoheight(cursor.h+2):diffuse(1,1,1,1):x(-1):halign(1) end,
+			InitCommand=function(self) self:zoomtoheight(cursor.h+2):diffuse(color("#ff0000")):x(-1):halign(1) end,
 			UpdateCommand=function(self) self:zoomtowidth( clamp( choice_actors[cursor.index+1]:GetWidth()/1.4, cursor.min_w, cursor.max_w) ) end,
 			OffCommand=function(self) self:sleep(0.4):linear(0.2):cropleft(1) end
 		},

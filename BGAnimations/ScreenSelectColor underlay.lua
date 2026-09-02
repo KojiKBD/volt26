@@ -5,7 +5,7 @@ local wheel = setmetatable({}, sick_wheel_mt)
 -- AND a player pressing start
 local ColorSelected = false
 
-local NumHeartsToDraw = IsUsingWideScreen() and 11 or 7
+local NumHeartsToDraw = IsUsingWideScreen() and 9 or 7
 
 local style = ThemePrefs.Get("VisualStyle")
 
@@ -112,12 +112,12 @@ local wheel_item_mt = {
                 InitCommand=function(subself)
                     self.heart = subself
                     subself:diffusealpha(0)
-                    subself:zoom(0.35)
+                    subself:zoom(0.28)
                     if style == "SRPG10" then
                         subself:zoom(0.6)
                     end
                     if style == "VOLT26" then
-                        subself:zoom(0.35)
+                        subself:zoom(0.28)
                     end
                 end,
                 OnCommand=function(subself)
@@ -146,11 +146,12 @@ local wheel_item_mt = {
             self.container:linear(0.2)
             self.index=item_index
 
-            local X_SpaceBetweenHearts = IsUsingWideScreen() and (_screen.w / (num_items-1)) or (_screen.w / (num_items))
             local OffsetFromCenter = (item_index - math.floor(num_items/2))-1
-            local x = X_SpaceBetweenHearts * OffsetFromCenter
+            local distance = math.abs(OffsetFromCenter)
+            local spacing = IsUsingWideScreen() and SL_WideScale(102,122) or 92
+            local x = spacing * OffsetFromCenter
             local z = -1 * math.abs(OffsetFromCenter)
-            local zoom = IsUsingWideScreen() and (z + math.floor(num_items/2))/4 or (z + math.floor(num_items/2) + 1)/4
+            local zoom = ({0.82,0.62,0.48,0.38})[math.min(distance,3)+1]
 
             if item_index <= 1 or item_index >= num_items then
                 self.container:diffusealpha(0)
@@ -163,8 +164,8 @@ local wheel_item_mt = {
             self.heart:diffuse( color(self.color) )
 
             if IsUsingWideScreen() then
-                local y = (12 * math.pow(OffsetFromCenter,2)) - 20
-                self.container:rotationz( OffsetFromCenter * 15 )
+                local y = (10 * math.pow(OffsetFromCenter,2)) - 12
+                self.container:rotationz( OffsetFromCenter * 8 )
                 self.container:zoom( zoom )
                 self.container:y( y )
 
@@ -262,19 +263,6 @@ if style == "SRPG10" then
             self:wrapwidthpixels(150)
         end
     }
-end
-
-if style == "VOLT26" then
-    t[#t+1] = Def.BitmapText{
-        Font="Persona",
-        Text="TAKE YOUR HEART!",
-        InitCommand=function(self)
-            self:xy(_screen.cx, 80)
-            self:zoom(1.5)
-            self:diffuse(color(SL.VOLT26.TextColor))
-        end
-    }
-
 end
 
 t[#t+1] = LoadActor( THEME:GetPathS("ScreenSelectMaster", "change") )..{ Name="change_sound", IsAction=true, SupportPan=false }
