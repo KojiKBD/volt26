@@ -1,4 +1,4 @@
-local tweentime = 0.325
+local tweentime = 0.30
 
 return Def.ActorFrame{
 	InitCommand=function(self)
@@ -13,27 +13,26 @@ return Def.ActorFrame{
 	end,
 
 	Def.Quad{
-		Name="FadeToBlack",
+		Name="TransitionShade",
 		InitCommand=function(self)
 			self:horizalign(right):vertalign(bottom):FullScreen()
-			self:diffuse( ThemePrefs.Get("RainbowMode") and Color.White or Color.Black ):diffusealpha(0)
+			self:diffuse(color("#090909")):diffusealpha(0)
 		end,
 		OnCommand=function(self)
-			self:sleep(tweentime):linear(tweentime):diffusealpha(1)
+			self:linear(tweentime):diffusealpha(0.92)
 		end
 	},
 
 	Def.Quad{
-		Name="HorizontalWhiteSwoosh",
+		Name="AccentWipe",
 		InitCommand=function(self)
-			self:horizalign(center):vertalign(middle)
-				:diffuse( ThemePrefs.Get("RainbowMode") and Color.Black or Color.White )
-				:zoomto(_screen.w + 100,50):faderight(0.1):fadeleft(0.1):cropright(1)
+			self:x(-_screen.cx-180):rotationz(-8)
+				:diffuse(color("#ff0000")):zoomto(130,_screen.h*1.35)
 		end,
 		OnCommand=function(self)
-			self:linear(tweentime):cropright(0):sleep(tweentime)
-			self:linear(tweentime):cropleft(1)
-			self:sleep(0.1):queuecommand("Load")
+			self:decelerate(tweentime):x(0)
+				:sleep(0.08):accelerate(tweentime):x(_screen.cx+180)
+				:queuecommand("Load")
 		end,
 		LoadCommand=function(self)
 			SCREENMAN:GetTopScreen():Continue()
@@ -44,7 +43,23 @@ return Def.ActorFrame{
 		Font="Common Bold",
 		Text=THEME:GetString("ScreenProfileLoad","Loading Profiles..."),
 		InitCommand=function(self)
-			self:diffuse( ThemePrefs.Get("RainbowMode") and Color.White or Color.Black ):zoom(0.6)
-		end
+			self:y(-4):diffuse(color("#f1eded")):zoom(0.6):diffusealpha(0)
+		end,
+		OnCommand=function(self)
+			self:sleep(0.12):linear(0.16):diffusealpha(1)
+				:sleep(0.20):linear(0.12):diffusealpha(0)
+		end,
+	},
+
+	Def.BitmapText{
+		Font="Common Normal",
+		Text="PREPARING SONG SELECT",
+		InitCommand=function(self)
+			self:y(17):diffuse(color("#989092")):zoom(0.4):diffusealpha(0)
+		end,
+		OnCommand=function(self)
+			self:sleep(0.16):linear(0.16):diffusealpha(1)
+				:sleep(0.16):linear(0.12):diffusealpha(0)
+		end,
 	}
 }

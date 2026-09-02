@@ -1,7 +1,6 @@
 local bg_width = WideScale(287,292)
 local bg_height = 350
 local padding = 10
-
 local explanation_bmt
 
 -- -----------------------------------------------------------------------
@@ -121,7 +120,7 @@ af[#af+1] = Def.BitmapText{
 		explanation_bmt = self
 	end,
 	UpdateCommand=function(self, params)
-		self:settext( THEME:GetString("OptionExplanations", params.Name) ):_wrapwidthpixels(bg_width-padding*2)
+		self:settext(THEME:GetString("OptionExplanations",params.Name)):_wrapwidthpixels(bg_width-padding*2)
 	end
 }
 
@@ -146,7 +145,7 @@ af[#af+1] = Def.BitmapText{
 		-- can vary (sometimes 2 lines, sometimes 3; sometimes different for different localizations)
 		self:y(-bg_height/2 + padding + explanation_bmt:GetHeight())
 
-		self:settext( s ):_wrapwidthpixels(bg_width-padding*2)
+		self:settext(s):_wrapwidthpixels(bg_width-padding*2)
 	end
 }
 

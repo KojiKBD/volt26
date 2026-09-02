@@ -1,5 +1,5 @@
 local transitioning_out = false
-local menuTimerEnabled = VOLT26.MenuTimer.IsEnabled()
+local menuTimerEnabled = VOLT26.MenuTimer.IsEnabledForSongSelect()
 
 local Update = function(self, dt)
 	if transitioning_out then return end

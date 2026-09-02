@@ -7,7 +7,7 @@ local H = {
 	FontBold = "Helvetica Bold",
 	FontZoom = 116 / 28,
 	FontBoldZoom = 116 / 29,
-	P1 = color("#d9666b"),
+	P1 = color("#ff0000"),
 	P2 = color("#6f9fb5"),
 	Black = color("#f6eeee"),
 	White = color("#ffffff"),
@@ -179,6 +179,43 @@ function H.AddRefresh(actor)
 	return actor
 end
 
+function H.AddSettledRefresh(actor, delay, offsetX, offsetY)
+	delay = delay or 0.35
+	offsetX = offsetX or 0
+	offsetY = offsetY or 0
+	local priorInit = actor.InitCommand
+	local function schedule(self)
+		self:stoptweening():linear(0.08):diffusealpha(0)
+			:sleep(math.max(0,delay-0.08)):queuecommand("SettledRefresh")
+	end
+	actor.InitCommand=function(self)
+		if priorInit then priorInit(self) end
+		self._settledX = self:GetX()
+		self._settledY = self:GetY()
+		self:diffusealpha(0)
+	end
+	actor.OnCommand=schedule
+	actor.SettledRefreshCommand=function(self)
+		self:stoptweening():xy(self._settledX or self:GetX(), self._settledY or self:GetY())
+		self:playcommand("Refresh")
+		self._settledX = self:GetX()
+		self._settledY = self:GetY()
+		self:xy(self._settledX+offsetX, self._settledY+offsetY):diffusealpha(0)
+			:decelerate(0.20):xy(self._settledX,self._settledY):diffusealpha(1)
+	end
+	actor.CurrentSongChangedMessageCommand=function(self) H.ChartCache={}; schedule(self) end
+	actor.CurrentCourseChangedMessageCommand=function(self) H.ChartCache={}; schedule(self) end
+	actor.CurrentStepsP1ChangedMessageCommand=function(self) H.ChartCache[PLAYER_1]=nil; schedule(self) end
+	actor.CurrentStepsP2ChangedMessageCommand=function(self) H.ChartCache[PLAYER_2]=nil; schedule(self) end
+	actor.CurrentTrailP1ChangedMessageCommand=function(self) H.ChartCache[PLAYER_1]=nil; schedule(self) end
+	actor.CurrentTrailP2ChangedMessageCommand=function(self) H.ChartCache[PLAYER_2]=nil; schedule(self) end
+	actor.PlayerJoinedMessageCommand=schedule
+	actor.PlayerUnjoinedMessageCommand=schedule
+	actor.PlayerProfileSetMessageCommand=schedule
+	actor.VOLT26SongSelectRefreshMessageCommand=schedule
+	return actor
+end
+
 local af = Def.ActorFrame{
 	Name="VOLT26SongSelect",
 	InitCommand=function(self) self:xy(H.Left, H.Top):zoom(H.Scale) end,
@@ -219,9 +256,14 @@ end
 
 af[#af+1] = LoadActor(componentPath("Frame.lua"), H)
 af[#af+1] = LoadActor(componentPath("FocusedBanner.lua"), H)
-af[#af+1] = LoadActor(componentPath("PreviewBackdrop.lua"), H)
 af[#af+1] = LoadActor(componentPath("SongInfo.lua"), H)
-af[#af+1] = LoadActor(componentPath("ChartPreview.lua"), H)
+local chartPreviewLayer = Def.ActorFrame{
+	Name="ChartPreviewLayer",
+	InitCommand=function(self) self:diffusealpha(0.001) end,
+}
+chartPreviewLayer[#chartPreviewLayer+1] = LoadActor(componentPath("PreviewBackdrop.lua"), H)
+chartPreviewLayer[#chartPreviewLayer+1] = LoadActor(componentPath("ChartPreview.lua"), H)
+af[#af+1] = chartPreviewLayer
 af[#af+1] = LoadActor(componentPath("GroupPreview.lua"), H)
 af[#af+1] = LoadActor(componentPath("DifficultyStrip.lua"), H)
 af[#af+1] = LoadActor(componentPath("PlayerChart.lua"), {H=H, Player=PLAYER_1})

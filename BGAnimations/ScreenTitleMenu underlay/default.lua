@@ -444,7 +444,7 @@ do
         end
     }
 
-    af[#af+1] = calendar
+    -- The home calendar is intentionally hidden in VOLT26.
 end
 
 

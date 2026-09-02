@@ -34,9 +34,9 @@ af[#af+1] = Def.Sprite{
 			self:zoom(0.30):vertalign(top)
 			self:y(-200):shadowlength(0)
 		elseif ThemePrefs.Get("VisualStyle") == "VOLT26" then
-			-- self:Load(THEME:GetPathG("", "VOLT26/"..SL.VOLT26.GetLogo()))
-			-- self:zoom(0.30):vertalign(top)
-			-- self:y(-200):shadowlength(0)
+			self:Load(THEME:GetPathG("", "VOLT26/logo_main (doubleres).png"))
+			self:zoom(0.30):vertalign(middle)
+			self:y(0):shadowlength(0)
 		else
 			local style = ThemePrefs.Get("VisualStyle")
 			local image = THEME:GetPathG("", "_VisualStyles/"..style.."/TitleMenu (doubleres).png")

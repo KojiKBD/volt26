@@ -81,14 +81,19 @@ local FrameBackground = function(c, player, w)
 		-- border
 		Def.Quad{
 			InitCommand=function(self)
-				self:cropbottom(1):zoomto(w+frame.border, frame.h+frame.border)
-				if VOLT26.ThemePrefs.Get("RainbowMode") then self:diffuse(Color.Black) end
+				self:cropbottom(1):zoomto(w+frame.border, frame.h+frame.border):diffuse(color("#413b3c"))
 			end,
 		},
-		-- colored bg
+		-- dark card surface
 		Def.Quad{
 			InitCommand=function(self)
-				self:cropbottom(1):zoomto(w, frame.h):diffuse(c):diffusetopedge(LightenColor(c))
+				self:cropbottom(1):zoomto(w, frame.h):diffuse(color("#151515")):diffusealpha(0.94)
+			end
+		},
+		-- player accent
+		Def.Quad{
+			InitCommand=function(self)
+				self:cropbottom(1):align(0,0.5):x(-w*0.5):zoomto(4,frame.h):diffuse(c)
 			end
 		},
 	}

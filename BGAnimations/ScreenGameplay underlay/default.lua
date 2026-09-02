@@ -1,5 +1,5 @@
 -- if the MenuTimer is enabled, we should reset SSM's MenuTimer now that we've reached Gameplay
-if VOLT26.MenuTimer.IsEnabled() then
+if VOLT26.MenuTimer.IsEnabledForSongSelect() then
 	SL.Global.MenuTimer.ScreenSelectMusic = ThemePrefs.Get("ScreenSelectMusicMenuTimer")
 end
 

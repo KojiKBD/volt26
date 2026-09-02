@@ -1,42 +1,17 @@
--- tables of rgba values
-local dark  = {0,0,0,0.9}
-local light = {0.65,0.65,0.65,1}
+local surface = color("#151515")
+local accent = color("#ff0000")
 
-return Def.Quad{
+return Def.ActorFrame{
 	Name="Footer",
-	InitCommand=function(self)
-		self:draworder(90):zoomto(_screen.w, 32):vertalign(bottom):y(32)
-		if ThemePrefs.Get("VisualStyle") == "SRPG10" then
-			self:diffuse(GetCurrentColor(true))
-		elseif DarkUI() then
-			self:diffuse(dark)
-		elseif ThemePrefs.Get("VisualStyle") == "Technique" then
-			self:diffusealpha(0)
-		else
-			self:diffuse(light)
-		end
-	end,
-	ScreenChangedMessageCommand=function(self)
-		local topscreen = SCREENMAN:GetTopScreen():GetName()
-		if ThemePrefs.Get("VisualStyle") == "SRPG10" then
-			self:diffuse(GetCurrentColor(true))
-		end
-		if ThemePrefs.Get("VisualStyle") == "Technique" then
-			if topscreen == "ScreenSelectMusic" and not ThemePrefs.Get("RainbowMode") then
-				self:diffuse(0, 0, 0, 0.5)
-			else
-				self:diffusealpha(0)
-			end
-		end
-	end,
-	ColorSelectedMessageCommand=function(self)
-		if ThemePrefs.Get("VisualStyle") == "SRPG10" then
-			self:diffuse(GetCurrentColor(true))
-		end
-	end,
-	VisualStyleSelectedMessageCommand=function(self)
-		if ThemePrefs.Get("VisualStyle") == "Technique" then
-			self:diffusealpha(0)
-		end
-	end,
+	InitCommand=function(self) self:draworder(90) end,
+	Def.Quad{
+		InitCommand=function(self)
+			self:align(0.5,1):xy(0,0):zoomto(_screen.w,32):diffuse(surface)
+		end,
+	},
+	Def.Quad{
+		InitCommand=function(self)
+			self:xy(_screen.cx-16,-16):zoomto(8,8):rotationz(45):diffuse(accent)
+		end,
+	},
 }
