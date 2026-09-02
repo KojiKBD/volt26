@@ -7,27 +7,7 @@ local ColorSelected = false
 
 local NumHeartsToDraw = IsUsingWideScreen() and 9 or 7
 
-local style = ThemePrefs.Get("VisualStyle")
-
--- ==========================================
--- HERE IS THE FIX:
--- We tell the game to use SL.VOLT26.Colors if the style is VOLT26
--- ==========================================
-local colorTable
-if style == "SRPG10" then
-    colorTable = SL.SRPG10.Colors
-elseif style == "VOLT26" then
-    colorTable = SL.VOLT26.Colors
-else
-    colorTable = SL.DecorativeColors
-end
-
-local factionBmt
-
-local text
-if style == "Gay" then
-    text = { "I'm gay", "we're gay", "proud", "queer" }
-end
+local colorTable = SL.VOLT26.Colors
 
 -- this handles user input
 -- need to split declaration and assignment up across two lines
@@ -77,9 +57,6 @@ local wheel_item_mt = {
                 Name=name,
                 InitCommand=function(subself)
                     self.container = subself
-                    if style=="Gay" and not HolidayCheer() then
-                        subself:bob():effectmagnitude(0,0,0):effectclock('bgm'):effectperiod(0.666)
-                    end
                 end,
                 OffCommand=function(subself)
                     subself:sleep(0.04 * self.index)
@@ -88,37 +65,11 @@ local wheel_item_mt = {
                 end
             }
 
-            -- af[#af+1] = LoadActor(THEME:GetPathG("", "_VisualStyles/"..style.."/SelectEyeColor.png"))..{
-            --     InitCommand=function(subself)
-            --         self.heart = subself
-            --         subself:diffusealpha(0)
-            --         subself:zoom(0.35)
-            --         if style == "SRPG10" then
-            --             subself:zoom(0.6)
-            --         end
-            --         if style == "VOLT26" then
-            --             subself:zoom(0.6)
-            --         end
-            --     end,
-            --     OnCommand=function(subself)
-            --         subself:sleep(0.2)
-            --         subself:sleep(0.04 * self.index)
-            --         subself:linear(0.2)
-            --         subself:diffusealpha(1)
-            --     end,
-            -- }    
-
             af[#af+1] = LoadActor(THEME:GetPathG("", "VOLT26/SelectColor.png"))..{
                 InitCommand=function(subself)
                     self.heart = subself
                     subself:diffusealpha(0)
                     subself:zoom(0.28)
-                    if style == "SRPG10" then
-                        subself:zoom(0.6)
-                    end
-                    if style == "VOLT26" then
-                        subself:zoom(0.28)
-                    end
                 end,
                 OnCommand=function(subself)
                     subself:sleep(0.2)
@@ -127,16 +78,6 @@ local wheel_item_mt = {
                     subself:diffusealpha(1)
                 end,
             }        
-
-            if style == "Gay" then
-                af[#af+1] = Def.BitmapText{
-                    Font="Common Normal",
-                    InitCommand=function(subself)
-                        self.text = subself
-                        subself:y(-6):diffuse(Color.Black):zoom(1.2)
-                    end
-                }
-            end
 
             return af
         end,
@@ -174,25 +115,13 @@ local wheel_item_mt = {
                 self.container:zoom( zoom )
             end
 
-            if style=="Gay" and item_index == (IsUsingWideScreen() and 6 or 4) then
-                self.container:effectmagnitude(0,4,0)
-            else
-                self.container:effectmagnitude(0,0,0)
-            end
-
-            if style == "SRPG10" and has_focus then
-                local idx = self.color_index % #colorTable + 1
-                factionBmt:settext(SL.SRPG10.GetFactionName(idx))
-            end
+            self.container:effectmagnitude(0,0,0)
         end,
 
         set = function(self, color)
             if not color then return end
             self.color = color
             self.color_index = FindInTable(color, colorTable)
-            if style=="Gay" and type(text)=="table" then
-                self.text:settext(text[(self.color_index - (SL.Global.ActiveColorIndex-(#text-1))) % #text + 1])
-            end
         end
     }
 }
@@ -237,33 +166,6 @@ local t = Def.ActorFrame{
     end,
     wheel:create_actors( "ColorWheel", NumHeartsToDraw, wheel_item_mt, _screen.cx, _screen.cy )
 }
-
-if style == "SRPG10" then
-    t[#t+1] = Def.BitmapText{
-        Font="Common Normal",
-        Text=THEME:GetString("SRPG", "SelectFaction"),
-        InitCommand=function(self)
-            self:xy(_screen.cx, 80)
-            self:zoom(1.5)
-            self:diffuse(color(SL.SRPG10.TextColor))
-            self:shadowlength(0.5)
-        end
-    }
-
-    t[#t+1] = Def.BitmapText{
-        Font="Common Normal",
-        Text="",
-        InitCommand=function(self)
-            factionBmt = self
-
-            self:xy(_screen.cx, _screen.h - 110)
-            self:zoom(2.0)
-            self:diffuse(color(SL.SRPG10.TextColor))
-            self:shadowlength(0.5)
-            self:wrapwidthpixels(150)
-        end
-    }
-end
 
 t[#t+1] = LoadActor( THEME:GetPathS("ScreenSelectMaster", "change") )..{ Name="change_sound", IsAction=true, SupportPan=false }
 t[#t+1] = LoadActor( THEME:GetPathS("common", "start") )..{ Name="start_sound", IsAction=true, SupportPan=false }

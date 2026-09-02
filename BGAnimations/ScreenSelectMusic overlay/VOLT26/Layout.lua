@@ -271,4 +271,8 @@ af[#af+1] = LoadActor(componentPath("PlayerChart.lua"), {H=H, Player=PLAYER_2})
 af[#af+1] = LoadActor(componentPath("PlayerName.lua"), {H=H, Player=PLAYER_1})
 af[#af+1] = LoadActor(componentPath("PlayerName.lua"), {H=H, Player=PLAYER_2})
 
+-- Use Song Select idle time to prepare the small shared gameplay/evaluation
+-- textures before the player confirms a chart.
+af[#af+1] = VOLT26.Warmup.CreateActor("Play", {Interval=0.12})
+
 return af

@@ -62,7 +62,11 @@ Each screen group owns its actors, input callbacks, layout, animation, graphics,
 
 The inherited `SL` namespace, `InitializeSimplyLove`, `SL_CustomPrefs`, and remaining `SL-*` source names are temporary migration adapters. This includes the inherited `VOLT26.Preferences` game-mode scoring table exposed through the `SL` alias. New or migrated preference code must use `VOLT26.ThemePrefs`. An adapter may be removed only after repository scans and runtime verification show that no remaining consumer depends on it.
 
-The `VisualStyle` preference is retained temporarily as a fixed compatibility value for inherited screens. It is not user-selectable and must not be read by new VOLT26 code.
+The inherited `VisualStyle` preference and its runtime assets have been removed. VOLT26 now owns its presentation directly.
+
+## Low-end presentation path
+
+`PerformanceMode` is the default arcade-oriented rendering path. A dedicated pre-intro screen uses an incremental presentation warm-up to decode and upload a bounded manifest of shared UI textures, and advances only after that manifest is complete. Title and Song Select then prepare only the next likely screen group while idle; song banners and jackets are intentionally excluded to avoid unbounded memory use. Performance transitions use primitive geometry over a fully opaque handoff instead of swapping Full HD image sequences. Enhanced mode retains the original image-sequence presentation. This is texture-cache preparation rather than offline shader compilation; ITGmania remains responsible for renderer and driver shader state.
 
 ## Integration order
 

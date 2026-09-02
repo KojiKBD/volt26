@@ -182,9 +182,6 @@ RequestResponseActor = function(x, y)
 					self:zoom(0.15)
 					self:diffuse(GetHexColor(SL.Global.ActiveColorIndex, true))
 				end,
-				VisualStyleSelectedMessageCommand=function(self)
-					self:diffuse(GetHexColor(SL.Global.ActiveColorIndex, true))
-				end
 			},
 			LoadFont("Common Normal")..{
 				InitCommand=function(self)

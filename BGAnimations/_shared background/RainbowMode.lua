@@ -3,6 +3,8 @@
 
 local file = ...
 
+if VOLT26.Performance.IsEnabled() then return Def.ActorFrame{} end
+
 -- this index will be used within the scope of this file like (index+1) and (index-1)
 -- to continue to diffuse each sprite as we shift through the colors available in SL.Colors
 local index = SL.Global.ActiveColorIndex
@@ -14,19 +16,9 @@ local delay = 0
 
 local af1 = Def.ActorFrame{
 	InitCommand=function(self)
-		local style = ThemePrefs.Get("VisualStyle")
-		self:visible(ThemePrefs.Get("RainbowMode") and style ~= "SRPG10")
+		self:visible(ThemePrefs.Get("RainbowMode"))
 	end,
 	OnCommand=function(self) self:Center():bob():effectmagnitude(0,50,0):effectperiod(8) end,
-	VisualStyleSelectedMessageCommand=function(self)
-		local style = ThemePrefs.Get("VisualStyle")
-
-		if ThemePrefs.Get("RainbowMode") and style ~= "SRPG10" then
-			self:visible(true):linear(0.6):diffusealpha(1)
-		else
-			self:linear(0.6):diffusealpha(0):queuecommand("Hide")
-		end
-	end,
 	HideCommand=function(self) self:visible(false) end,
 }
 
@@ -38,13 +30,6 @@ local af2 = Def.ActorFrame{
 		delay = 0.7
 		self:bob():effectmagnitude(0,0,50):effectperiod(12)
 	end,
-	VisualStyleSelectedMessageCommand=function(self)
-		if ThemePrefs.Get("RainbowMode") then
-			local new_file = THEME:GetPathG("", "VOLT26/SharedBackground.png")
-			self:RunCommandsOnChildren(function(child) child:Load(new_file) end)
-		end
-	end,
-
 	LoopCommand=function(self)
 		index = index + 1
 		self:queuecommand("NewColor"):sleep(delay):queuecommand("Loop")

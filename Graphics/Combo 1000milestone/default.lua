@@ -1,4 +1,3 @@
-local style = ThemePrefs.Get("VisualStyle")
 local c = GetCurrentColor(true)
 
 return Def.ActorFrame{

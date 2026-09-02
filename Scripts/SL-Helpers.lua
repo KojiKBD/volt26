@@ -408,7 +408,7 @@ end
 -- -----------------------------------------------------------------------
 -- "The chills, I have them down my spine."
 IsSpooky = function()
-	return (PREFSMAN:GetPreference("EasterEggs") and MonthOfYear()==9 and ThemePrefs.Get("VisualStyle")=="Spooky")
+	return false
 end
 
 -- -----------------------------------------------------------------------
@@ -852,11 +852,9 @@ GetPlayerAF = function(pn)
 end
 
 -- -----------------------------------------------------------------------
--- If the banner is missing, use the VisualStyle fallback banner according to selected color.
+-- If the banner is missing, use VOLT26's fallback banner for the selected color.
 GetFallbackBanner = function()
-    local path = "/" .. THEME:GetCurrentThemeDirectory() .. "Graphics/_FallbackBanners/" .. ThemePrefs.Get("VisualStyle")
-    local banner_directory = FILEMAN:DoesFileExist(path) and path or THEME:GetPathG("", "_FallbackBanners/Arrows")
-
+    local banner_directory = THEME:GetPathG("", "_FallbackBanners/VOLT26")
     return banner_directory .. "/banner" .. SL.Global.ActiveColorIndex .. " (doubleres).png"
 end
 

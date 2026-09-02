@@ -816,6 +816,17 @@ VOLT26.ThemePrefs = {
 	end,
 }
 
+VOLT26.Performance = {}
+
+function VOLT26.Performance.IsEnabled()
+	return VOLT26.ThemePrefs.Get("PerformanceMode") ~= false
+end
+
+function VOLT26.Performance.AllowsRenderTargets()
+	return not VOLT26.Performance.IsEnabled()
+		and VOLT26.Compatibility.SupportsRenderToTexture()
+end
+
 local GrooveStatsCapabilities = {
 	GetScores = "playerScores",
 	Leaderboard = "playerLeaderboards",
@@ -2978,7 +2989,7 @@ local OperatorMenuLines = {
 }
 
 local ThemeOptionLines = {
-	"MusicWheelSpeed", "PreferredStyle", "AllowFailingOutOfSet", "NumberOfContinuesAllowed",
+	"PerformanceMode", "MusicWheelSpeed", "PreferredStyle", "AllowFailingOutOfSet", "NumberOfContinuesAllowed",
 	"SelectProfile", "SelectColor", "SelectPlayMode", "SelectPlayMode2", "EvalSummary",
 	"NameEntry", "GameOver", "HideStockNoteSksins", "DanceSolo", "WriteCustomScores",
 	"KeyboardFeatures", "SampleMusicLoops", "SampleMusicStartsImmediately", "RescoreEarlyHits",

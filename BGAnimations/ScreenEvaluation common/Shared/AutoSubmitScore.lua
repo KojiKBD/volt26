@@ -332,7 +332,6 @@ local af = Def.ActorFrame {
 		-- local eventAf = overlay:GetChild("AutoSubmitMaster"):GetChild("EventOverlay"):GetChild("P1EventAf")
 		-- eventAf:playcommand("Show", {data={
 		-- 	["rpg"] = {
-		-- 		["name"] = "SRPG10",
 		-- 		["result"] = "score-added",
 		-- 		["rpgLeaderboard"] = {
 		-- 			{

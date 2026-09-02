@@ -94,10 +94,16 @@ local af = Def.ActorFrame{
 		self:xy(250,82)
 		self.scrollOffset = 0
 		self.scrollPixels = 0
+		self.scrollElapsed = 0
 		self:SetUpdateFunction(function(frame, delta)
 			if not frame:GetVisible() then return end
 			if not frame.songs or #frame.songs <= rowCount then return end
-			local distance = rowSpacing*(delta or 0)/secondsPerSong
+			frame.scrollElapsed = frame.scrollElapsed + (delta or 0)
+			local interval = VOLT26.Performance.IsEnabled() and (1/30) or 0
+			if frame.scrollElapsed < interval then return end
+			local elapsed = frame.scrollElapsed
+			frame.scrollElapsed = 0
+			local distance = rowSpacing*elapsed/secondsPerSong
 			frame.scrollPixels = frame.scrollPixels+distance
 			for _,row in ipairs(frame.rowOrder or {}) do row:addy(-distance) end
 			while frame.scrollPixels >= rowSpacing do

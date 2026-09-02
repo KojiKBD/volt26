@@ -102,7 +102,13 @@ end
 local af = Def.ActorFrame{
 	InitCommand=function(self)
 		self:visible(false)
-		self:SetUpdateFunction(function(frame)
+		self.focusPollElapsed = 0
+		self:SetUpdateFunction(function(frame, delta)
+			if not frame:GetVisible() then return end
+			frame.focusPollElapsed = frame.focusPollElapsed + (delta or 0)
+			local interval = VOLT26.Performance.IsEnabled() and (1/30) or 0
+			if frame.focusPollElapsed < interval then return end
+			frame.focusPollElapsed = 0
 			local isFocus = focused(frame)
 			if isFocus ~= frame.wasFocus then
 				frame.wasFocus = isFocus

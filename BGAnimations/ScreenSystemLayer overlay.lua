@@ -1,15 +1,7 @@
 -- This is mostly copy/pasted directly from SM5's _fallback theme with
 -- very minor modifications.
 
-local t = Def.ActorFrame{
-	InitCommand=function(self)
-		-- In case we loaded the theme with SRPG10 and had Rainbow Mode enabled, disable it.
-		if ThemePrefs.Get("VisualStyle") == "SRPG10" and ThemePrefs.Get("RainbowMode") == true then
-			ThemePrefs.Set("RainbowMode", false)
-			ThemePrefs.Save()
-		end
-	end
-}
+local t = Def.ActorFrame{}
 
 -- -----------------------------------------------------------------------
 
@@ -20,7 +12,6 @@ local function CreditsText( player )
 			self:name("Credits" .. PlayerNumberToString(player))
 			ActorUtil.LoadAllCommandsAndSetXY(self,Var "LoadingScreen")
 		end,
-		VisualStyleSelectedMessageCommand=function(self) self:playcommand("UpdateVisible") end,
 		UpdateTextCommand=function(self)
 			-- this feels like a holdover from SM3.9 that just never got updated
 			local str = ScreenSystemLayerHelpers.GetCreditsMessage(player)
@@ -48,12 +39,7 @@ local function CreditsText( player )
 				bShow = THEME:GetMetric( screen:GetName(), "ShowCreditDisplay" )
 
 				local screenName = screen:GetName()
-				if screenName == "ScreenTitleMenu" or screenName == "ScreenTitleJoin" or screenName == "ScreenLogo" then
-					if ThemePrefs.Get("VisualStyle") == "SRPG10" then
-						textColor = color(SL.SRPG10.TextColor)
-						shadowLength = 0.4
-					end
-				elseif (screen:GetName() == "ScreenEvaluationStage") or (screen:GetName() == "ScreenEvaluationNonstop") or (screen:GetName() == Branch.GameplayScreen()) then
+				if (screen:GetName() == "ScreenEvaluationStage") or (screen:GetName() == "ScreenEvaluationNonstop") or (screen:GetName() == Branch.GameplayScreen()) then
 					-- ignore ShowCreditDisplay metric for ScreenEval
 					-- only show this BitmapText actor on Evaluation if the player is joined
 					bShow = GAMESTATE:IsHumanPlayer(player)
@@ -137,7 +123,6 @@ t[#t+1] = LoadFont("Common Footer")..{
 	ScreenChangedMessageCommand=function(self) self:playcommand("Refresh") end,
 	CoinModeChangedMessageCommand=function(self) self:playcommand("Refresh") end,
 	CoinsChangedMessageCommand=function(self) self:playcommand("Refresh") end,
-	VisualStyleSelectedMessageCommand=function(self) self:playcommand("Refresh") end,
 
 	RefreshCommand=function(self)
 		local screen = SCREENMAN:GetTopScreen()
@@ -180,14 +165,7 @@ t[#t+1] = LoadFont("Common Footer")..{
 			self:settext('')
 		end
 
-		local textColor = Color.White
-		local screenName = screen:GetName()
-		if screen ~= nil and (screenName == "ScreenTitleMenu" or screenName == "ScreenTitleJoin" or screenName == "ScreenLogo") then
-			if ThemePrefs.Get("VisualStyle") == "SRPG10" then
-				textColor = color(SL.SRPG10.TextColor)
-			end
-		end
-		self:diffuse(textColor)
+		self:diffuse(Color.White)
 	end
 }
 
@@ -336,7 +314,6 @@ t[#t+1] = Def.ActorFrame{
 			self:horizalign(left)
 			DiffuseText(self)
 		end,
-		VisualStyleSelectedMessageCommand=function(self) DiffuseText(self) end,
 		ResetCommand=function(self)
 			self:visible(ThemePrefs.Get("EnableGrooveStats"))
 			self:settext("     GrooveStats")
@@ -350,7 +327,6 @@ t[#t+1] = Def.ActorFrame{
 			self:visible(true):addy(18):horizalign(left)
 			DiffuseText(self)
 		end,
-		VisualStyleSelectedMessageCommand=function(self) DiffuseText(self) end,
 		ResetCommand=function(self) self:settext("") end
 	},
 
@@ -361,7 +337,6 @@ t[#t+1] = Def.ActorFrame{
 			self:visible(true):addy(36):horizalign(left)
 			DiffuseText(self)
 		end,
-		VisualStyleSelectedMessageCommand=function(self) DiffuseText(self) end,
 		ResetCommand=function(self) self:settext("") end
 	},
 
@@ -372,7 +347,6 @@ t[#t+1] = Def.ActorFrame{
 			self:visible(true):addy(54):horizalign(left)
 			DiffuseText(self)
 		end,
-		VisualStyleSelectedMessageCommand=function(self) DiffuseText(self) end,
 		ResetCommand=function(self) self:settext("") end
 	},
 

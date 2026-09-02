@@ -2,6 +2,29 @@
 
 All notable VOLT26 changes are documented here. Versions follow Semantic Versioning; release candidates use the `-rc.N` suffix.
 
+## 0.1.0-rc.3 — 2026-09-02
+
+### Added
+
+- An incremental pre-intro warm-up screen for the shared VOLT26 presentation assets.
+- `PerformanceMode`, an arcade-oriented presentation path that uses bounded texture preparation and lightweight opaque transitions.
+- A Claude-ready project handoff and working guide.
+
+### Changed
+
+- VOLT26 now owns its presentation directly instead of selecting inherited visual styles at runtime.
+- Title and Song Select prepare only their likely next screen groups while idle; song banners and jackets remain demand-loaded.
+- The title presentation includes the VOLT26 letterbox/train composition and the Performance path avoids Full HD image-sequence handoffs.
+
+### Removed
+
+- Inherited visual-style selection, style-specific assets, fallback banners, legacy presentation screens, and their associated menu music.
+
+### Verification
+
+- Static Lua and metrics reference checks completed.
+- Interactive verification on the target low-end arcade computer remains pending.
+
 ## 0.1.0-rc.1 — 2026-08-25
 
 ### Added

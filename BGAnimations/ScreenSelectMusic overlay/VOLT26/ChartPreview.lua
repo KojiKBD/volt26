@@ -333,8 +333,17 @@ local af = Def.ActorFrame{
 		self.previewWarmupFrames = 0
 		self.previewRevealPending = false
 		self.parseGeneration = 0
+		self.advanceElapsed = 0
 		self:queuecommand("Refresh")
-		self:SetUpdateFunction(function(frame, delta) frame:playcommand("Advance", {Delta=delta}) end)
+		self:SetUpdateFunction(function(frame, delta)
+			if not frame:GetVisible() then return end
+			frame.advanceElapsed = frame.advanceElapsed + delta
+			local interval = VOLT26.Performance.IsEnabled() and (1/30) or 0
+			if frame.advanceElapsed < interval then return end
+			local elapsed = frame.advanceElapsed
+			frame.advanceElapsed = 0
+			frame:playcommand("Advance", {Delta=elapsed})
+		end)
 	end,
 	RefreshCommand=function(self)
 		local isSong = H.Item() ~= nil and not GAMESTATE:IsCourseMode()

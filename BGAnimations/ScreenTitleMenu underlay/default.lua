@@ -32,8 +32,9 @@ end
 -- VOLT26 LAYER 1.5: AFTER EFFECTS STAR BURST
 -- ==========================================
 do
+    local performance = VOLT26.Performance.IsEnabled()
     local startNum = 0
-    local endNum = 29 
+    local endNum = 29
     local fDelay = 1 / 20 
     local currentFrame = startNum
 
@@ -45,24 +46,38 @@ do
     -- Loading a new Full HD PNG on every animation tick stalls the screen's
     -- input processing. Keep the same artwork and timing, but warm every
     -- texture before the loop begins so frame changes are cache lookups.
-    local framePaths = {}
-    for frame = startNum, endNum do
-        framePaths[frame] = framePath(frame)
-        if PREFETCHMAN then PREFETCHMAN:Add(framePaths[frame]) end
-    end
+    if performance then
+        -- Keep one correctly indexed transparent frame in low-end mode.
+        -- This preserves the static star burst without decoding/swapping
+        -- thirty Full HD textures during the title screen.
+        af[#af+1] = Def.Sprite{
+            Name="VOLT26_StaticStars",
+            Texture=framePath(startNum),
+            InitCommand=function(self)
+                self:zoomto(_screen.w, _screen.h)
+                self:z(1)
+            end,
+        }
+    else
+        local framePaths = {}
+        for frame = startNum, endNum do
+            framePaths[frame] = framePath(frame)
+            if PREFETCHMAN then PREFETCHMAN:Add(framePaths[frame]) end
+        end
 
-    local starAnim = Def.Sprite{
-        Texture=framePaths[startNum],
-        InitCommand=function(self)
-            self:zoomto(_screen.w, _screen.h) 
-            self:z(1) 
-        end,
-        OnCommand=function(self)
+        local starAnim = Def.Sprite{
+            Texture=framePaths[startNum],
+            InitCommand=function(self)
+                self:zoomto(_screen.w, _screen.h)
+                self:z(1)
+            end,
+        }
+
+        starAnim.OnCommand=function(self)
             self:sleep(fDelay):queuecommand("Animate")
-        end,
+        end
         
-        -- FIX 2: One single, unbreakable looping command
-        AnimateCommand=function(self)
+        starAnim.AnimateCommand=function(self)
             currentFrame = currentFrame + 1
             
             -- If we hit the end, wrap back to 0
@@ -74,9 +89,9 @@ do
             self:Load(framePaths[currentFrame])
             self:sleep(fDelay):queuecommand("Animate")
         end
-    }
 
-    af[#af+1] = starAnim
+        af[#af+1] = starAnim
+    end
 end
 
 -- ==========================================
@@ -202,11 +217,25 @@ do
         Def.Sprite{
             Texture=THEME:GetPathG("", "VOLT26/trainoverlay.png"),
             InitCommand=function(self)
-                self:zoomto(_screen.w + 50, _screen.h + 50)
+                self:scaletoclipped(_screen.w + 32, _screen.h + 32)
             end
         }
     }
+
+    -- Keep the letterbox independent from the train bob so its edges remain
+    -- locked to the display while still drawing above the train artwork.
+    af[#af+1] = Def.Sprite{
+        Name="VOLT26_Letterbox",
+        Texture=THEME:GetPathG("", "VOLT26/black_bars.png"),
+        InitCommand=function(self)
+            self:scaletoclipped(_screen.w + 32, _screen.h + 32)
+        end,
+    }
 end
+
+-- Prepare the profile/color/style flow and Song Select while the player is
+-- idle on the title menu. This actor never renders visible content.
+af[#af+1] = VOLT26.Warmup.CreateActor("Selection", {Interval=0.10})
 
 -- ==========================================
 -- VOLT26 SOUND ACTOR

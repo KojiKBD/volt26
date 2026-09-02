@@ -5,14 +5,11 @@ function GetHexColor( n, decorative )
 	-- if we were passed nil or a non-number, return white
 	if n == nil or type(n) ~= "number" then return Color.White end
 
-	local style = ThemePrefs.Get("VisualStyle")
 	local colorTable = SL.Colors
 	if decorative then
 		colorTable = SL.DecorativeColors
 	end
-	if style == "SRPG10" then
-		colorTable = SL.SRPG10.Colors
-	elseif style == "VOLT26" and SL.VOLT26 and SL.VOLT26.Colors then
+	if SL.VOLT26 and SL.VOLT26.Colors then
 		colorTable = SL.VOLT26.Colors
 	end
 
@@ -21,9 +18,6 @@ function GetHexColor( n, decorative )
 	local clr = ((n - 1) % #colorTable) + 1
 	if colorTable[clr] then
 		local c = color(colorTable[clr])
-		if style == "SRPG10" and not decorative then
-			c = LightenColor(c)
-		end
 		return c
 	end
 

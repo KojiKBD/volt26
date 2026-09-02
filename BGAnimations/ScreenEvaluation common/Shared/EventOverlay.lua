@@ -17,8 +17,13 @@ local SetRpgStyle = function(eventAf)
 	eventAf:GetChild("BackgroundColor2"):visible(true):diffuse(color("1,1,1,0.05")):faderight(0.1):fadeleft(0.1)
 	eventAf:GetChild("HeaderBorder"):diffuse(RpgYellow)
 	
-	local idx = SL.Global.ActiveColorIndex
-	local faction_name = SL.SRPG10.GetFactionName(idx)
+	local factions = {
+		"Stamina Nation",
+		"Democratic People's Republic of Timing",
+		"Footspeed Empire",
+	}
+	local idx = ((SL.Global.ActiveColorIndex - 1) % #factions) + 1
+	local faction_name = factions[idx]
 
 	if faction_name == "Stamina Nation" then
 		eventAf:GetChild("HeaderBackground")
@@ -851,12 +856,10 @@ for player in ivalues(PlayerNumber) do
 		},
 
 		-- Main Black cement background
-		Def.Sprite {
+		Def.Quad {
 			Name="BackgroundImage",
-			Texture=THEME:GetPathG("", "_VisualStyles/SRPG10/Overlay-BG.png"),
 			InitCommand=function(self)
-				-- self:CropTo(paneWidth, paneHeight)
-				self:zoomto(paneWidth, paneHeight)
+				self:zoomto(paneWidth, paneHeight):diffuse(color("#161616"))
 			end
 		},
 

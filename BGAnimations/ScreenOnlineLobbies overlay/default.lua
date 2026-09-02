@@ -1259,9 +1259,6 @@ local af = Def.ActorFrame{
 			InitCommand=function(self)
 				self:x(-118):zoom(0.14):diffuse(GetHexColor(SL.Global.ActiveColorIndex, true)):visible(false)
 			end,
-			VisualStyleSelectedMessageCommand=function(self)
-				self:diffuse(GetHexColor(SL.Global.ActiveColorIndex, true))
-			end
 		},
 		LoadFont("Common Normal")..{
 			Name="StatusText",
