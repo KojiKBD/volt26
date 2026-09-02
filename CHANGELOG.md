@@ -2,7 +2,7 @@
 
 All notable VOLT26 changes are documented here. Versions follow Semantic Versioning; release candidates use the `-rc.N` suffix.
 
-## 0.1.0-rc.3 — 2026-09-02
+## 0.1.0-rc.4 — 2026-09-02
 
 ### Added
 
