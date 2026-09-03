@@ -1,5 +1,6 @@
 local color1 = GetHexColor(VOLT26.State.Global.ActiveColorIndex-2, true)
 local color2 = GetHexColor(VOLT26.State.Global.ActiveColorIndex-1, true)
+local performance = VOLT26.Performance.IsEnabled()
 
 local assets = {}
 assets.flycenter = THEME:GetPathG("", "VOLT26/TitleMenu flycenter")
@@ -18,6 +19,9 @@ t.OffCommand=function(self)
 	self:sleep(timing.duration)
 end
 
+-- Enhanced retains the original flying-shape composition. Performance uses
+-- only the same clean diagonal wipe as ScreenProfileLoad.
+if not performance then
 -- centers
 t[#t+1] = Def.ActorFrame {
 	InitCommand=function(self) self:xy(_screen.cx, _screen.cy+50) end,
@@ -303,49 +307,47 @@ t[#t+1] = Def.ActorFrame {
 	}
 }
 
+end
+
 -- VOLT26 transition animations
 do
 	local knife_delay = 0.35
-	if VOLT26.Performance.IsEnabled() then
-		local cover_time = 0.16
-		timing.duration = knife_delay + cover_time
+	if performance then
+		local wipe_time = 0.30
+		local wipe_pause = 0.08
+		timing.duration = knife_delay + wipe_time + wipe_pause + wipe_time
 
 		t.OffCommand=function(self)
-			VOLT26.State.Global.Volt26TransData = {
-				lightweight=true,
-				reveal_time=0.22,
-			}
+			VOLT26.State.Global.Volt26TransData = nil
 			self:sleep(timing.duration)
 		end
 
-		-- Primitive geometry provides a Persona-style shutter without texture
-		-- decoding or per-frame image replacement.
+		-- Match the text-free ScreenProfileLoad wipe that precedes Song Select.
 		local transition = Def.ActorFrame{
 			Name="VOLT26_PerformanceTransition",
 			InitCommand=function(self) self:draworder(1000) end,
 		}
 		transition[#transition+1] = Def.Quad{
+			Name="TransitionShade",
 			InitCommand=function(self)
 				self:Center():zoomto(_screen.w, _screen.h)
-					:diffuse(Color.Black):diffusealpha(0)
+					:diffuse(color("#090909")):diffusealpha(0)
 			end,
 			OffCommand=function(self)
-				self:sleep(knife_delay):linear(cover_time):diffusealpha(1)
+				self:sleep(knife_delay):linear(wipe_time):diffusealpha(0.92)
 			end,
 		}
-		for _, y in ipairs({-_screen.h * 0.19, _screen.h * 0.19}) do
-			local lineY = y
-			transition[#transition+1] = Def.Quad{
-				InitCommand=function(self)
-					self:xy(_screen.cx, _screen.cy + lineY):zoomto(0, 8)
-						:diffuse(color("#FF0000")):diffusealpha(0)
-				end,
-				OffCommand=function(self)
-					self:sleep(knife_delay):diffusealpha(1)
-						:accelerate(cover_time):zoomtowidth(_screen.w)
-				end,
-			}
-		end
+		transition[#transition+1] = Def.Quad{
+			Name="AccentWipe",
+			InitCommand=function(self)
+				self:xy(-180, _screen.cy):rotationz(-8)
+					:diffuse(color("#ff0000")):zoomto(130, _screen.h*1.35)
+			end,
+			OffCommand=function(self)
+				self:sleep(knife_delay):decelerate(wipe_time):x(_screen.cx)
+					:sleep(wipe_pause):accelerate(wipe_time):x(_screen.w+180)
+			end,
+		}
 		t[#t+1] = transition
 	else
 		local frame_time = 1/30
