@@ -114,9 +114,8 @@ do
             self:y(-10) -- <--- ADDED THIS: Moves the whole track up by 50 pixels
         end,
         OffCommand=function(self)
-            -- The lightweight transition is deliberately text-free. Enhanced
-            -- mode retains the existing menu-art exit composition.
-            if VOLT26.Performance.IsEnabled() then self:visible(false) end
+            -- Keep both transition styles free of the large menu-label art.
+            self:visible(false)
         end,
     }
 
