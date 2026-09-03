@@ -1242,6 +1242,40 @@ VOLT26.MusicSelection = {}
 -- both have to share the offset.
 VOLT26.MusicSelection.WheelSongIndent = 40
 
+local rootSongGroupCount
+
+local function getRootSongGroupCount()
+	if rootSongGroupCount ~= nil then return rootSongGroupCount end
+	local ok, groups = pcall(function() return SONGMAN:GetSongGroupNames() end)
+	rootSongGroupCount = ok and groups and #groups or 0
+	return rootSongGroupCount
+end
+
+function VOLT26.MusicSelection.PositionWheelItem(self, offsetFromCenter)
+	self.VOLT26Offset = offsetFromCenter
+	local distance = math.abs(offsetFromCenter)
+	local direction = offsetFromCenter < 0 and -1 or 1
+	local screen = SCREENMAN:GetTopScreen()
+	local wheel = screen and screen.GetMusicWheel and screen:GetMusicWheel()
+	local selectedType = wheel and wheel:GetSelectedType()
+	local atPackRoot = selectedType == "WheelItemDataType_Section"
+		or selectedType == "WheelItemDataType_ParentSection"
+
+	-- With exactly two root packs, MusicWheel repeats A/B across its actor pool.
+	-- Reserving extra height only beside the focused actor then produces an
+	-- alternating 76/46 rhythm.  Give every repeated row the focused-row pitch
+	-- at this boundary; normal lists and expanded packs retain the compact rail.
+	local y
+	if atPackRoot and getRootSongGroupCount() == 2 then
+		y = offsetFromCenter * 76
+	else
+		local focusGap = math.min(distance, 1) * 30
+		y = offsetFromCenter * 46 + direction * focusGap
+	end
+	local edgeFade = math.max(0.55, 1 - math.max(0, distance - 2) * 0.16)
+	self:y(y):diffusealpha(edgeFade)
+end
+
 function VOLT26.MusicSelection.GetMusicRate()
 	return VOLT26.MusicSelection.NormalizeMusicRate(VOLT26.State.Global.ActiveModifiers.MusicRate)
 end
