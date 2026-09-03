@@ -117,6 +117,11 @@ do
             -- Keep both transition styles free of the large menu-label art.
             self:visible(false)
         end,
+        VOLT26_ImpactMessageCommand=function(self)
+            -- OffCommand can arrive after the first transition frame. Hide the
+            -- selected label as soon as the confirm impact lands instead.
+            self:visible(false)
+        end,
     }
 
     for i, img_path in ipairs(text_images) do
