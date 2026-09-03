@@ -3,7 +3,11 @@ local H = args.H
 local player = args.Player
 local pn = ToEnumShortString(player)
 local accent = H.Accent(player)
-local graphW = 186
+-- The right column runs from the preview panel's edge (612) to the screen
+-- margin, so the card claims the 28 unused units on its left and keeps equal
+-- 12 unit gutters on both sides.  Everything inside is padded 8 from the box.
+local cardW = 218
+local graphW = cardW - 16
 
 local function hasNonASCII(text)
 	return tostring(text or ""):find("[\128-\255]") ~= nil
@@ -56,22 +60,27 @@ local af = Def.ActorFrame{
 		local panelY = single and 133 or (player == PLAYER_1 and 126 or 286)
 		local panelH = single and 289 or 152
 		local graphTop = single and 78 or 63
-		local graphH = single and 70 or 24
-		self:xy(640, panelY)
+		-- Single player had 64 units of empty box below the stats; the graph
+		-- takes most of it back rather than leaving the card looking unfinished.
+		local graphH = single and 100 or 24
+		self:xy(624, panelY)
 
-		self:GetChild("Background"):zoomto(202,panelH)
+		self:GetChild("Background"):zoomto(cardW,panelH)
 
 		local chart = H.Chart(player)
 		local data = H.ChartData(player)
 		local difficulty = chart and ToEnumShortString(chart:GetDifficulty()):upper() or H.Dash
 		local difficultyColor = chart and VOLT26.ChartData.GetDifficultyColor(chart:GetDifficulty()) or accent
-		self:GetChild("PlayerLabel"):settext(H.PlayerName(player)):maxwidth(62/H.BoldZoom(0.045))
+		self:GetChild("PlayerLabel"):settext(H.PlayerName(player)):maxwidth(66/H.BoldZoom(0.058))
 		self:GetChild("Difficulty"):settext(difficulty):diffuse(H.Muted)
 		self:GetChild("Meter"):settext(chart and chart:GetMeter() or H.Dash):diffuse(difficultyColor)
-		setLocalizedText(self, "Description", "DescriptionCJK", chartLabel(chart), H.BoldZoom(0.045), 0.42, 183)
-		setLocalizedText(self, "Author", "AuthorCJK", authorLabel(chart), H.NormalZoom(0.036), 0.32, 82)
+		setLocalizedText(self, "Description", "DescriptionCJK", chartLabel(chart), H.BoldZoom(0.052), 0.48, 199)
+		setLocalizedText(self, "Author", "AuthorCJK", authorLabel(chart), H.NormalZoom(0.041), 0.37, 88)
+		-- Grouped with plain spacing like the NOTES / JUMPS line below instead of
+		-- dashes: the row only affords 106 units, and the separators cost more
+		-- of them than the numbers they were framing.
 		self:GetChild("Info"):settext(string.format(
-			"BPM %s   -   LENGTH %s   -   RATE %.2fx",
+			"BPM %s   LENGTH %s   RATE %.2fx",
 			H.BPM(player, chart), H.Length(), VOLT26.MusicSelection.GetMusicRate()))
 
 		local graph = self:GetChild("Graph")
@@ -90,7 +99,7 @@ local af = Def.ActorFrame{
 		local afterGraph = graphTop + graphH
 		local tech = #data.tech > 0 and table.concat(data.tech, "   ") or "NO TECH ANNOTATIONS"
 		self:GetChild("TechTitle"):xy(8,afterGraph+18):settext("TECH")
-		self:GetChild("Tech"):xy(8,afterGraph+32):settext(tech):maxwidth(184/H.BoldZoom(0.038))
+		self:GetChild("Tech"):xy(8,afterGraph+32):settext(tech):maxwidth(200/H.BoldZoom(0.044))
 		self:GetChild("Stats"):xy(8,afterGraph+50):settext(string.format(
 			"NOTES %d   JUMPS %d   HOLDS %d   MINES %d",
 			data.notes or 0, data.jumps or 0, data.holds or 0, data.mines or 0))
@@ -104,35 +113,35 @@ af[#af+1] = Def.Quad{Name="Background", InitCommand=function(self) self:align(0,
 
 af[#af+1] = Def.BitmapText{
 	Name="PlayerLabel", Font=H.FontBold, Text=pn,
-	InitCommand=function(self) self:xy(8,12):horizalign(left):zoom(H.BoldZoom(0.050)):diffuse(H.Black) end,
+	InitCommand=function(self) self:xy(8,12):horizalign(left):zoom(H.BoldZoom(0.058)):diffuse(H.Black) end,
 }
 af[#af+1] = Def.BitmapText{
 	Name="Difficulty", Font=H.FontBold,
-	InitCommand=function(self) self:xy(76,12):horizalign(left):zoom(H.BoldZoom(0.050)):diffuse(H.Muted):maxwidth(96/H.BoldZoom(0.050)) end,
+	InitCommand=function(self) self:xy(76,12):horizalign(left):zoom(H.BoldZoom(0.058)):diffuse(H.Muted):maxwidth(96/H.BoldZoom(0.058)) end,
 }
 af[#af+1] = Def.BitmapText{
 	Name="Meter", Font=H.FontBold,
-	InitCommand=function(self) self:xy(192,12):horizalign(right):zoom(H.BoldZoom(0.080)):diffuse(accent) end,
+	InitCommand=function(self) self:xy(210,12):horizalign(right):zoom(H.BoldZoom(0.092)):diffuse(accent) end,
 }
 af[#af+1] = Def.BitmapText{
 	Name="Description", Font=H.FontBold,
-	InitCommand=function(self) self:xy(8,29):horizalign(left):zoom(H.BoldZoom(0.045)):diffuse(H.Black) end,
+	InitCommand=function(self) self:xy(8,29):horizalign(left):zoom(H.BoldZoom(0.052)):diffuse(H.Black) end,
 }
 af[#af+1] = Def.BitmapText{
 	Name="DescriptionCJK", Font="Common Normal",
-	InitCommand=function(self) self:xy(8,29):horizalign(left):zoom(0.42):diffuse(H.Black):visible(false) end,
+	InitCommand=function(self) self:xy(8,29):horizalign(left):zoom(0.48):diffuse(H.Black):visible(false) end,
 }
 af[#af+1] = Def.BitmapText{
 	Name="Author", Font=H.Font,
-	InitCommand=function(self) self:xy(8,43):horizalign(left):zoom(H.NormalZoom(0.036)):diffuse(H.Muted) end,
+	InitCommand=function(self) self:xy(8,43):horizalign(left):zoom(H.NormalZoom(0.041)):diffuse(H.Muted) end,
 }
 af[#af+1] = Def.BitmapText{
 	Name="AuthorCJK", Font="Common Normal",
-	InitCommand=function(self) self:xy(8,43):horizalign(left):zoom(0.32):diffuse(H.Muted):visible(false) end,
+	InitCommand=function(self) self:xy(8,43):horizalign(left):zoom(0.37):diffuse(H.Muted):visible(false) end,
 }
 af[#af+1] = Def.BitmapText{
-	Name="Info", Font=H.Font,
-	InitCommand=function(self) self:xy(194,43):horizalign(right):zoom(H.NormalZoom(0.031)):diffuse(H.Muted):maxwidth(106/H.NormalZoom(0.031)) end,
+	Name="Info", Font=H.FontBold,
+	InitCommand=function(self) self:xy(210,43):horizalign(right):zoom(H.BoldZoom(0.042)):diffuse(H.Black):maxwidth(112/H.BoldZoom(0.042)) end,
 }
 
 for i=0,4 do
@@ -148,23 +157,23 @@ af[#af+1] = Def.ActorMultiVertex{
 }
 af[#af+1] = Def.BitmapText{
 	Name="GraphLabel", Font=H.FontBold,
-	InitCommand=function(self) self:horizalign(left):zoom(H.BoldZoom(0.034)):diffuse(H.Muted) end,
+	InitCommand=function(self) self:horizalign(left):zoom(H.BoldZoom(0.039)):diffuse(H.Muted) end,
 }
 af[#af+1] = Def.BitmapText{
 	Name="Stats", Font=H.Font,
-	InitCommand=function(self) self:horizalign(left):zoom(H.NormalZoom(0.038)):diffuse(H.Black):maxwidth(184/H.NormalZoom(0.038)) end,
+	InitCommand=function(self) self:horizalign(left):zoom(H.NormalZoom(0.044)):diffuse(H.Black):maxwidth(200/H.NormalZoom(0.044)) end,
 }
 af[#af+1] = Def.BitmapText{
 	Name="TechTitle", Font=H.FontBold,
-	InitCommand=function(self) self:horizalign(left):zoom(H.BoldZoom(0.045)):diffuse(H.Black) end,
+	InitCommand=function(self) self:horizalign(left):zoom(H.BoldZoom(0.052)):diffuse(H.Black) end,
 }
 af[#af+1] = Def.BitmapText{
 	Name="Tech", Font=H.FontBold,
-	InitCommand=function(self) self:horizalign(left):zoom(H.BoldZoom(0.038)):diffuse(H.Black) end,
+	InitCommand=function(self) self:horizalign(left):zoom(H.BoldZoom(0.044)):diffuse(H.Black) end,
 }
 af[#af+1] = Def.BitmapText{
 	Name="Extra", Font=H.Font,
-	InitCommand=function(self) self:horizalign(left):zoom(H.NormalZoom(0.038)):diffuse(H.Black) end,
+	InitCommand=function(self) self:horizalign(left):zoom(H.NormalZoom(0.044)):diffuse(H.Black) end,
 }
 H.AddSettledRefresh(af, 0.35, 16, 0)
 return af
