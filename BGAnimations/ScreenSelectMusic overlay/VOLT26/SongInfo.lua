@@ -15,7 +15,7 @@ end
 
 local af = Def.ActorFrame{
 	Name="SongInfo",
-	InitCommand=function(self) self:xy(640,18) end,
+	InitCommand=function(self) self:xy(624,18) end,
 	RefreshCommand=function(self)
 		local item = H.Item()
 		local sourcePlayer, sourceChart = H.PreviewSource()
@@ -23,15 +23,15 @@ local af = Def.ActorFrame{
 		local title = self:GetChild("Title")
 		title:zoom(titleZoom):settext(H.Title(item))
 		local titleWidth = title:GetZoomedWidth()
-		if titleWidth > 201 then title:zoom(titleZoom * 201/titleWidth) end
-		setLocalizedText(self, "Artist", "ArtistCJK", H.Artist(item), H.NormalZoom(0.065), 0.48, 201)
+		if titleWidth > 217 then title:zoom(titleZoom * 217/titleWidth) end
+		setLocalizedText(self, "Artist", "ArtistCJK", H.Artist(item), H.NormalZoom(0.065), 0.48, 217)
 		local author = sourceChart and sourceChart.GetAuthorCredit and sourceChart:GetAuthorCredit() or ""
 		local description = sourceChart and sourceChart.GetDescription and sourceChart:GetDescription() or ""
 		local details = {}
 		if author ~= "" then details[#details+1] = "STEP ARTIST  "..author end
 		if description ~= "" and description ~= author then details[#details+1] = description end
 		if sourceChart then details[#details+1] = "BPM "..H.BPM(sourcePlayer, sourceChart) end
-		setLocalizedText(self, "Details", "DetailsCJK", table.concat(details, "   -   "), H.NormalZoom(0.037), 0.34, 201)
+		setLocalizedText(self, "Details", "DetailsCJK", table.concat(details, "   -   "), H.NormalZoom(0.037), 0.34, 217)
 	end,
 }
 
