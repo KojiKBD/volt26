@@ -1,10 +1,13 @@
-local color1 = GetHexColor(VOLT26.State.Global.ActiveColorIndex-2, true)
-local color2 = GetHexColor(VOLT26.State.Global.ActiveColorIndex-1, true)
-
+local performance = VOLT26.Performance.IsEnabled()
+local color1, color2
 local assets = {}
-assets.flycenter = THEME:GetPathG("", "VOLT26/TitleMenu flycenter")
-assets.flytop    = THEME:GetPathG("", "VOLT26/TitleMenu flytop")
-assets.flybottom = THEME:GetPathG("", "VOLT26/TitleMenu flybottom")
+if not performance then
+	color1 = GetHexColor(VOLT26.State.Global.ActiveColorIndex-2, true)
+	color2 = GetHexColor(VOLT26.State.Global.ActiveColorIndex-1, true)
+	assets.flycenter = THEME:GetPathG("", "VOLT26/TitleMenu flycenter")
+	assets.flytop    = THEME:GetPathG("", "VOLT26/TitleMenu flytop")
+	assets.flybottom = THEME:GetPathG("", "VOLT26/TitleMenu flybottom")
+end
 
 local timing = {}
 timing.af_decel = 0.4
@@ -18,6 +21,10 @@ t.OffCommand=function(self)
 	self:sleep(timing.duration)
 end
 
+-- Enhanced mode retains the original flying-shape composition. Performance
+-- mode never constructs these actors, leaving one consistent text-free
+-- transition for every title-menu destination.
+if not performance then
 -- centers
 t[#t+1] = Def.ActorFrame {
 	InitCommand=function(self) self:xy(_screen.cx, _screen.cy+50) end,
@@ -303,10 +310,12 @@ t[#t+1] = Def.ActorFrame {
 	}
 }
 
+end
+
 -- VOLT26 transition animations
 do
 	local knife_delay = 0.35
-	if VOLT26.Performance.IsEnabled() then
+	if performance then
 		local cover_time = 0.16
 		timing.duration = knife_delay + cover_time
 

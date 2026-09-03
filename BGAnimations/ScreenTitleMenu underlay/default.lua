@@ -112,7 +112,12 @@ do
         OnCommand=function(self)
             self:x(0) 
             self:y(-10) -- <--- ADDED THIS: Moves the whole track up by 50 pixels
-        end
+        end,
+        OffCommand=function(self)
+            -- The lightweight transition is deliberately text-free. Enhanced
+            -- mode retains the existing menu-art exit composition.
+            if VOLT26.Performance.IsEnabled() then self:visible(false) end
+        end,
     }
 
     for i, img_path in ipairs(text_images) do
