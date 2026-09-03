@@ -92,6 +92,11 @@ VOLT26_Prefs.Get = function()
 			},
 			Values = { true, false }
 		},
+		PerformanceModeConfigured = {
+			Default = false,
+			Choices = { true, false },
+			Values = { true, false }
+		},
 		RainbowMode = {
 			Default = false,
 			Choices = {

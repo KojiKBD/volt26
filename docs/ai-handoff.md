@@ -46,7 +46,8 @@ The worktree is intentionally dirty and contains **478 changed files**: 52 modif
 The active slice removes the inherited `VisualStyle` preference and its runtime assets, makes VOLT26 presentation direct-owned, and adds a low-end presentation path:
 
 - `PerformanceMode` is a persistent theme preference and defaults to the arcade-oriented path.
-- `metrics.ini` now enters through `ScreenVOLT26Warmup`.
+- `metrics.ini` now enters through a one-time Performance/Enhanced choice, then routes through `ScreenVOLT26Warmup` on this and later launches.
+- `BGAnimations/ScreenVOLT26PerformanceSetup overlay.lua` presents the lightweight first-run choice and persists it before warm-up and intro assets load.
 - `BGAnimations/ScreenVOLT26Warmup overlay/default.lua` waits for a bounded core warm-up and a minimum display time before routing to `ScreenInit`.
 - `Scripts/VOLT26_Warmup.lua` supplies incremental warm-up actors; title and song select prepare only likely next screen groups while idle.
 - Performance transitions use primitive, opaque handoffs rather than Full HD image sequences. Enhanced mode retains the image sequence path.

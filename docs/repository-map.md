@@ -77,6 +77,7 @@ Keep this map current whenever directories are added, removed, or given a materi
 - `ScreenEditMenu underlay/`: edit-menu layout and last-song state.
 - `ScreenMemoryCard overlay/`, `ScreenMapControllers...`, `ScreenTestInput...`, `ScreenViewDownloads overlay/`: memory-card, controller mapping, input diagnosis, and download-status screens.
 - `ScreenPrompt...`, `ScreenMiniMenu...`, `ScreenTextEntry...`: prompts, compact menus, and text entry.
+- `ScreenVOLT26PerformanceSetup overlay.lua`: lightweight one-time Performance/Enhanced choice shown before warm-up and intro loading.
 - `ScreenVOLT26Warmup overlay/`: VOLT26 warm-up screen.
 
 ### Song selection

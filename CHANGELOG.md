@@ -8,6 +8,7 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 - An incremental pre-intro warm-up screen for the shared VOLT26 presentation assets.
 - `PerformanceMode`, an arcade-oriented presentation path that uses bounded texture preparation and lightweight opaque transitions.
+- A first-run setup screen that explains and saves the choice between Performance and Enhanced before warm-up and intro loading begins.
 - A Claude-ready project handoff and working guide.
 
 ### Changed
