@@ -360,21 +360,6 @@ local af = Def.ActorFrame{
 			end
 		end
 	},
-	-- SRPG Logo
-	Def.Sprite{
-		Texture=THEME:GetPathG("", "_VisualStyles/SRPG10/logo_alt (doubleres).png"),
-		Name="SRPG10Logo",
-		InitCommand=function(self)
-			self:diffusealpha(0.4):zoom(0.07):diffusealpha(0)
-		end,
-		LoopScoreboxCommand=function(self)
-			if cur_style == 2 then
-				self:linear(transition_seconds/2):diffusealpha(0.5)
-			else
-				self:sleep(transition_seconds/2):linear(transition_seconds/2):diffusealpha(0)
-			end
-		end
-	},
 	-- ITL Logo
 	Def.Sprite{
 		Texture=THEME:GetPathG("", "ITL.png"),

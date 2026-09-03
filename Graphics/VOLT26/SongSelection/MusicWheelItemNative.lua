@@ -9,6 +9,7 @@ local railRed = color("#840000")
 local focusRed = color("#ff0000")
 local black = color("#f6eeee")
 local muted = color("#bdaeb0")
+local songIndent = VOLT26.MusicSelection.WheelSongIndent
 
 local function hasNonASCII(text)
 	return tostring(text or ""):find("[\128-\255]") ~= nil
@@ -29,7 +30,25 @@ local function selectedType()
 	return wheel and wheel:GetSelectedType(), wheel
 end
 
+-- MusicWheel wraps short lists, so one pack or song can hold several rows at
+-- once.  GAMESTATE cannot tell those copies apart, and every copy claiming
+-- focus stacked the tall focused artwork over its neighbours.  The wheel's
+-- transform function stamps each row with its distance from the centre, which
+-- is the only per-row identity the engine hands out.
+local function isCenterRow(self)
+	local node = self:GetParent()
+	while node do
+		local offset = node.VOLT26Offset
+		-- Mid-scroll two rows sit within one step of the centre; the GAMESTATE
+		-- check below picks the right one, and duplicates are always further.
+		if offset then return math.abs(offset) < 1 end
+		node = node.GetParent and node:GetParent() or nil
+	end
+	return true
+end
+
 local function focused(self)
+	if not isCenterRow(self) then return false end
 	local selected, wheel = selectedType()
 	if self.song then return selected == "WheelItemDataType_Song" and GAMESTATE:GetCurrentSong() == self.song end
 	if self.course then return selected == "WheelItemDataType_Course" and GAMESTATE:GetCurrentCourse() == self.course end
@@ -102,7 +121,13 @@ end
 local af = Def.ActorFrame{
 	InitCommand=function(self)
 		self:visible(false)
-		self:SetUpdateFunction(function(frame)
+		self.focusPollElapsed = 0
+		self:SetUpdateFunction(function(frame, delta)
+			if not frame:GetVisible() then return end
+			frame.focusPollElapsed = frame.focusPollElapsed + (delta or 0)
+			local interval = VOLT26.Performance.IsEnabled() and (1/30) or 0
+			if frame.focusPollElapsed < interval then return end
+			frame.focusPollElapsed = 0
 			local isFocus = focused(frame)
 			if isFocus ~= frame.wasFocus then
 				frame.wasFocus = isFocus
@@ -154,6 +179,9 @@ local af = Def.ActorFrame{
 		local fallback = self:GetChild("ArtworkFallback")
 		local packMark = self:GetChild("PackMark")
 		local stroke = self:GetChild("ArtworkStroke")
+		-- Pack headers stay on the rail and songs step right of it, so an
+		-- expanded pack is obvious without reading a single title.
+		local indent = kind == "Section" and 0 or songIndent
 		if self.section then
 			title:settext(on and self.sectionTitle or compactSectionLabel(self.sectionTitle))
 			latinArtist:settext("PACK   -   "..self.sectionSongCount.." SONGS")
@@ -194,12 +222,20 @@ local af = Def.ActorFrame{
 
 		local dot = self:GetChild("Dot")
 		dot:SetNumVertices(18):SetVertices(circleVertices(on and 7 or 3, on and focusRed or railRed))
-		self:GetChild("SelectionTick"):visible(on)
+		-- The dots stay in one column, so every indented row grows a branch back
+		-- to the rail.  Idle branches wear the rail's own dark red and sit
+		-- thinner than the selected one, which keeps the bright red the only
+		-- thing competing for attention.  Each starts at its dot's edge.
+		local branch = self:GetChild("RailBranch")
+		local branchStart = on and 7 or 3
+		branch:visible(on or indent > 0):xy(branchStart,0)
+			:zoomto(24+indent-branchStart-1, on and 2 or 1.5)
+			:diffuse(on and focusRed or railRed)
 		stroke:visible(self.section ~= nil):diffuse(on and focusRed or railRed)
 		if on then
-			centerCrop(art,24,-38,132,56)
-			fallback:align(0,0):xy(24,-38):zoomto(132,56)
-			stroke:align(0,0):xy(23,-39):zoomto(134,58)
+			centerCrop(art,24+indent,-38,132,56)
+			fallback:align(0,0):xy(24+indent,-38):zoomto(132,56)
+			stroke:align(0,0):xy(23+indent,-39):zoomto(134,58)
 			if self.section then
 				-- Explicitly reuse the same actors as a focused song.  MusicWheel
 				-- recycles these rows, so leaving the compact title actor around is
@@ -208,19 +244,19 @@ local af = Def.ActorFrame{
 				artist:settext("PACK   -   "..self.sectionSongCount.." SONGS"):visible(true):horizalign(left):xy(24,46):zoom(0.041*fontZoom):maxwidth(226/(0.041*fontZoom)):diffuse(muted)
 				packMark:xy(90,-10):zoom(0.052*boldFontZoom):maxwidth(104/(0.052*boldFontZoom))
 			else
-				title:horizalign(left):xy(24,30):zoom(0.070*boldFontZoom):maxwidth(226/(0.070*boldFontZoom)):diffuse(black)
+				title:horizalign(left):xy(24+indent,30):zoom(0.070*boldFontZoom):maxwidth((226-indent)/(0.070*boldFontZoom)):diffuse(black)
 				local zoom = self.artistUsesCJK and 0.42 or 0.041*fontZoom
-				artist:horizalign(left):xy(24,46):zoom(zoom):maxwidth(226/zoom):diffuse(muted)
+				artist:horizalign(left):xy(24+indent,46):zoom(zoom):maxwidth((226-indent)/zoom):diffuse(muted)
 				packMark:visible(false)
 			end
 		else
-			centerCrop(art,24,-14,28,28)
-			fallback:align(0,0):xy(24,-14):zoomto(28,28)
-			stroke:align(0,0):xy(23,-15):zoomto(30,30)
+			centerCrop(art,24+indent,-14,28,28)
+			fallback:align(0,0):xy(24+indent,-14):zoomto(28,28)
+			stroke:align(0,0):xy(23+indent,-15):zoomto(30,30)
 			local zoom = self.artistUsesCJK and 0.38 or 0.037*fontZoom
-			artist:horizalign(left):xy(59,-7):zoom(zoom):maxwidth((self.section and 142 or 184)/zoom):diffuse(muted)
-			title:horizalign(left):xy(59,8):zoom(0.058*boldFontZoom):maxwidth((self.section and 142 or 184)/(0.058*boldFontZoom)):diffuse(black)
-			packMark:xy(38,0):zoom(0.025*boldFontZoom):maxwidth(24/(0.025*boldFontZoom))
+			artist:horizalign(left):xy(59+indent,-7):zoom(zoom):maxwidth(((self.section and 142 or 184)-indent)/zoom):diffuse(muted)
+			title:horizalign(left):xy(59+indent,8):zoom(0.058*boldFontZoom):maxwidth(((self.section and 142 or 184)-indent)/(0.058*boldFontZoom)):diffuse(black)
+			packMark:xy(38+indent,0):zoom(0.025*boldFontZoom):maxwidth(24/(0.025*boldFontZoom))
 		end
 		-- FocusedBanner.lua is the sole owner of selected song banners.  Keeping
 		-- this wheel copy visible underneath it produces a doubled, horizontally
@@ -235,7 +271,7 @@ local af = Def.ActorFrame{
 }
 
 af[#af+1] = Def.Quad{
-	Name="SelectionTick",
+	Name="RailBranch",
 	InitCommand=function(self) self:align(0,0.5):xy(7,0):zoomto(16,2):diffuse(focusRed):visible(false) end,
 }
 af[#af+1] = Def.ActorMultiVertex{

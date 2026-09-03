@@ -1,10 +1,10 @@
--- the logo for kb7 is dynamically generated out of a png image
--- with icons from SL's current VisualStyle overlaid
+-- the logo for kb7 is dynamically generated from a png image
+-- with VOLT26 color icons overlaid
 local af = Def.ActorFrame{}
 
 af.InitCommand=function(self)
 	-- get a reference to the SIMPLY [something] graphic
-	-- it's rasterized text in the Wendy font like "SIMPLY LOVE" or "SIMPLY THONK" or etc.
+	-- use the title logo width as the sizing reference
 	local simply = self:GetParent():GetChild("Simply Text")
 	local logo   = self:GetChild("Logo"):GetTexture()
 
@@ -26,7 +26,6 @@ af[#af+1] = LoadActor("./kb7.png")..{ Name="Logo" }
 
 -- -----------------------------------------------------------------------
 
-local style = ThemePrefs.Get("VisualStyle")
 local stylepath = THEME:GetPathG("", "VOLT26/SelectColor.png")
 
 -- the kb7 asset features 7 icons of unequal width and spacing
@@ -42,7 +41,7 @@ local middle_width = (256 / 2) + 28
 -- zoom
 local z = 0.09
 
--- overlay the SelectColor icon from the current VisualStyle 7 times
+-- overlay the VOLT26 SelectColor icon 7 times
 af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(SL.Colors[12])):x(-(2*gap + 2.5*icon_width + middle_width)) end }
 af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(SL.Colors[ 2])):x(-(1*gap + 1.5*icon_width + middle_width)) end }
 af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(SL.Colors[ 4])):x(-(        0.5*icon_width + middle_width)) end }

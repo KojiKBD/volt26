@@ -90,29 +90,44 @@ local function StarFramePath(frame)
 		"VOLT26/Stars/star_%05d.png", frame))
 end
 
--- Exactly 60 displayed frames: the 30-frame sequence twice at 20fps.
-local current_star_frame = 0
-local displayed_star_frames = 1
-af[#af+1] = Def.Sprite{
-	Name="VOLT26IntroStars",
-	Texture=StarFramePath(0),
-	InitCommand=function(self)
-		self:zoomto(_screen.w, _screen.h):diffusealpha(0)
-	end,
-	OnCommand=function(self)
-		self:sleep(logo_hit):diffusealpha(1)
-			:sleep(star_frame_time):queuecommand("NextFrame")
-	end,
-	NextFrameCommand=function(self)
-		if displayed_star_frames >= star_frame_count * star_loops then return end
-		current_star_frame = (current_star_frame + 1) % star_frame_count
-		displayed_star_frames = displayed_star_frames + 1
-		self:Load(StarFramePath(current_star_frame))
-		if displayed_star_frames < star_frame_count * star_loops then
-			self:sleep(star_frame_time):queuecommand("NextFrame")
-		end
-	end
-}
+-- Performance mode keeps a single transparent frame. Enhanced mode retains
+-- the complete two-loop sequence.
+if VOLT26.Performance.IsEnabled() then
+	af[#af+1] = Def.Sprite{
+		Name="VOLT26IntroStarsStatic",
+		Texture=StarFramePath(0),
+		InitCommand=function(self)
+			self:zoomto(_screen.w, _screen.h):diffusealpha(0)
+		end,
+		OnCommand=function(self)
+			self:sleep(logo_hit):diffusealpha(1)
+		end,
+	}
+else
+	-- Exactly 60 displayed frames: the 30-frame sequence twice at 20fps.
+	local current_star_frame = 0
+	local displayed_star_frames = 1
+	af[#af+1] = Def.Sprite{
+		Name="VOLT26IntroStars",
+		Texture=StarFramePath(0),
+		InitCommand=function(self)
+			self:zoomto(_screen.w, _screen.h):diffusealpha(0)
+		end,
+		OnCommand=function(self)
+			self:sleep(logo_hit):diffusealpha(1)
+				:sleep(star_frame_time):queuecommand("NextFrame")
+		end,
+		NextFrameCommand=function(self)
+			if displayed_star_frames >= star_frame_count * star_loops then return end
+			current_star_frame = (current_star_frame + 1) % star_frame_count
+			displayed_star_frames = displayed_star_frames + 1
+			self:Load(StarFramePath(current_star_frame))
+			if displayed_star_frames < star_frame_count * star_loops then
+				self:sleep(star_frame_time):queuecommand("NextFrame")
+			end
+		end,
+	}
+end
 
 af[#af+1] = Def.Sprite{
 	Name="VOLT26IntroLogo",

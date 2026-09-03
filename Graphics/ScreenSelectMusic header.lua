@@ -4,6 +4,7 @@ local bmt_actor
 
 local hours, mins, secs
 local hmmss = "%d:%02d:%02d"
+local timer_refresh_elapsed = 1
 
 -- prefer the engine's SecondsToHMMSS()
 -- but define it ourselves if it isn't provided by this version of SM5
@@ -16,6 +17,9 @@ local SecondsToHMMSS = SecondsToHMMSS or function(s)
 end
 
 local UpdateTimer = function(af, dt)
+	timer_refresh_elapsed = timer_refresh_elapsed + (dt or 0)
+	if timer_refresh_elapsed < 1 then return end
+	timer_refresh_elapsed = 0
 	local seconds = GetTimeSinceStart() - (SL.Global.TimeAtSessionStart or GetTimeSinceStart())
 
 	-- if this game session is less than 1 hour in duration so far

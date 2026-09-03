@@ -231,10 +231,17 @@ end
 
 layout[#layout+1] = Def.ActorFrame{
 	Name="GameOverCountdown",
-	InitCommand=function(self) self:xy(W / 2, 447):diffusealpha(0) end,
+	InitCommand=function(self)
+		self:xy(W / 2, 447):diffusealpha(0)
+		self.TimerRefreshElapsed = 1
+	end,
 	OnCommand=function(self)
 		self:sleep(0.22):decelerate(0.22):diffusealpha(1)
-		self:SetUpdateFunction(function(frame)
+		self:SetUpdateFunction(function(frame, delta)
+			local refreshInterval = VOLT26.Performance.IsEnabled() and (1/30) or 0
+			frame.TimerRefreshElapsed = frame.TimerRefreshElapsed + (delta or 0)
+			if refreshInterval > 0 and frame.TimerRefreshElapsed < refreshInterval then return end
+			frame.TimerRefreshElapsed = 0
 			local screen = SCREENMAN:GetTopScreen()
 			local timer = screen and screen:GetChild("Timer")
 			local seconds = timer and math.max(0, timer:GetSeconds()) or timerTotal
@@ -244,7 +251,10 @@ layout[#layout+1] = Def.ActorFrame{
 			if remaining then remaining:zoomtowidth(240 * math.min(1, seconds / timerTotal)) end
 		end)
 	end,
-	OffCommand=function(self) self:stoptweening():linear(0.12):diffusealpha(0) end,
+	OffCommand=function(self)
+		self:SetUpdateFunction(nil)
+		self:stoptweening():linear(0.12):diffusealpha(0)
+	end,
 	Def.Quad{
 		InitCommand=function(self)
 			self:align(0, 0.5):x(-120):zoomto(240, 3):diffuse(LINE)

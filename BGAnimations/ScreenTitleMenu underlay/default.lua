@@ -32,8 +32,9 @@ end
 -- VOLT26 LAYER 1.5: AFTER EFFECTS STAR BURST
 -- ==========================================
 do
+    local performance = VOLT26.Performance.IsEnabled()
     local startNum = 0
-    local endNum = 29 
+    local endNum = 29
     local fDelay = 1 / 20 
     local currentFrame = startNum
 
@@ -45,24 +46,38 @@ do
     -- Loading a new Full HD PNG on every animation tick stalls the screen's
     -- input processing. Keep the same artwork and timing, but warm every
     -- texture before the loop begins so frame changes are cache lookups.
-    local framePaths = {}
-    for frame = startNum, endNum do
-        framePaths[frame] = framePath(frame)
-        if PREFETCHMAN then PREFETCHMAN:Add(framePaths[frame]) end
-    end
+    if performance then
+        -- Keep one correctly indexed transparent frame in low-end mode.
+        -- This preserves the static star burst without decoding/swapping
+        -- thirty Full HD textures during the title screen.
+        af[#af+1] = Def.Sprite{
+            Name="VOLT26_StaticStars",
+            Texture=framePath(startNum),
+            InitCommand=function(self)
+                self:zoomto(_screen.w, _screen.h)
+                self:z(1)
+            end,
+        }
+    else
+        local framePaths = {}
+        for frame = startNum, endNum do
+            framePaths[frame] = framePath(frame)
+            if PREFETCHMAN then PREFETCHMAN:Add(framePaths[frame]) end
+        end
 
-    local starAnim = Def.Sprite{
-        Texture=framePaths[startNum],
-        InitCommand=function(self)
-            self:zoomto(_screen.w, _screen.h) 
-            self:z(1) 
-        end,
-        OnCommand=function(self)
+        local starAnim = Def.Sprite{
+            Texture=framePaths[startNum],
+            InitCommand=function(self)
+                self:zoomto(_screen.w, _screen.h)
+                self:z(1)
+            end,
+        }
+
+        starAnim.OnCommand=function(self)
             self:sleep(fDelay):queuecommand("Animate")
-        end,
+        end
         
-        -- FIX 2: One single, unbreakable looping command
-        AnimateCommand=function(self)
+        starAnim.AnimateCommand=function(self)
             currentFrame = currentFrame + 1
             
             -- If we hit the end, wrap back to 0
@@ -74,9 +89,9 @@ do
             self:Load(framePaths[currentFrame])
             self:sleep(fDelay):queuecommand("Animate")
         end
-    }
 
-    af[#af+1] = starAnim
+        af[#af+1] = starAnim
+    end
 end
 
 -- ==========================================
@@ -202,11 +217,28 @@ do
         Def.Sprite{
             Texture=THEME:GetPathG("", "VOLT26/trainoverlay.png"),
             InitCommand=function(self)
-                self:zoomto(_screen.w + 50, _screen.h + 50)
+                self:scaletoclipped(_screen.w + 32, _screen.h + 32)
             end
         }
     }
+
+    -- Keep the letterbox independent from the train bob so its edges remain
+    -- locked to the display while still drawing above the train artwork.
+    af[#af+1] = Def.Sprite{
+        Name="VOLT26_Letterbox",
+        Texture=THEME:GetPathG("", "VOLT26/black_bars.png"),
+        InitCommand=function(self)
+            self:scaletoclipped(_screen.w + 32, _screen.h + 32)
+        end,
+    }
 end
+
+-- Prepare the profile/color/style flow and Song Select while the player is
+-- idle on the title menu. This actor never renders visible content.
+af[#af+1] = VOLT26.Warmup.CreateActor("Selection", {
+    Delay=VOLT26.Performance.IsEnabled() and 0.75 or 0.35,
+    Interval=VOLT26.Performance.IsEnabled() and 0.16 or 0.10,
+})
 
 -- ==========================================
 -- VOLT26 SOUND ACTOR
@@ -243,7 +275,7 @@ do
         return math.max(0, target - today)
     end
 
-    local countdown_refresh_elapsed = 0
+    local countdown_refresh_elapsed = 60
     local countdown = Def.ActorFrame{
         Name="VOLT26_Countdown",
         InitCommand=function(self)
@@ -256,9 +288,9 @@ do
             self:addx(25):diffusealpha(0)
                 :decelerate(0.22):addx(-25):diffusealpha(1)
             self:SetUpdateFunction(function(frame, delta)
-                countdown_refresh_elapsed = countdown_refresh_elapsed + delta
+                countdown_refresh_elapsed = countdown_refresh_elapsed + (delta or 0)
                 if countdown_refresh_elapsed >= 60 then
-                    countdown_refresh_elapsed = countdown_refresh_elapsed - 60
+                    countdown_refresh_elapsed = 0
                     MESSAGEMAN:Broadcast("VOLT26_CountdownRefresh")
                 end
             end)
@@ -317,144 +349,14 @@ do
 end
 
 -- ==========================================
--- VOLT26 LIVE CALENDAR
--- ==========================================
-do
-    local calendar_root = "VOLT26/Calendar/"
-    local weekdays = {
-        "sunday", "monday", "tuesday", "wednesday",
-        "thursday", "friday", "saturday"
-    }
-
-    local function WeekdayPath()
-        return THEME:GetPathG("", calendar_root .. "Days/"
-            .. weekdays[Weekday() + 1] .. ".png")
-    end
-
-    local function TimeOfDayName()
-        local hour = Hour()
-        if hour >= 6 and hour < 17 then
-            return "Daytime"
-        elseif hour >= 17 then
-            return "Evening"
-        end
-        return "Night"
-    end
-
-    local function TimeOfDayPath()
-        return THEME:GetPathG("", calendar_root .. "ToD/"
-            .. TimeOfDayName() .. ".png")
-    end
-
-    local refresh_elapsed = 0
-    local calendar = Def.ActorFrame{
-        Name="VOLT26_Calendar",
-        InitCommand=function(self)
-            self:xy(-_screen.w/2 + 18, -_screen.h/2 + 15)
-                :zoom(0.75)
-        end,
-        OnCommand=function(self)
-            self:addx(-18):diffusealpha(0)
-                :decelerate(0.22):addx(18):diffusealpha(1)
-            self:SetUpdateFunction(function(frame, delta)
-                refresh_elapsed = refresh_elapsed + delta
-                if refresh_elapsed >= 30 then
-                    refresh_elapsed = refresh_elapsed - 30
-                    MESSAGEMAN:Broadcast("VOLT26_CalendarRefresh")
-                end
-            end)
-        end,
-        OffCommand=function(self)
-            self:SetUpdateFunction(nil)
-        end
-    }
-
-    calendar[#calendar+1] = LoadActor(
-        THEME:GetPathG("", calendar_root .. "Background.png")
-    )..{
-        InitCommand=function(self)
-            self:xy(85, 40):zoom(0.1):shadowlength(2):draworder(2):rotationz(0)
-        end
-    }
-
-    calendar[#calendar+1] = LoadActor(
-        THEME:GetPathG("", calendar_root .. "ToD/Slash.png")
-    )..{
-        InitCommand=function(self)
-            self:xy(50, 51):zoom(0.1):shadowlength(2):draworder(2):rotationz(0)
-        end
-    }
-
-    calendar[#calendar+1] = LoadFont("_Combo Fonts/VOLT26/VOLT26")..{
-        Name="CalendarMonth",
-        Text=tostring(MonthOfYear() + 1),
-        InitCommand=function(self)
-            self:xy(45, 25):zoom(0.9):diffuse(1, 1, 1, 1):rotationz(15)
-                :strokecolor({0, 0, 0, 1}):shadowlength(3):draworder(2)
-        end,
-        VOLT26_CalendarRefreshMessageCommand=function(self)
-            self:settext(tostring(MonthOfYear() + 1))
-        end
-    }
-
-    -- Day of month: separate combo-font actors provide larger, wider digits.
-    for slot = 1, 2 do
-        calendar[#calendar+1] = LoadFont("_Combo Fonts/VOLT26/VOLT26")..{
-            Name="CalendarDayDigit" .. slot,
-            InitCommand=function(self)
-                self:y(35):zoom(1.40):diffuse(1, 1, 1, 1)
-                    :strokecolor({0, 0, 0, 1}):shadowlength(3):draworder(2)
-            end,
-            OnCommand=function(self) self:playcommand("RefreshCalendar") end,
-            VOLT26_CalendarRefreshMessageCommand=function(self)
-                self:playcommand("RefreshCalendar")
-            end,
-            RefreshCalendarCommand=function(self)
-                local day = string.format("%02d", DayOfMonth())
-                local count = #day
-                local used = slot <= count
-                self:visible(used)
-                if used then
-                    self:settext(day:sub(slot, slot))
-                        :x(112 + (slot - (count + 1) / 2) * 38)
-                end
-            end
-        }
-    end
-
-    calendar[#calendar+1] = Def.Sprite{
-        Name="CalendarWeekday",
-        Texture=WeekdayPath(),
-        InitCommand=function(self)
-            self:xy(110, 83):zoom(0.18):shadowlength(2):draworder(4)
-        end,
-        VOLT26_CalendarRefreshMessageCommand=function(self)
-            self:Load(WeekdayPath())
-        end
-    }
-
-    calendar[#calendar+1] = Def.Sprite{
-        Name="CalendarTimeOfDay",
-        Texture=TimeOfDayPath(),
-        InitCommand=function(self)
-            self:xy(50, 125):zoom(0.12):shadowlength(2):draworder(5)
-        end,
-        VOLT26_CalendarRefreshMessageCommand=function(self)
-            self:Load(TimeOfDayPath())
-        end
-    }
-
-    -- The home calendar is intentionally hidden in VOLT26.
-end
-
-
--- ==========================================
 -- VOLT26 LAYER 4: INVISIBLE CONTROLLER BRAIN
 -- ==========================================
 do
     local current_idx = 0
     local menu_item_count = 4
     local idle_elapsed = 0
+    local afk_poll_interval = 0.25
+    local afk_poll_elapsed = 0
     local afk_armed = false
     local afk_active = false
 
@@ -476,6 +378,7 @@ do
                 end
 
                 idle_elapsed = 0
+                afk_poll_elapsed = 0
                 if afk_active then
                     afk_active = false
                     MESSAGEMAN:Broadcast("VOLT26_HideAFK")
@@ -509,10 +412,14 @@ do
         end,
         ArmAFKTimerCommand=function(self)
             idle_elapsed = 0
+            afk_poll_elapsed = 0
             afk_armed = true
             self:SetUpdateFunction(function(frame, delta)
                 if not afk_armed or afk_active then return end
-                idle_elapsed = idle_elapsed + delta
+                afk_poll_elapsed = afk_poll_elapsed + (delta or 0)
+                if afk_poll_elapsed < afk_poll_interval then return end
+                idle_elapsed = idle_elapsed + afk_poll_elapsed
+                afk_poll_elapsed = 0
                 if idle_elapsed >= VOLT26.TitleMenu.GetAFKTimeoutSeconds() then
                     idle_elapsed = 0
                     afk_active = true

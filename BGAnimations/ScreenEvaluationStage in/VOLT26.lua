@@ -31,6 +31,28 @@ local af = Def.ActorFrame{
 	},
 }
 
+if VOLT26.Performance.IsEnabled() then
+	af[#af+1] = Def.Quad{
+		InitCommand=function(self)
+			self:zoomto(SCREEN_WIDTH, SCREEN_HEIGHT):diffuse(Color.Black):diffusealpha(0.72)
+		end,
+		OnCommand=function(self)
+			self:sleep(totalTime - 0.35):linear(0.35):diffusealpha(0)
+		end,
+	}
+	af[#af+1] = Def.Sprite{
+		Texture=THEME:GetPathG("", failed and "VOLT26/Eval/defeat.png" or "VOLT26/Eval/Victory.png"),
+		InitCommand=function(self)
+			self:zoom(0.30):xy(failed and 0 or -200, failed and 0 or 100)
+		end,
+		OnCommand=function(self)
+			self:decelerate(0.12):zoom(0.34):sleep(totalTime - 0.47)
+				:linear(0.35):diffusealpha(0)
+		end,
+	}
+	return af
+end
+
 if failed then
 	local sPath    = "VOLT26/Eval/defeat_animation_res/"
     local startNum = 0

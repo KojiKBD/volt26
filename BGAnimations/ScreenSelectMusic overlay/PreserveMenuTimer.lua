@@ -1,8 +1,12 @@
 local transitioning_out = false
 local menuTimerEnabled = VOLT26.MenuTimer.IsEnabledForSongSelect()
+local refresh_elapsed = 0.10
 
 local Update = function(self, dt)
 	if transitioning_out then return end
+	refresh_elapsed = refresh_elapsed + (dt or 0)
+	if refresh_elapsed < 0.10 then return end
+	refresh_elapsed = 0
 
 	-- if the MenuTimer is being used, save the current number of seconds remaining
 	-- before transitioning to the next screen. In this manner, we can reinstate this
@@ -30,5 +34,6 @@ return Def.ActorFrame{
 	end,
 	ShowPressStartForOptionsCommand=function(self)
 		transitioning_out = true
-	end
+	end,
+	OffCommand=function(self) self:SetUpdateFunction(nil) end,
 }

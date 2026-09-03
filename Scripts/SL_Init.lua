@@ -816,6 +816,34 @@ VOLT26.ThemePrefs = {
 	end,
 }
 
+VOLT26.Performance = {}
+
+function VOLT26.Performance.IsEnabled()
+	return VOLT26.ThemePrefs.Get("PerformanceMode") ~= false
+end
+
+function VOLT26.Performance.NeedsFirstRunChoice()
+	return VOLT26.ThemePrefs.Get("PerformanceModeConfigured") ~= true
+end
+
+function VOLT26.Performance.GetInitialScreen()
+	if VOLT26.Performance.NeedsFirstRunChoice() then
+		return "ScreenVOLT26PerformanceSetup"
+	end
+	return "ScreenVOLT26Warmup"
+end
+
+function VOLT26.Performance.Choose(enhanced)
+	VOLT26.ThemePrefs.Set("PerformanceMode", enhanced ~= true)
+	VOLT26.ThemePrefs.Set("PerformanceModeConfigured", true)
+	VOLT26.ThemePrefs.Save()
+end
+
+function VOLT26.Performance.AllowsRenderTargets()
+	return not VOLT26.Performance.IsEnabled()
+		and VOLT26.Compatibility.SupportsRenderToTexture()
+end
+
 local GrooveStatsCapabilities = {
 	GetScores = "playerScores",
 	Leaderboard = "playerLeaderboards",
@@ -1206,6 +1234,47 @@ function VOLT26.Favorites.ToggleCurrent(player)
 end
 
 VOLT26.MusicSelection = {}
+
+-- Song and course rows in the Song Select wheel are drawn this far right of the
+-- pack headers, so an open pack reads as one indented block at a glance.
+-- Graphics/VOLT26/SongSelection/MusicWheelItemNative.lua lays out the rows and
+-- the overlay's FocusedBanner.lua stands in for the focused row's artwork, so
+-- both have to share the offset.
+VOLT26.MusicSelection.WheelSongIndent = 40
+
+local rootSongGroupCount
+
+local function getRootSongGroupCount()
+	if rootSongGroupCount ~= nil then return rootSongGroupCount end
+	local ok, groups = pcall(function() return SONGMAN:GetSongGroupNames() end)
+	rootSongGroupCount = ok and groups and #groups or 0
+	return rootSongGroupCount
+end
+
+function VOLT26.MusicSelection.PositionWheelItem(self, offsetFromCenter)
+	self.VOLT26Offset = offsetFromCenter
+	local distance = math.abs(offsetFromCenter)
+	local direction = offsetFromCenter < 0 and -1 or 1
+	local screen = SCREENMAN:GetTopScreen()
+	local wheel = screen and screen.GetMusicWheel and screen:GetMusicWheel()
+	local selectedType = wheel and wheel:GetSelectedType()
+	local atPackRoot = selectedType == "WheelItemDataType_Section"
+		or selectedType == "WheelItemDataType_ParentSection"
+
+	-- With exactly two root packs, MusicWheel repeats A/B across its actor pool.
+	-- Reserving extra height only beside the focused actor then produces an
+	-- alternating 76/46 rhythm.  Give every repeated row the focused-row pitch
+	-- at this boundary; normal lists and expanded packs retain the compact rail.
+	local y
+	if atPackRoot and getRootSongGroupCount() == 2 then
+		y = offsetFromCenter * 76
+	else
+		local focusGap = math.min(distance, 1) * 30
+		y = offsetFromCenter * 46 + direction * focusGap
+	end
+	local edgeFade = math.max(0.55, 1 - math.max(0, distance - 2) * 0.16)
+	self:y(y):diffusealpha(edgeFade)
+end
 
 function VOLT26.MusicSelection.GetMusicRate()
 	return VOLT26.MusicSelection.NormalizeMusicRate(VOLT26.State.Global.ActiveModifiers.MusicRate)
@@ -2978,7 +3047,7 @@ local OperatorMenuLines = {
 }
 
 local ThemeOptionLines = {
-	"MusicWheelSpeed", "PreferredStyle", "AllowFailingOutOfSet", "NumberOfContinuesAllowed",
+	"PerformanceMode", "MusicWheelSpeed", "PreferredStyle", "AllowFailingOutOfSet", "NumberOfContinuesAllowed",
 	"SelectProfile", "SelectColor", "SelectPlayMode", "SelectPlayMode2", "EvalSummary",
 	"NameEntry", "GameOver", "HideStockNoteSksins", "DanceSolo", "WriteCustomScores",
 	"KeyboardFeatures", "SampleMusicLoops", "SampleMusicStartsImmediately", "RescoreEarlyHits",

@@ -76,20 +76,25 @@ VOLT26_Prefs.Get = function()
 			},
 			Values = { "none", "auto", "single", "versus", "double" }
 		},
-		VisualStyle =
-		{
-			-- Transitional compatibility value. VOLT26 is no longer a selectable
-			-- Simply Love visual style and new code must not read this preference.
-			Default = "VOLT26",
-			Choices = { "VOLT26" },
-			Values  = { "VOLT26" }
-		},
 		AllowThemeVideos = {
 			Default = true,
 			Choices = {
 				THEME:GetString("ThemePrefs", "Yes"),
 				THEME:GetString("ThemePrefs", "No")
 			},
+			Values = { true, false }
+		},
+		PerformanceMode = {
+			Default = true,
+			Choices = {
+				THEME:GetString("ThemePrefs", "Performance"),
+				THEME:GetString("ThemePrefs", "Enhanced")
+			},
+			Values = { true, false }
+		},
+		PerformanceModeConfigured = {
+			Default = false,
+			Choices = { true, false },
 			Values = { true, false }
 		},
 		RainbowMode = {
@@ -323,8 +328,6 @@ VOLT26_Prefs.MigrateLegacy = function()
 			migrated[name] = legacy[name]
 		end
 	end
-	-- VisualStyle is a fixed adapter, not a user preference.
-	migrated.VisualStyle = "VOLT26"
 	file[themeName] = migrated
 	IniFile.WriteFile(path, file)
 	return true

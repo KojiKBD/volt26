@@ -37,29 +37,5 @@ return Def.ActorFrame{
 		LoadCommand=function(self)
 			SCREENMAN:GetTopScreen():Continue()
 		end
-	},
-
-	Def.BitmapText{
-		Font="Common Bold",
-		Text=THEME:GetString("ScreenProfileLoad","Loading Profiles..."),
-		InitCommand=function(self)
-			self:y(-4):diffuse(color("#f1eded")):zoom(0.6):diffusealpha(0)
-		end,
-		OnCommand=function(self)
-			self:sleep(0.12):linear(0.16):diffusealpha(1)
-				:sleep(0.20):linear(0.12):diffusealpha(0)
-		end,
-	},
-
-	Def.BitmapText{
-		Font="Common Normal",
-		Text="PREPARING SONG SELECT",
-		InitCommand=function(self)
-			self:y(17):diffuse(color("#989092")):zoom(0.4):diffusealpha(0)
-		end,
-		OnCommand=function(self)
-			self:sleep(0.16):linear(0.16):diffusealpha(1)
-				:sleep(0.16):linear(0.12):diffusealpha(0)
-		end,
 	}
 }

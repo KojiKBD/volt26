@@ -15,8 +15,7 @@ local bg = Def.ActorFrame{
 -- don't bother adding support for animated faux screenshot textures to ScreenEval
 -- in Casual mode because Casual mode doesn't allow screenshots at all.
 if not VOLT26.Gameplay.IsCasual()
--- VOLT26 centralizes the renderer capability policy with its engine checks.
-and VOLT26.Compatibility.SupportsRenderToTexture()
+and VOLT26.Performance.AllowsRenderTargets()
 then
 
 	-- ActorFrameTextures are neat because they can take their dynamic contents

@@ -53,6 +53,7 @@ VOLT26 is designed specifically for a 16:9 display and this is the recommended a
 
 ## Development documentation
 
+- [AI handoff](docs/ai-handoff.md) — current context and safe continuation guide for a new coding assistant
 - [Standalone migration plan](docs/standalone-theme-migration-plan.md)
 - [Standalone architecture](docs/standalone-architecture.md)
 - [Simply Love functional inventory](docs/simply-love-functional-inventory.md)

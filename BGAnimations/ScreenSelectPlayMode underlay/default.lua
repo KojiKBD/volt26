@@ -36,7 +36,7 @@ local InputHandler = function(event)
 
 	if event.type == "InputEventType_FirstPress" then
 		if event.GameButton == "Start" then
-			if ScreenName=="ScreenSelectPlayMode" or ScreenName=="ScreenSelectPlayModeThonk" then
+			if ScreenName=="ScreenSelectPlayMode" then
 				SL.Global.GameMode = choices[cursor.index+1]
 				-- now that a GameMode has been selected, set related preferences
 				SetGameModePreferences()
