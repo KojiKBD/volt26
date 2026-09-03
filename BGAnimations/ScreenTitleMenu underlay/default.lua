@@ -112,16 +112,7 @@ do
         OnCommand=function(self)
             self:x(0) 
             self:y(-10) -- <--- ADDED THIS: Moves the whole track up by 50 pixels
-        end,
-        OffCommand=function(self)
-            -- Keep both transition styles free of the large menu-label art.
-            self:visible(false)
-        end,
-        VOLT26_ImpactMessageCommand=function(self)
-            -- OffCommand can arrive after the first transition frame. Hide the
-            -- selected label as soon as the confirm impact lands instead.
-            self:visible(false)
-        end,
+        end
     }
 
     for i, img_path in ipairs(text_images) do

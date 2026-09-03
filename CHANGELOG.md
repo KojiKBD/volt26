@@ -16,8 +16,6 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 - Title and Song Select prepare only their likely next screen groups while idle; song banners and jackets remain demand-loaded.
 - The title presentation includes the VOLT26 letterbox/train composition and the Performance path avoids Full HD image-sequence handoffs.
 - Hidden title-menu calendar actors are no longer constructed, idle warm-up is paced after Home settles, and non-visual engine polling is rate-limited without changing the visible design.
-- Performance Mode now uses the same lightweight, text-free title transition for every Home destination and does not construct the Enhanced flying-shape actors.
-- Home transitions hide the large selected-menu label on the confirmation impact, before either Performance or Enhanced transition frames begin; Song Select option-entry messaging remains unchanged.
 
 ### Removed
 
