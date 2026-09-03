@@ -55,15 +55,6 @@ af[#af+1] = Def.Quad{
 	end,
 }
 
-af[#af+1] = Def.Quad{
-	Name="RedRail",
-	InitCommand=function(self)
-		self:x(-_screen.w * 0.37):rotationz(-8)
-			:zoomto(math.max(16, _screen.w * 0.018), _screen.h * 1.2)
-			:diffuse(color("#ff0000"))
-	end,
-}
-
 af[#af+1] = LoadFont("Common Bold")..{
 	Text="CHOOSE YOUR VOLT26 EXPERIENCE",
 	InitCommand=function(self)
@@ -88,30 +79,16 @@ for index, option in ipairs(options) do
 		VOLT26FirstRunChoiceChangedMessageCommand=function(self, params)
 			local focused = params.Index == index
 			self:stoptweening():decelerate(0.12):zoom(focused and 1 or 0.96)
-			local panel = self:GetChild("Panel")
-			local accent = self:GetChild("Accent")
-			if panel then
-				panel:diffuse(focused and color("#202020") or color("#141414"))
+			local name = self:GetChild("Name")
+			if name then
+				name:stoptweening():decelerate(0.12)
+					:diffuse(focused and color("#ff2020") or Color.White)
 			end
-			if accent then accent:diffusealpha(focused and 1 or 0.22) end
 		end,
 	}
 
-	card[#card+1] = Def.Quad{
-		Name="Panel",
-		InitCommand=function(self)
-			self:zoomto(_screen.w * 0.36, _screen.h * 0.38)
-				:diffuse(color("#141414"))
-		end,
-	}
-	card[#card+1] = Def.Quad{
-		Name="Accent",
-		InitCommand=function(self)
-			self:x(-_screen.w * 0.18 + 3):zoomto(6, _screen.h * 0.38)
-				:diffuse(color("#ff0000"))
-		end,
-	}
 	card[#card+1] = LoadFont("Common Bold")..{
+		Name="Name",
 		Text=option.name,
 		InitCommand=function(self)
 			self:y(-_screen.h * 0.095):zoom(0.66)
