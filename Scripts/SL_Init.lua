@@ -1207,6 +1207,13 @@ end
 
 VOLT26.MusicSelection = {}
 
+-- Song and course rows in the Song Select wheel are drawn this far right of the
+-- pack headers, so an open pack reads as one indented block at a glance.
+-- Graphics/VOLT26/SongSelection/MusicWheelItemNative.lua lays out the rows and
+-- the overlay's FocusedBanner.lua stands in for the focused row's artwork, so
+-- both have to share the offset.
+VOLT26.MusicSelection.WheelSongIndent = 40
+
 function VOLT26.MusicSelection.GetMusicRate()
 	return VOLT26.MusicSelection.NormalizeMusicRate(VOLT26.State.Global.ActiveModifiers.MusicRate)
 end

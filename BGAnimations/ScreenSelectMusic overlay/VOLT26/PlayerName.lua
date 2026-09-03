@@ -10,8 +10,8 @@ local af = Def.ActorFrame{
 		self:visible(joined)
 		if not joined then return end
 		local twoPlayers = #GAMESTATE:GetHumanPlayers() > 1
-		local width = twoPlayers and 98 or 202
-		local x = twoPlayers and (player == PLAYER_1 and 640 or 744) or 640
+		local width = twoPlayers and 106 or 218
+		local x = twoPlayers and (player == PLAYER_1 and 624 or 736) or 624
 		self:xy(x,445)
 		self:GetChild("Background"):zoomto(width,25)
 		self:GetChild("Accent"):zoomto(width,2)
