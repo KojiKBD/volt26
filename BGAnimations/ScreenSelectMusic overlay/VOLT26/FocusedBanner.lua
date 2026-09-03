@@ -22,9 +22,10 @@ return Def.Banner{
 	Name="VOLT26FocusedBanner",
 	InitCommand=function(self)
 		-- The wheel is offset 32 units from the layout origin and focused
-		-- artwork begins at x=24 with a width of 132.  Its center is therefore
-		-- 32 + 24 + 66 = 122, directly after the red connector.
-		self:xy(122,230):visible(false)
+		-- artwork begins at x=24 plus the song indent, with a width of 132.
+		-- Its center is therefore 32 + 24 + indent + 66, directly after the
+		-- red connector, which stretches to cover the indent.
+		self:xy(122 + VOLT26.MusicSelection.WheelSongIndent,230):visible(false)
 	end,
 	RefreshCommand=function(self)
 		local song = GAMESTATE:GetCurrentSong()
