@@ -15,8 +15,12 @@ local decorations = LoadActor(THEME:GetPathB("ScreenWithMenuElements", "decorati
 
 local DateFormat = "%04d/%02d/%02d %02d:%02d"
 local timestamp_bmt = nil
+local refresh_elapsed = 60
 
-local Update = function(af)
+local Update = function(af, delta)
+	refresh_elapsed = refresh_elapsed + (delta or 0)
+	if refresh_elapsed < 60 then return end
+	refresh_elapsed = 0
 	if timestamp_bmt then
 		timestamp_bmt:playcommand("Refresh")
 	end

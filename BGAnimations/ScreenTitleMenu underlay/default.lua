@@ -235,7 +235,10 @@ end
 
 -- Prepare the profile/color/style flow and Song Select while the player is
 -- idle on the title menu. This actor never renders visible content.
-af[#af+1] = VOLT26.Warmup.CreateActor("Selection", {Interval=0.10})
+af[#af+1] = VOLT26.Warmup.CreateActor("Selection", {
+    Delay=VOLT26.Performance.IsEnabled() and 0.75 or 0.35,
+    Interval=VOLT26.Performance.IsEnabled() and 0.16 or 0.10,
+})
 
 -- ==========================================
 -- VOLT26 SOUND ACTOR
@@ -272,7 +275,7 @@ do
         return math.max(0, target - today)
     end
 
-    local countdown_refresh_elapsed = 0
+    local countdown_refresh_elapsed = 60
     local countdown = Def.ActorFrame{
         Name="VOLT26_Countdown",
         InitCommand=function(self)
@@ -285,9 +288,9 @@ do
             self:addx(25):diffusealpha(0)
                 :decelerate(0.22):addx(-25):diffusealpha(1)
             self:SetUpdateFunction(function(frame, delta)
-                countdown_refresh_elapsed = countdown_refresh_elapsed + delta
+                countdown_refresh_elapsed = countdown_refresh_elapsed + (delta or 0)
                 if countdown_refresh_elapsed >= 60 then
-                    countdown_refresh_elapsed = countdown_refresh_elapsed - 60
+                    countdown_refresh_elapsed = 0
                     MESSAGEMAN:Broadcast("VOLT26_CountdownRefresh")
                 end
             end)
@@ -346,144 +349,14 @@ do
 end
 
 -- ==========================================
--- VOLT26 LIVE CALENDAR
--- ==========================================
-do
-    local calendar_root = "VOLT26/Calendar/"
-    local weekdays = {
-        "sunday", "monday", "tuesday", "wednesday",
-        "thursday", "friday", "saturday"
-    }
-
-    local function WeekdayPath()
-        return THEME:GetPathG("", calendar_root .. "Days/"
-            .. weekdays[Weekday() + 1] .. ".png")
-    end
-
-    local function TimeOfDayName()
-        local hour = Hour()
-        if hour >= 6 and hour < 17 then
-            return "Daytime"
-        elseif hour >= 17 then
-            return "Evening"
-        end
-        return "Night"
-    end
-
-    local function TimeOfDayPath()
-        return THEME:GetPathG("", calendar_root .. "ToD/"
-            .. TimeOfDayName() .. ".png")
-    end
-
-    local refresh_elapsed = 0
-    local calendar = Def.ActorFrame{
-        Name="VOLT26_Calendar",
-        InitCommand=function(self)
-            self:xy(-_screen.w/2 + 18, -_screen.h/2 + 15)
-                :zoom(0.75)
-        end,
-        OnCommand=function(self)
-            self:addx(-18):diffusealpha(0)
-                :decelerate(0.22):addx(18):diffusealpha(1)
-            self:SetUpdateFunction(function(frame, delta)
-                refresh_elapsed = refresh_elapsed + delta
-                if refresh_elapsed >= 30 then
-                    refresh_elapsed = refresh_elapsed - 30
-                    MESSAGEMAN:Broadcast("VOLT26_CalendarRefresh")
-                end
-            end)
-        end,
-        OffCommand=function(self)
-            self:SetUpdateFunction(nil)
-        end
-    }
-
-    calendar[#calendar+1] = LoadActor(
-        THEME:GetPathG("", calendar_root .. "Background.png")
-    )..{
-        InitCommand=function(self)
-            self:xy(85, 40):zoom(0.1):shadowlength(2):draworder(2):rotationz(0)
-        end
-    }
-
-    calendar[#calendar+1] = LoadActor(
-        THEME:GetPathG("", calendar_root .. "ToD/Slash.png")
-    )..{
-        InitCommand=function(self)
-            self:xy(50, 51):zoom(0.1):shadowlength(2):draworder(2):rotationz(0)
-        end
-    }
-
-    calendar[#calendar+1] = LoadFont("_Combo Fonts/VOLT26/VOLT26")..{
-        Name="CalendarMonth",
-        Text=tostring(MonthOfYear() + 1),
-        InitCommand=function(self)
-            self:xy(45, 25):zoom(0.9):diffuse(1, 1, 1, 1):rotationz(15)
-                :strokecolor({0, 0, 0, 1}):shadowlength(3):draworder(2)
-        end,
-        VOLT26_CalendarRefreshMessageCommand=function(self)
-            self:settext(tostring(MonthOfYear() + 1))
-        end
-    }
-
-    -- Day of month: separate combo-font actors provide larger, wider digits.
-    for slot = 1, 2 do
-        calendar[#calendar+1] = LoadFont("_Combo Fonts/VOLT26/VOLT26")..{
-            Name="CalendarDayDigit" .. slot,
-            InitCommand=function(self)
-                self:y(35):zoom(1.40):diffuse(1, 1, 1, 1)
-                    :strokecolor({0, 0, 0, 1}):shadowlength(3):draworder(2)
-            end,
-            OnCommand=function(self) self:playcommand("RefreshCalendar") end,
-            VOLT26_CalendarRefreshMessageCommand=function(self)
-                self:playcommand("RefreshCalendar")
-            end,
-            RefreshCalendarCommand=function(self)
-                local day = string.format("%02d", DayOfMonth())
-                local count = #day
-                local used = slot <= count
-                self:visible(used)
-                if used then
-                    self:settext(day:sub(slot, slot))
-                        :x(112 + (slot - (count + 1) / 2) * 38)
-                end
-            end
-        }
-    end
-
-    calendar[#calendar+1] = Def.Sprite{
-        Name="CalendarWeekday",
-        Texture=WeekdayPath(),
-        InitCommand=function(self)
-            self:xy(110, 83):zoom(0.18):shadowlength(2):draworder(4)
-        end,
-        VOLT26_CalendarRefreshMessageCommand=function(self)
-            self:Load(WeekdayPath())
-        end
-    }
-
-    calendar[#calendar+1] = Def.Sprite{
-        Name="CalendarTimeOfDay",
-        Texture=TimeOfDayPath(),
-        InitCommand=function(self)
-            self:xy(50, 125):zoom(0.12):shadowlength(2):draworder(5)
-        end,
-        VOLT26_CalendarRefreshMessageCommand=function(self)
-            self:Load(TimeOfDayPath())
-        end
-    }
-
-    -- The home calendar is intentionally hidden in VOLT26.
-end
-
-
--- ==========================================
 -- VOLT26 LAYER 4: INVISIBLE CONTROLLER BRAIN
 -- ==========================================
 do
     local current_idx = 0
     local menu_item_count = 4
     local idle_elapsed = 0
+    local afk_poll_interval = 0.25
+    local afk_poll_elapsed = 0
     local afk_armed = false
     local afk_active = false
 
@@ -505,6 +378,7 @@ do
                 end
 
                 idle_elapsed = 0
+                afk_poll_elapsed = 0
                 if afk_active then
                     afk_active = false
                     MESSAGEMAN:Broadcast("VOLT26_HideAFK")
@@ -538,10 +412,14 @@ do
         end,
         ArmAFKTimerCommand=function(self)
             idle_elapsed = 0
+            afk_poll_elapsed = 0
             afk_armed = true
             self:SetUpdateFunction(function(frame, delta)
                 if not afk_armed or afk_active then return end
-                idle_elapsed = idle_elapsed + delta
+                afk_poll_elapsed = afk_poll_elapsed + (delta or 0)
+                if afk_poll_elapsed < afk_poll_interval then return end
+                idle_elapsed = idle_elapsed + afk_poll_elapsed
+                afk_poll_elapsed = 0
                 if idle_elapsed >= VOLT26.TitleMenu.GetAFKTimeoutSeconds() then
                     idle_elapsed = 0
                     afk_active = true

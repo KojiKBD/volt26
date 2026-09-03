@@ -55,6 +55,7 @@ function VOLT26.Warmup.CreateActor(group, options)
 	options = options or {}
 	local paths = Resolve(group)
 	local interval = tonumber(options.Interval) or 0.06
+	local delay = math.max(0, tonumber(options.Delay) or 0)
 	local showProgress = options.ShowProgress == true
 	local current = 0
 
@@ -79,7 +80,7 @@ function VOLT26.Warmup.CreateActor(group, options)
 				self:GetParent():visible(false)
 				return
 			end
-			self:queuecommand("LoadNext")
+			self:sleep(delay):queuecommand("LoadNext")
 		end,
 		LoadNextCommand=function(self)
 			current = current + 1

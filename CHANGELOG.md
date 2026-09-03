@@ -15,6 +15,7 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 - VOLT26 now owns its presentation directly instead of selecting inherited visual styles at runtime.
 - Title and Song Select prepare only their likely next screen groups while idle; song banners and jackets remain demand-loaded.
 - The title presentation includes the VOLT26 letterbox/train composition and the Performance path avoids Full HD image-sequence handoffs.
+- Hidden title-menu calendar actors are no longer constructed, idle warm-up is paced after Home settles, and non-visual engine polling is rate-limited without changing the visible design.
 
 ### Removed
 
