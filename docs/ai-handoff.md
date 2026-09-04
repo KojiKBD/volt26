@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document lets a new coding assistant continue the project without reconstructing its context from the entire tree. It describes the repository as inspected on 2026-09-02. Re-check `git status`, the active branch, and the latest commits before making decisions.
+This document lets a new coding assistant continue the project without reconstructing its context from the entire tree. It describes the repository as inspected on 2026-09-04. Re-check `git status`, the active branch, and the latest commits before making decisions.
 
 ## What this project is
 
@@ -37,32 +37,31 @@ Important paths:
 | Visual/theme assets | `Graphics/`, `Fonts/`, `Sounds/`, `Languages/` |
 | Historical scope decisions | `docs/simply-love-functional-inventory.md` |
 
-## Current worktree — do not discard
+## Current worktree state
 
-Active branch at inspection: `codex/remove-legacy-visual-styles`.
+Branch at inspection: `main`, clean working tree, up to date with `origin/main`. Latest commit: `394625f2` (`merge: integrate PR 1 songwheel and VOLT26 updates`).
 
-The worktree is intentionally dirty and contains **478 changed files**: 52 modified and 426 deleted. Most deletions are obsolete visual-style assets and fallback banners under `Graphics/`, plus legacy theme sounds and style-specific screen code. The change is not a harmless cleanup: restored files can reintroduce stale runtime references and inflate the install.
+The legacy visual-style removal and low-end presentation work previously tracked as an in-progress, uncommitted slice on `codex/remove-legacy-visual-styles` has since been completed and merged into `main`. Confirmed by inspection:
 
-The active slice removes the inherited `VisualStyle` preference and its runtime assets, makes VOLT26 presentation direct-owned, and adds a low-end presentation path:
-
+- No remaining `VisualStyle` references in `metrics.ini`.
 - `PerformanceMode` is a persistent theme preference and defaults to the arcade-oriented path.
-- `metrics.ini` now enters through a one-time Performance/Enhanced choice, then routes through `ScreenVOLT26Warmup` on this and later launches.
+- `metrics.ini` enters through a one-time Performance/Enhanced choice, then routes through `ScreenVOLT26Warmup` on this and later launches.
 - `BGAnimations/ScreenVOLT26PerformanceSetup overlay.lua` presents the lightweight first-run choice and persists it before warm-up and intro assets load.
-- `BGAnimations/ScreenVOLT26Warmup overlay/default.lua` waits for a bounded core warm-up and a minimum display time before routing to `ScreenInit`.
-- `Scripts/VOLT26_Warmup.lua` supplies incremental warm-up actors; title and song select prepare only likely next screen groups while idle.
-- Performance transitions use primitive, opaque handoffs rather than Full HD image sequences. Enhanced mode retains the image sequence path.
-- Song banners and jackets remain demand-loaded to avoid unbounded texture memory.
+- `BGAnimations/ScreenVOLT26Warmup overlay/default.lua` exists and provides the bounded warm-up handoff to `ScreenInit`.
+- `Scripts/VOLT26_Warmup.lua` supplies incremental warm-up actors.
 
-The latest committed baseline before these uncommitted changes is `a254f78f` (`merge: unify VOLT26 screen presentation`). The uncommitted work has static verification noted in the functional inventory, but still needs owner testing on the target low-end arcade computer. Do not call it engine-verified until that happens.
+The stale `codex/remove-legacy-visual-styles` branch still exists locally and on `origin` after the merge; it can be deleted once confirmed fully superseded. Other topic branches from prior activities also remain in the repository — check `git branch -a` before assuming which slice is current.
 
-## Safest next steps for the active slice
+As of the CHANGELOG's `0.1.0-rc.4` entry, static Lua and metrics reference checks were completed for this work, but interactive verification on the target low-end arcade computer was recorded as pending. No later note in this repository confirms that arcade-hardware test occurred — treat `PerformanceMode` as **not** engine-verified on target hardware until the owner confirms otherwise.
 
-1. Preserve the deletion set and inspect only references relevant to a proposed change.
+## Safest next steps
+
+1. Re-run `git status`, `git branch --show-current`, and `git log --oneline -10` before starting any new activity — do not assume the worktree state described above still holds.
 2. Launch ITGmania on the target low-end machine with `PerformanceMode` enabled.
 3. Verify warm-up reaches title, title-to-song-select navigation, songs/courses, gameplay, evaluation, and return paths.
 4. Toggle Enhanced mode and verify legacy transition behavior still works.
 5. Watch for missing textures, Lua errors, delayed input, and unintended demand-loading of banners/jackets.
-6. Update the inventory verification status with the actual test result, then request owner acceptance before merging.
+6. Update the inventory verification status with the actual test result, then request owner acceptance before merging any follow-up branch.
 
 ## Working conventions
 
