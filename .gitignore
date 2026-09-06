@@ -1,2 +1,6 @@
 .DS_Store
 /dist/
+
+# Claude scratch/output
+/Claude outputs/
+Graphics/_tmp_crown_preview.png
