@@ -276,6 +276,49 @@ do
     end
 
     local countdown_refresh_elapsed = 60
+
+    -- Tagline box geometry and helpers, shared between the countdown
+    -- ActorFrame's OnCommand below (which drives the marquee's per-frame
+    -- timing, since only ActorFrame supports SetUpdateFunction) and the
+    -- EventPhrase actor further down. Must be declared here, before both,
+    -- so both closures can see them.
+    local EVENTPHRASE_HOME_X = -235
+    local EVENTPHRASE_HOME_Y = 102
+    local EVENTPHRASE_ZOOM = 0.82
+    local EVENTPHRASE_BOX_WIDTH = 405
+    -- EVENTPHRASE_HOME_X is the CENTER of the box (the original static
+    -- text was center-aligned there). The marquee left-aligns instead, so
+    -- it needs the box's LEFT edge -- half the box width to the left, in
+    -- parent-space (post-zoom) units since x()/xy() live in that space.
+    local EVENTPHRASE_MARQUEE_LEFT_X = EVENTPHRASE_HOME_X - (EVENTPHRASE_BOX_WIDTH * EVENTPHRASE_ZOOM) / 2
+
+    -- Returns the longest substring of `text` starting at character index
+    -- `start` whose rendered width (measured on `actor`, via the same
+    -- incremental settext()+GetWidth() technique VOLT26.Text.WrapWidth
+    -- uses in Scripts/VOLT26_Text.lua) does not exceed `boxWidth`.
+    --
+    -- This can't be precomputed once as a fixed character count: the
+    -- Persona font isn't monospace, so a block of wide characters (e.g.
+    -- a run of "A"s) can overflow the box at the same character count
+    -- that a narrower substring (e.g. "st te") fit comfortably at --
+    -- confirmed visually (the box had visible slack at first, then
+    -- overflowed once the scroll reached an all-"A" stretch of the test
+    -- message). Recomputing per step is cheap: at most a few dozen
+    -- settext()/GetWidth() calls, run once every VOLT26_MarqueeStepTime
+    -- seconds, not every frame.
+    local function VOLT26_FitSubstring(actor, text, start, boxWidth)
+        local endIdx = start - 1
+        for i = start, #text do
+            actor:settext(text:sub(start, i))
+            if actor:GetWidth() > boxWidth then
+                break
+            end
+            endIdx = i
+        end
+        if endIdx < start then endIdx = start end -- always show at least 1 char
+        return text:sub(start, endIdx)
+    end
+
     local countdown = Def.ActorFrame{
         Name="VOLT26_Countdown",
         InitCommand=function(self)
@@ -285,6 +328,11 @@ do
                 :zoom(0.55)
         end,
         OnCommand=function(self)
+            -- Re-read Other/PlayerMessages.txt (see
+            -- Scripts/VOLT26_PlayerMessages.lua) so an edit to that file
+            -- shows up the next time the tagline text below is generated.
+            if VOLT26.PlayerMessages then VOLT26.PlayerMessages.Load() end
+
             self:addx(25):diffusealpha(0)
                 :decelerate(0.22):addx(-25):diffusealpha(1)
             self:SetUpdateFunction(function(frame, delta)
@@ -292,6 +340,52 @@ do
                 if countdown_refresh_elapsed >= 60 then
                     countdown_refresh_elapsed = 0
                     MESSAGEMAN:Broadcast("VOLT26_CountdownRefresh")
+                end
+
+                -- VOLT26 marquee (see EventPhrase below): BitmapText
+                -- doesn't support SetUpdateFunction itself, and
+                -- cropleft/cropright turned out not to mask a multi-glyph
+                -- BitmapText as one clean rectangle (confirmed visually:
+                -- the "hidden" tail rendered anyway). So instead of
+                -- cropping, we swap in a shorter *substring* of the full
+                -- message via settext() -- there's never any overflowing
+                -- geometry to hide in the first place. This ActorFrame
+                -- already has a working per-frame hook (the day-counter
+                -- refresh above), so the substring stepping rides along
+                -- on it rather than needing one of its own.
+                local phrase = frame:GetChild("EventPhrase")
+                if phrase and phrase.VOLT26_MarqueeMaxStart then
+                    phrase.VOLT26_MarqueeTimer = phrase.VOLT26_MarqueeTimer + (delta or 0)
+
+                    if phrase.VOLT26_MarqueeState == "hold" then
+                        if phrase.VOLT26_MarqueeTimer >= phrase.VOLT26_MarqueeHoldTime then
+                            phrase.VOLT26_MarqueeTimer = 0
+                            phrase.VOLT26_MarqueeState = "scroll"
+                        end
+                    elseif phrase.VOLT26_MarqueeState == "scroll" then
+                        if phrase.VOLT26_MarqueeTimer >= phrase.VOLT26_MarqueeStepTime then
+                            phrase.VOLT26_MarqueeTimer = 0
+                            phrase.VOLT26_MarqueeStart = phrase.VOLT26_MarqueeStart + phrase.VOLT26_MarqueeDirection
+
+                            local atEnd = phrase.VOLT26_MarqueeDirection > 0
+                                and phrase.VOLT26_MarqueeStart >= phrase.VOLT26_MarqueeMaxStart
+                            local atStart = phrase.VOLT26_MarqueeDirection < 0
+                                and phrase.VOLT26_MarqueeStart <= 1
+
+                            if atEnd then
+                                phrase.VOLT26_MarqueeStart = phrase.VOLT26_MarqueeMaxStart
+                                phrase.VOLT26_MarqueeDirection = -1
+                                phrase.VOLT26_MarqueeState = "hold"
+                            elseif atStart then
+                                phrase.VOLT26_MarqueeStart = 1
+                                phrase.VOLT26_MarqueeDirection = 1
+                                phrase.VOLT26_MarqueeState = "hold"
+                            end
+
+                            phrase:settext(VOLT26_FitSubstring(phrase, phrase.VOLT26_MarqueeText,
+                                phrase.VOLT26_MarqueeStart, EVENTPHRASE_BOX_WIDTH))
+                        end
+                    end
                 end
             end)
         end,
@@ -340,9 +434,72 @@ do
         Name="EventPhrase",
         Text=VOLT26.Brand.RandomTagline(),
         InitCommand=function(self)
-            self:xy(-235, 102):zoom(0.82):maxwidth(405)
-                :diffuse(0, 0, 0, 1):shadowlength(0)
-        end
+            self:diffuse(0, 0, 0, 1):shadowlength(0):stoptweening()
+
+            -- Measure BEFORE calling maxwidth(): maxwidth() word-wraps
+            -- onto multiple lines rather than scaling the actor down
+            -- (confirmed by logging GetWidth()/GetZoomX() against a long
+            -- test message: GetZoomX() stayed at the requested zoom
+            -- instead of shrinking), and a post-wrap GetWidth() would no
+            -- longer reflect the single-line width we need here.
+            -- GetWidth() itself is zoom-independent (confirmed: identical
+            -- value at zoom 1 and at EVENTPHRASE_ZOOM).
+            local fullText = self:GetText()
+            local textWidth = self:GetWidth()
+
+            self.VOLT26_MarqueeMaxStart = nil -- signals "no marquee" to the update function above
+
+            if textWidth <= EVENTPHRASE_BOX_WIDTH or #fullText == 0 then
+                -- Fits on one line: keep the original static rendering,
+                -- maxwidth() included as a no-op safety net.
+                self:horizalign(center)
+                    :xy(EVENTPHRASE_HOME_X, EVENTPHRASE_HOME_Y)
+                    :zoom(EVENTPHRASE_ZOOM)
+                    :maxwidth(EVENTPHRASE_BOX_WIDTH)
+                return
+            end
+
+            -- VOLT26 marquee: player messages (Other/PlayerMessages.txt,
+            -- see Scripts/VOLT26_PlayerMessages.lua) can be longer than
+            -- the box. Rather than rendering the full line and trying to
+            -- mask the overflow (cropleft/cropright did not cleanly mask
+            -- a multi-glyph BitmapText -- see the countdown ActorFrame's
+            -- OnCommand above), only ever put the currently-visible
+            -- SUBSTRING into settext(), sized to fit the box (measured
+            -- precisely, per step, by VOLT26_FitSubstring above). A
+            -- shared per-frame hook (also above) advances the start
+            -- index over time, revealing the tail, holding, then sliding
+            -- back.
+            self:horizalign(left)
+                :xy(EVENTPHRASE_MARQUEE_LEFT_X, EVENTPHRASE_HOME_Y)
+                :zoom(EVENTPHRASE_ZOOM)
+
+            -- Find the smallest start index whose substring reaches all
+            -- the way to the end of the message and still fits the box
+            -- -- i.e. how far back the final "reveal the tail" state
+            -- needs to start from. Same incremental-measurement idea as
+            -- VOLT26_FitSubstring, but anchored at the end and walking
+            -- backwards.
+            local maxStart = #fullText
+            for start = #fullText, 1, -1 do
+                self:settext(fullText:sub(start, #fullText))
+                if self:GetWidth() > EVENTPHRASE_BOX_WIDTH then
+                    break
+                end
+                maxStart = start
+            end
+
+            self.VOLT26_MarqueeText = fullText
+            self.VOLT26_MarqueeMaxStart = maxStart
+            self.VOLT26_MarqueeStart = 1
+            self.VOLT26_MarqueeDirection = 1 -- +1 revealing the tail, -1 sliding back to the start
+            self.VOLT26_MarqueeState = "hold" -- "hold" or "scroll"
+            self.VOLT26_MarqueeTimer = 0
+            self.VOLT26_MarqueeHoldTime = 1.6 -- seconds, paused at each end
+            self.VOLT26_MarqueeStepTime = 0.12 -- seconds per character step
+
+            self:settext(VOLT26_FitSubstring(self, fullText, 1, EVENTPHRASE_BOX_WIDTH))
+        end,
     }
 
     af[#af+1] = countdown

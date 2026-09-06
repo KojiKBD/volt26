@@ -30,6 +30,13 @@ VOLT26.Brand = {
 		return "logo_main (doubleres).png"
 	end,
 	RandomTagline = function()
+		-- Prefer live player messages pulled from the Google Sheet (see
+		-- Scripts/VOLT26_PlayerMessages.lua). The lines below are only an
+		-- emergency fallback for when no sheet data has ever been loaded
+		-- (e.g. first launch with no network yet).
+		local sheetLine = VOLT26.PlayerMessages and VOLT26.PlayerMessages.RandomLine()
+		if sheetLine then return sheetLine end
+
 		local lines = {
 			"TAKE YOUR HEART",
 			"MAKE YOUR MOVE",
