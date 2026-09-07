@@ -31,6 +31,7 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 - Confirmed via `Logs/log.txt` that the rejected network approach was blocked by `HttpAllowHosts` (`WARNING: blocked access to https://docs.google.com/...`).
 - Interactive verification in ITGmania of the local-file tagline AND the marquee effect (title screen render, file edit + revisit, a message long enough to trigger scrolling) not yet performed.
 - Static Lua and metrics reference checks completed for the `0.1.0-rc.4` warm-up/`PerformanceMode` work; interactive verification on the target low-end arcade computer remains pending (no later note in this repository confirms that test occurred).
+- The project owner verified both Song Select fixes interactively in ITGmania on 2026-09-08: the song-search overlay text no longer overlaps, and the chart preview no longer draws over the sort menu or the search results.
 
 ### Known follow-up
 
