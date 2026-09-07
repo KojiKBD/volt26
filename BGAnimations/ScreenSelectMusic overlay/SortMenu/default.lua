@@ -59,6 +59,7 @@ local DirectInputToEngine = function(self)
 	self:playcommand("HideSortMenu")
 	overlay:playcommand("HideTestInput")
 	overlay:playcommand("HideLeaderboard")
+	MESSAGEMAN:Broadcast("VOLT26ModalOverlayClosed")
 end
 
 ------------------------------------------------------------
@@ -247,6 +248,7 @@ local t = Def.ActorFrame {
 	wheel_options = {},
 	custom_functions = {},
 	InitCommand=function(self)
+		self:draworder(5)
 		self.custom_functions = sort_wheel.custom_functions
 		self.wheel_options = {
 			-- This is the master table that controls the SortMenu's choices
@@ -351,6 +353,7 @@ local t = Def.ActorFrame {
 		self:queuecommand("AssessAvailableChoices"):queuecommand("ShowSortMenu")
 		overlay:playcommand("HideTestInput")
 		overlay:playcommand("HideLeaderboard")
+		MESSAGEMAN:Broadcast("VOLT26ModalOverlayOpened")
 	end,
 	DirectInputToTestInputCommand=function(self)
 		local screen = SCREENMAN:GetTopScreen()

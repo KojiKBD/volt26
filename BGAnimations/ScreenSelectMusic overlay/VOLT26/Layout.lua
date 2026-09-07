@@ -260,6 +260,11 @@ af[#af+1] = LoadActor(componentPath("SongInfo.lua"), H)
 local chartPreviewLayer = Def.ActorFrame{
 	Name="ChartPreviewLayer",
 	InitCommand=function(self) self:diffusealpha(0.001) end,
+	-- Modal overlays (sort menu, song search, leaderboard, input test) own the
+	-- screen while they are open. The preview notefield is drawn after them, so
+	-- stop drawing it entirely instead of relying on draw order.
+	VOLT26ModalOverlayOpenedMessageCommand=function(self) self:visible(false) end,
+	VOLT26ModalOverlayClosedMessageCommand=function(self) self:visible(true) end,
 }
 chartPreviewLayer[#chartPreviewLayer+1] = LoadActor(componentPath("PreviewBackdrop.lua"), H)
 chartPreviewLayer[#chartPreviewLayer+1] = LoadActor(componentPath("ChartPreview.lua"), H)

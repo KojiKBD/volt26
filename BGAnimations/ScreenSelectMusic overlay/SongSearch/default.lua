@@ -8,15 +8,17 @@ local paneWidth = 319
 local borderWidth = 2
 
 local textHeight = 15
+local helveticaScale = 0.42
 
 local af = Def.ActorFrame {
 	Name="SongSearch",
 	InitCommand=function(self)
-		self:visible(false)
+		self:visible(false):draworder(5)
 	end,
 	DisplaySearchResultsMessageCommand=function(self, params)
 		self:queuecommand("AddInputCallback")
 		self:visible(true)
+		MESSAGEMAN:Broadcast("VOLT26ModalOverlayOpened")
 		self:playcommand("AssessCandidates", params)
 	end,
 	AddInputCallbackCommand=function(self)
@@ -37,11 +39,12 @@ local af = Def.ActorFrame {
 			SCREENMAN:set_input_redirected(player, false)
 		end
 		self:visible(false)
+		MESSAGEMAN:Broadcast("VOLT26ModalOverlayClosed")
 	end,
 	-- slightly darken the entire screen
 	Def.Quad {
 		InitCommand=function(self)
-			self:FullScreen():diffuse(Color.Black):diffusealpha(0.8)
+			self:FullScreen():diffuse(Color.Black):diffusealpha(0.95)
 		end
 	},
 }
@@ -100,7 +103,7 @@ local overlay = Def.ActorFrame {
 	LoadFont("Helvetica Normal").. {
 		Text="Search Results For:",
 		InitCommand=function(self)
-			self:diffuse(Color.White)
+			self:diffuse(Color.White):zoom(helveticaScale)
 			self:y(-paneHeight/2 - textHeight * 5)
 		end,
 	},
@@ -108,7 +111,7 @@ local overlay = Def.ActorFrame {
 	LoadFont("Helvetica Normal").. {
 		Name="SearchText",
 		InitCommand=function(self)
-			self:diffuse(Color.White)
+			self:diffuse(Color.White):zoom(helveticaScale)
 			self:y(-paneHeight/2 - textHeight * 3)
 		end,
 		UpdateTextCommand=function(self, params)
@@ -120,7 +123,7 @@ local overlay = Def.ActorFrame {
 	LoadFont("Helvetica Normal").. {
 		Name="NumResults",
 		InitCommand=function(self)
-			self:diffuse(Color.White)
+			self:diffuse(Color.White):zoom(helveticaScale)
 			self:maxwidth(paneWidth/2)
 			self:y(-paneHeight/2 - textHeight)
 		end,
@@ -171,7 +174,7 @@ for i, details in ipairs(songDetails) do
 		Name=name,
 		Text=name..": ",
 		InitCommand=function(self)
-			local zoom = 0.8
+			local zoom = 0.8 * helveticaScale
 			self:diffuse(color("#aaaaff")):zoom(zoom):maxwidth(145/zoom):horizalign(left)
 			self:xy(10, -paneHeight/2 + textHeight * zoom * (i*2-1) + 8*(i*2-1))
 		end,
@@ -189,7 +192,7 @@ for i, details in ipairs(songDetails) do
 		Name=name.."Text",
 		Text=name,
 		InitCommand=function(self)
-			local zoom = 0.8
+			local zoom = 0.8 * helveticaScale
 			self:diffuse(Color.White):zoom(zoom):maxwidth(115/zoom):horizalign(left)
 			self:xy(40, -paneHeight/2 + textHeight * zoom * (i*2) + 8*(i*2))
 		end,

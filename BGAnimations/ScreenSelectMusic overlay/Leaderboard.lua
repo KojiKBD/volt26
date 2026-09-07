@@ -261,7 +261,7 @@ end
 
 local af = Def.ActorFrame{
 	Name="LeaderboardMaster",
-	InitCommand=function(self) self:visible(false) end,
+	InitCommand=function(self) self:visible(false):draworder(5) end,
 	ShowLeaderboardCommand=function(self)
 		self:visible(true)
 		for i=1, 2 do

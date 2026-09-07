@@ -1,5 +1,6 @@
 local paneHeight = 319
 local paneWidth = 319
+local helveticaScale = 0.42
 
 -- the metatable for an item in the song search results.
 return {
@@ -23,7 +24,7 @@ return {
 				Name="Song",
 				InitCommand=function(subself)
 					self.song_name = subself
-					subself:y(0):diffusealpha(0):maxwidth(155)
+					subself:y(0):diffusealpha(0):maxwidth(155):zoom(helveticaScale)
 				end,
 				OnCommand=function(subself)
 					subself:sleep(0.13):linear(0.05):diffusealpha(1)
@@ -37,7 +38,7 @@ return {
 				Text="Exit",
 				InitCommand=function(subself)
 					self.exit_text = subself
-					subself:y(0):diffusealpha(0):maxwidth(155):zoom(0.5):diffuse(Color.Red)
+					subself:y(0):diffusealpha(0):maxwidth(155):zoom(0.5 * helveticaScale):diffuse(Color.Red)
 				end,
 				OnCommand=function(subself)
 					subself:sleep(0.13):linear(0.05):diffusealpha(1)
