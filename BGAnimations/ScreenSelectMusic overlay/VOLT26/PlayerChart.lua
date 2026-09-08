@@ -38,6 +38,9 @@ local gradeLetters = {
 }
 local maxGradeStars = 5
 local gradeAssetSize = 200
+-- EX is a different scoring system from the ITG percentage beside it, so it
+-- gets its own colour rather than the muted grey the secondary rows use.
+local exColor = color("#57b8ff")
 
 local function gradeAssetPath(file)
 	return THEME:GetPathG("", "_grades/assets/"..file)
@@ -158,7 +161,7 @@ local af = Def.ActorFrame{
 		-- score index, because the engine never stores the emulated W0 split.
 		local best = VOLT26.ScoreIndex.GetBest(player, H.Item(), chart)
 		local bestText = self:GetChild("Best")
-		bestText:xy(8,bestY):settext("BEST  "..formatPercent(best and best.PercentDP and best.PercentDP*100 or nil))
+		bestText:xy(8,bestY):settext("ITG  "..formatPercent(best and best.PercentDP and best.PercentDP*100 or nil))
 		self:GetChild("BestEx")
 			:xy(8 + bestText:GetZoomedWidth() + 12, bestY)
 			:settext("EX  "..formatPercent(best and best.ExPercent or nil))
@@ -233,7 +236,7 @@ af[#af+1] = Def.BitmapText{
 }
 af[#af+1] = Def.BitmapText{
 	Name="BestEx", Font=H.FontBold,
-	InitCommand=function(self) self:horizalign(left):zoom(H.BoldZoom(0.048)):diffuse(H.Muted) end,
+	InitCommand=function(self) self:horizalign(left):zoom(H.BoldZoom(0.048)):diffuse(exColor) end,
 }
 
 local gradeIcon = Def.ActorFrame{
