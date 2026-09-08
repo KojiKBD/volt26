@@ -218,6 +218,12 @@ function VOLT26.ScoreExport.WriteCurrent()
 				elseif written then
 					summary.written[#summary.written + 1] = pathOrError
 					if stage then stage.score_export_path = pathOrError end
+					-- Keep the Song Select best-score index in step with the
+					-- snapshot that was just written.
+					local indexOk, indexError = pcall(VOLT26.ScoreIndex.RecordSnapshot, player, snapshot)
+					if not indexOk then
+						Warn("VOLT26 score export: could not update the score index: " .. tostring(indexError))
+					end
 				else
 					summary.errors[#summary.errors + 1] = pathOrError
 				end

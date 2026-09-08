@@ -2,6 +2,24 @@
 
 All notable VOLT26 changes are documented here. Versions follow Semantic Versioning; release candidates use the `-rc.N` suffix.
 
+## Unreleased
+
+### Added
+
+- Song Select's per-player chart card now shows the player's personal best for the hovered chart: a `BEST` row with the ITG percentage, the EX percentage, and the grade badge, placed between the `STEP ARTIST` line and the density graph (`BGAnimations/ScreenSelectMusic overlay/VOLT26/PlayerChart.lua`). The density graph starts lower to make room and keeps the rest of the card's rhythm; the two-player card gives up graph height rather than pushing the tech and stats rows out of the panel.
+- The grade badge is drawn from `Graphics/_grades/assets/` directly rather than by loading the evaluation grade actors, which spin, pulse and pull in their easter-egg layers. Tiers 00-04 render as a row of one to five stars; every other tier and `Grade_Failed` render as their letter graphic.
+- `VOLT26.ScoreIndex` (`Scripts/VOLT26_ScoreIndex.lua`): a per-profile index of the best percent DP, grade, and EX percentage per chart, stored as `VOLT26-Scores/index.json` next to the exported score snapshots. `VOLT26.ScoreExport.WriteCurrent()` merges each snapshot it writes into the index, and the index rebuilds itself once from the snapshots already on disk when the file is missing or its schema version changed (capped at `MaxRebuildFiles` snapshots so a large profile cannot stall Song Select indefinitely).
+
+### Notes
+
+- The index is required because the engine cannot answer for EX. VOLT26 emulates the FA+ (W0) window from tap offsets during gameplay, and an engine `HighScore` stores only the aggregate W1 count, so the W0/W1 split needed for `VOLT26.Scoring.CalculateExScore` survives only in VOLT26's own exported snapshots. `VOLT26.ScoreIndex.GetBest()` therefore reads the ITG percentage and grade from the profile's engine high score list, and only the EX percentage from the index. A chart played before this change still shows its ITG percentage and grade, but shows `--` for EX until it is played again in VOLT26 with a persistent profile.
+
+### Verification
+
+- Static Lua syntax checks completed (compiled with a Lua runtime) for `Scripts/VOLT26_ScoreIndex.lua`, `Scripts/VOLT26_ScoreExport.lua`, and `BGAnimations/ScreenSelectMusic overlay/VOLT26/PlayerChart.lua`.
+- `Scripts/VOLT26_ScoreIndex.lua` was additionally run against a standalone harness that stubs `PROFILEMAN`, `FILEMAN`, `RageFileUtil`, `lua.ReadFile` and the JSON helpers over an in-memory filesystem. 24 checks passed, covering: live and snapshot keys agreeing for the same chart, steps-type normalization, difficulties staying distinct, Edit descriptions being part of the key while other difficulties ignore them, a snapshot without a song directory producing no key, the rebuild reading every `.json` snapshot and skipping other files, best percent DP and best EX being tracked independently, the rebuilt index being written and reused instead of rescanning, a later worse run not lowering either best, `GetBest()` taking ITG percent and grade from the engine high score and EX from the index, the index fallback when the engine has no score (including short-to-full grade enum normalization), an unplayed chart returning nil, and a player without a persistent profile returning nil.
+- Not verified in ITGmania: the on-screen row and badge, the index rebuild against a real profile directory, the snapshot merge after an actual play, course keys, the engine's own `JsonEncode`/`JsonDecode` round trip (the harness used its own JSON implementation), and the layout of the two-player card with its shorter density graph.
+
 ## 0.1.0 — 2026-09-07
 
 ### Added

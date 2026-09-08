@@ -9,6 +9,72 @@ local accent = H.Accent(player)
 local cardW = 218
 local graphW = cardW - 16
 
+-- Grade artwork.  Tiers 00-04 are drawn as a row of stars rather than reusing
+-- the evaluation grade actors: Song Select only needs a static badge, and the
+-- evaluation versions spin, pulse, and pull in their easter-egg layers.
+local gradeStars = {
+	Grade_Tier00 = 5,
+	Grade_Tier01 = 4,
+	Grade_Tier02 = 3,
+	Grade_Tier03 = 2,
+	Grade_Tier04 = 1,
+}
+local gradeLetters = {
+	Grade_Tier05 = "s-plus.png",
+	Grade_Tier06 = "s.png",
+	Grade_Tier07 = "s-minus.png",
+	Grade_Tier08 = "a-plus.png",
+	Grade_Tier09 = "a.png",
+	Grade_Tier10 = "a-minus.png",
+	Grade_Tier11 = "b-plus.png",
+	Grade_Tier12 = "b.png",
+	Grade_Tier13 = "b-minus.png",
+	Grade_Tier14 = "c-plus.png",
+	Grade_Tier15 = "c.png",
+	Grade_Tier16 = "c-minus.png",
+	Grade_Tier17 = "d.png",
+	Grade_Tier99 = "q.png",
+	Grade_Failed = "f.png",
+}
+local maxGradeStars = 5
+local gradeAssetSize = 200
+
+local function gradeAssetPath(file)
+	return THEME:GetPathG("", "_grades/assets/"..file)
+end
+
+local function formatPercent(value)
+	if type(value) ~= "number" then return H.Dash end
+	return string.format("%.2f%%", value)
+end
+
+local function setGradeIcon(frame, grade, size)
+	local letter = frame:GetChild("GradeLetter")
+	local file = grade and gradeLetters[grade] or nil
+	local stars = grade and gradeStars[grade] or 0
+
+	if file then
+		local path = gradeAssetPath(file)
+		if frame.loadedPath ~= path then
+			local ok = pcall(function() letter:Load(path) end)
+			frame.loadedPath = ok and path or nil
+		end
+		letter:visible(frame.loadedPath ~= nil):zoom(size/gradeAssetSize)
+	else
+		letter:visible(false)
+	end
+
+	local starSize = size * 0.62
+	for i=1,maxGradeStars do
+		frame:GetChild("GradeStar"..i)
+			:visible(i <= stars)
+			:zoom(starSize/gradeAssetSize)
+			:x(-(i-1)*starSize)
+	end
+
+	frame:visible(file ~= nil or stars > 0)
+end
+
 local function hasNonASCII(text)
 	return tostring(text or ""):find("[\128-\255]") ~= nil
 end
@@ -59,10 +125,14 @@ local af = Def.ActorFrame{
 		local single = #GAMESTATE:GetHumanPlayers() == 1
 		local panelY = single and 133 or (player == PLAYER_1 and 126 or 286)
 		local panelH = single and 289 or 152
-		local graphTop = single and 78 or 63
-		-- Single player had 64 units of empty box below the stats; the graph
-		-- takes most of it back rather than leaving the card looking unfinished.
-		local graphH = single and 100 or 24
+		-- The best-score row sits between STEP ARTIST and the density graph, so
+		-- the graph starts lower than it used to and gives the row its height
+		-- back.  Two-player cards only have 152 units to spend, which is why
+		-- their graph keeps just enough height to stay readable.
+		local bestY = single and 62 or 57
+		local gradeSize = single and 18 or 15
+		local graphTop = single and 92 or 74
+		local graphH = single and 88 or 14
 		self:xy(624, panelY)
 
 		self:GetChild("Background"):zoomto(cardW,panelH)
@@ -82,6 +152,19 @@ local af = Def.ActorFrame{
 		self:GetChild("Info"):settext(string.format(
 			"BPM %s   LENGTH %s   RATE %.2fx",
 			H.BPM(player, chart), H.Length(), VOLT26.MusicSelection.GetMusicRate()))
+
+		-- Personal best for the hovered chart.  ITG percentage and grade come
+		-- from the profile's own high score list; EX comes from the VOLT26
+		-- score index, because the engine never stores the emulated W0 split.
+		local best = VOLT26.ScoreIndex.GetBest(player, H.Item(), chart)
+		local bestText = self:GetChild("Best")
+		bestText:xy(8,bestY):settext("BEST  "..formatPercent(best and best.PercentDP and best.PercentDP*100 or nil))
+		self:GetChild("BestEx")
+			:xy(8 + bestText:GetZoomedWidth() + 12, bestY)
+			:settext("EX  "..formatPercent(best and best.ExPercent or nil))
+		local gradeIcon = self:GetChild("GradeIcon")
+		gradeIcon:xy(210,bestY)
+		setGradeIcon(gradeIcon, best and best.Grade or nil, gradeSize)
 
 		local graph = self:GetChild("Graph")
 		local vertices = graphVertices(data, difficultyColor, graphH)
@@ -143,6 +226,32 @@ af[#af+1] = Def.BitmapText{
 	Name="Info", Font=H.FontBold,
 	InitCommand=function(self) self:xy(210,43):horizalign(right):zoom(H.BoldZoom(0.042)):diffuse(H.Black):maxwidth(112/H.BoldZoom(0.042)) end,
 }
+
+af[#af+1] = Def.BitmapText{
+	Name="Best", Font=H.FontBold,
+	InitCommand=function(self) self:horizalign(left):zoom(H.BoldZoom(0.048)):diffuse(H.Black) end,
+}
+af[#af+1] = Def.BitmapText{
+	Name="BestEx", Font=H.FontBold,
+	InitCommand=function(self) self:horizalign(left):zoom(H.BoldZoom(0.048)):diffuse(H.Muted) end,
+}
+
+local gradeIcon = Def.ActorFrame{
+	Name="GradeIcon",
+	InitCommand=function(self) self:visible(false) end,
+}
+gradeIcon[#gradeIcon+1] = Def.Sprite{
+	Name="GradeLetter",
+	InitCommand=function(self) self:align(1,0.5):visible(false) end,
+}
+for i=1,maxGradeStars do
+	gradeIcon[#gradeIcon+1] = Def.Sprite{
+		Name="GradeStar"..i,
+		Texture=gradeAssetPath("star.png"),
+		InitCommand=function(self) self:align(1,0.5):visible(false) end,
+	}
+end
+af[#af+1] = gradeIcon
 
 for i=0,4 do
 	af[#af+1] = Def.Quad{Name="VGrid"..i, InitCommand=function(self) self:align(0,0):diffuse(H.White):diffusealpha(0.13) end}
