@@ -78,11 +78,33 @@ local function label(params)
 	return params.Text or ""
 end
 
-local function artworkPath(song)
+-- A video banner is decoded in full when it is loaded, on a worker thread that
+-- competes with the frame loop for as long as the decode takes.  Nothing that
+-- expensive belongs behind a 48px thumbnail.
+local movieExtensions = {
+	avi=true, f4v=true, flv=true, mkv=true, mp4=true, mpeg=true,
+	mpg=true, mov=true, ogv=true, webm=true, wmv=true,
+}
+
+local function isMovie(path)
+	return movieExtensions[(path:match("%.([^.]+)$") or ""):lower()] == true
+end
+
+-- Answers the artwork path together with the image-cache directory it is
+-- cached under, so the row can load the low-resolution copy instead of the
+-- source file.  The song background is deliberately not a fallback: it is the
+-- largest image in the folder, it is not cached, and the wheel would upload it
+-- in full for every row that scrolls into view.
+local function artwork(song)
 	if not song then return nil end
-	if song:HasJacket() then return song:GetJacketPath() end
-	if song:HasBanner() then return song:GetBannerPath() end
-	if song:HasBackground() then return song:GetBackgroundPath() end
+	if song:HasJacket() then
+		local path = song:GetJacketPath()
+		if path and path ~= "" and not isMovie(path) then return path, "Jacket" end
+	end
+	if song:HasBanner() then
+		local path = song:GetBannerPath()
+		if path and path ~= "" and not isMovie(path) then return path, "Banner" end
+	end
 	return nil
 end
 
@@ -154,7 +176,7 @@ local af = Def.ActorFrame{
 
 		if isSong then
 			local row = self:GetChild("SongRow")
-			self.artPath = artworkPath(self.song)
+			self.artPath, self.artCacheDir = artwork(self.song)
 			VOLT26.Type.SetLabel(row:GetChild("Artist"),
 				(self.song and self.song:GetDisplayArtist() or ""):upper(), 13, textWidth)
 			VOLT26.Type.SetDisplay(row:GetChild("Title"), label(params), 26, textWidth)
@@ -196,12 +218,14 @@ local af = Def.ActorFrame{
 			if self.artPath then
 				loaded = pcall(function()
 					if self.loadedArtPath ~= self.artPath then
-						art:Load(self.artPath)
+						-- The cached copy is a small 16-bit texture; the source
+						-- file is a multi-megabyte RGBA8 upload that the wheel
+						-- would repeat for every row scrolling into view.
+						art:LoadFromCached(self.artCacheDir, self.artPath)
 						-- Wheel artwork is deliberately a still frame: recycled
-						-- rows sharing one movie texture advance it once per
-						-- actor and visibly accelerate playback.
+						-- rows sharing one multi-frame texture advance it once
+						-- per actor and visibly accelerate playback.
 						art:animate(false)
-						if art.SetDecodeMovie then art:SetDecodeMovie(false) end
 						self.loadedArtPath = self.artPath
 					end
 				end)

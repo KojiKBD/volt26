@@ -156,7 +156,7 @@ Keep this map current whenever directories are added, removed, or given a materi
 - `Fonts/16px fonts/`: common 16-pixel UI, game-character, miscellaneous, and emoji font definitions.
 - `Fonts/CJK/Japanese/`: Japanese character font definition.
 - `Fonts/Miso/`: Miso definitions, notes, and `Licenses/`.
-- `Fonts/P5hatty/`, `Fonts/Persona/`, and `Fonts/Wendy/`: named display/UI font definitions.
+- `Fonts/Persona/` and `Fonts/Wendy/`: named display/UI font definitions.
 - Root `Fonts/` files define common, Helvetica, menu timer, screen-specific, fallback, Eurostile, and redirect mappings.
 
 ## Other Directory Index
@@ -274,7 +274,6 @@ Fonts/
     Japanese/
   Miso/
     Licenses/
-  P5hatty/
   Persona/
   Wendy/
 Graphics/
