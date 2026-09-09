@@ -1235,45 +1235,27 @@ end
 
 VOLT26.MusicSelection = {}
 
--- Song and course rows in the Song Select wheel are drawn this far right of the
--- pack headers, so an open pack reads as one indented block at a glance.
--- Graphics/VOLT26/SongSelection/MusicWheelItemNative.lua lays out the rows and
--- the overlay's FocusedBanner.lua stands in for the focused row's artwork, so
--- both have to share the offset.
-VOLT26.MusicSelection.WheelSongIndent = 40
+-- Song Select wheel geometry, in the screen's virtual 1920x1080 design space.
+-- The Song Select composition positions the wheel from these figures and
+-- Graphics/VOLT26/SongSelection/MusicWheelItemNative.lua draws each row from
+-- them, so the rail, the rows and the sticky pack heading cannot drift apart.
+-- X is the column's left edge; GuideOffset places the rail the dots sit on and
+-- is the wheel's own origin; ItemOffset places the left edge of a row's body.
+VOLT26.MusicSelection.Wheel = {
+	X = 32,
+	Width = 420,
+	GuideOffset = 5,
+	ItemOffset = 22,
+	Pitch = 55,
+	ItemHeight = 52,
+}
 
-local rootSongGroupCount
-
-local function getRootSongGroupCount()
-	if rootSongGroupCount ~= nil then return rootSongGroupCount end
-	local ok, groups = pcall(function() return SONGMAN:GetSongGroupNames() end)
-	rootSongGroupCount = ok and groups and #groups or 0
-	return rootSongGroupCount
-end
-
+-- Every row keeps the same pitch and the selection stays on the wheel's centre,
+-- so scrolling moves the list past a fixed highlight rather than moving the
+-- highlight.  MusicWheel's own SwitchSeconds does the damping.
 function VOLT26.MusicSelection.PositionWheelItem(self, offsetFromCenter)
 	self.VOLT26Offset = offsetFromCenter
-	local distance = math.abs(offsetFromCenter)
-	local direction = offsetFromCenter < 0 and -1 or 1
-	local screen = SCREENMAN:GetTopScreen()
-	local wheel = screen and screen.GetMusicWheel and screen:GetMusicWheel()
-	local selectedType = wheel and wheel:GetSelectedType()
-	local atPackRoot = selectedType == "WheelItemDataType_Section"
-		or selectedType == "WheelItemDataType_ParentSection"
-
-	-- With exactly two root packs, MusicWheel repeats A/B across its actor pool.
-	-- Reserving extra height only beside the focused actor then produces an
-	-- alternating 76/46 rhythm.  Give every repeated row the focused-row pitch
-	-- at this boundary; normal lists and expanded packs retain the compact rail.
-	local y
-	if atPackRoot and getRootSongGroupCount() == 2 then
-		y = offsetFromCenter * 76
-	else
-		local focusGap = math.min(distance, 1) * 30
-		y = offsetFromCenter * 46 + direction * focusGap
-	end
-	local edgeFade = math.max(0.55, 1 - math.max(0, distance - 2) * 0.16)
-	self:y(y):diffusealpha(edgeFade)
+	self:y(offsetFromCenter * VOLT26.MusicSelection.Wheel.Pitch)
 end
 
 function VOLT26.MusicSelection.GetMusicRate()

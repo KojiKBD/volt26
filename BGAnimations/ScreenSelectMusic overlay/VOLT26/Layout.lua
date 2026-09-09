@@ -1,41 +1,119 @@
 -- VOLT26 Song Select composition.
+--
+-- The screen is laid out in a virtual 1920x1080 space and scaled to whatever
+-- resolution the theme runs at, so every measurement below is the design figure
+-- rather than a converted one.
 
 local H = {
-	W = 854,
-	H = 480,
-	Font = "Helvetica Normal",
-	FontBold = "Helvetica Bold",
-	FontZoom = 116 / 28,
-	FontBoldZoom = 116 / 29,
-	P1 = color("#ff0000"),
-	P2 = color("#6f9fb5"),
-	Black = color("#f6eeee"),
-	White = color("#ffffff"),
-	Muted = color("#bdaeb0"),
-	Line = color("#8c5d61"),
-	Surface = color("#181818"),
-	SurfaceAlpha = 0.88,
+	W = 1920,
+	H = 1080,
 	Dash = "--",
 	ChartCache = {},
 	LastStepsPlayer = PLAYER_1,
 }
 
-function H.NormalZoom(value) return value * H.FontZoom end
-function H.BoldZoom(value) return value * H.FontBoldZoom end
+-- Palette.
+H.Bg     = color("#0a0a0c")
+H.Panel  = color("#141417")
+H.Panel2 = color("#17171b")
+H.Line   = color("#26262c")
+H.Ink    = color("#f2f0ec")
+H.Mute   = color("#8a8a94")
+H.Dim    = color("#5a5a64")
+H.P1     = color("#e03a2f")
+H.P2     = color("#2f7de0")
+-- The songwheel rail: a red desaturated far enough to read as structure rather
+-- than as a second accent.
+H.Rail   = color("#3a2020")
+
+-- Typography.  The design calls for Oswald and Space Mono; the theme ships
+-- neither, so VOLT26.Type fills the two roles with the closest faces it does
+-- have and owns the metrics that turn a design pixel size into a zoom.
+H.Display = VOLT26.Type.Display
+H.Label = VOLT26.Type.Label
+H.DisplayZoom = VOLT26.Type.DisplayZoom
+H.LabelZoom = VOLT26.Type.LabelZoom
+H.SetLabel = VOLT26.Type.SetLabel
+H.SetDisplay = VOLT26.Type.SetDisplay
+
+-- Text and rule factories.  Every one takes the design's own figures --
+-- {Name, Px, Tint, Align, X, Y} -- so a component reads as the design does and
+-- the shared defaults (no shadow, vertically centred on the given Y) stay in
+-- one place.
+local function textActor(font, zoomFor, defaultTint)
+	return function(t)
+		return Def.BitmapText{
+			Name=t.Name, Font=font,
+			InitCommand=function(self)
+				self:xy(t.X or 0, t.Y or 0)
+					:horizalign(t.Align or left):vertalign(t.VAlign or middle)
+					:shadowlength(0):zoom(zoomFor(t.Px)):diffuse(t.Tint or defaultTint)
+				if t.Width then self:maxwidth(t.Width/zoomFor(t.Px)) end
+			end,
+		}
+	end
+end
+
+H.LabelText = textActor(H.Label, H.LabelZoom, H.Mute)
+H.DisplayText = textActor(H.Display, H.DisplayZoom, H.Ink)
+
+function H.String(key)
+	return THEME:GetString("ScreenSelectMusic", key)
+end
+
+function H.Rule(t)
+	return Def.Quad{
+		Name=t.Name,
+		InitCommand=function(self)
+			self:align(t.AlignX or 0, t.AlignY or 0):xy(t.X or 0, t.Y or 0)
+				:zoomto(t.Width or 1, t.Height or 1)
+				:diffuse(t.Tint or H.Line):diffusealpha(t.Alpha or 1)
+		end,
+	}
+end
+
+-- Vertical bands.
+H.Pad         = 32
+H.TopBarH     = 62
+H.HeaderH     = 132
+H.FooterH     = 62
+H.ContentTop  = H.TopBarH + H.HeaderH
+H.InnerTop    = H.ContentTop + 20
+H.InnerBottom = H.H - H.FooterH - 20
+
+-- Content columns.  The songwheel's figures are shared with the wheel row
+-- graphic through VOLT26.MusicSelection, so the rail cannot drift from the rows.
+local wheel = VOLT26.MusicSelection.Wheel
+H.WheelX     = wheel.X
+H.WheelW     = wheel.Width
+H.WheelGuide = wheel.X + wheel.GuideOffset
+H.WheelItemX = wheel.X + wheel.ItemOffset
+H.WheelPitch = wheel.Pitch
+H.RowsX      = H.WheelX + H.WheelW + 26
+H.RowsW      = H.W - H.Pad - H.RowsX
+H.RowGap     = 26
 
 H.Scale = math.min(_screen.w/H.W, _screen.h/H.H)
 H.Left = _screen.cx - H.W*H.Scale/2
 H.Top = _screen.cy - H.H*H.Scale/2
 
-function H.SelectedType()
+-- The list geometry, shared by the wheel rows, the sticky heading and the fades.
+H.WheelListTop = H.InnerTop + 34
+H.WheelListBottom = H.InnerBottom
+H.WheelCenterY = (H.WheelListTop + H.WheelListBottom)/2
+
+function H.Wheel()
 	local screen = SCREENMAN:GetTopScreen()
-	local wheel = screen and screen.GetMusicWheel and screen:GetMusicWheel()
+	return screen and screen.GetMusicWheel and screen:GetMusicWheel() or nil
+end
+
+function H.SelectedType()
+	local wheel = H.Wheel()
 	return wheel and wheel:GetSelectedType() or nil
 end
 
 function H.SelectedSection()
-	local screen = SCREENMAN:GetTopScreen()
-	local wheel = screen and screen.GetMusicWheel and screen:GetMusicWheel()
+	local wheel = H.Wheel()
 	return wheel and wheel:GetSelectedSection() or nil
 end
 
@@ -70,6 +148,28 @@ end
 
 function H.Artist(item)
 	return item and item.GetDisplayArtist and item:GetDisplayArtist() or ""
+end
+
+-- The pack the selection belongs to, and where the selection sits inside it.
+-- The top bar, the song header and the songwheel's sticky heading all read the
+-- same answer, so they cannot disagree.
+function H.Pack()
+	local song = not GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentSong() or nil
+	local group = song and song.GetGroupName and song:GetGroupName() or nil
+	if group and group ~= "" then return group end
+	return H.SelectedSection() or ""
+end
+
+function H.PackPosition()
+	local group = H.Pack()
+	if group == "" then return 0, 0 end
+	local song = not GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentSong() or nil
+	local ok, songs = pcall(function() return SONGMAN:GetSongsInGroup(group) end)
+	if not ok or not songs then return 0, 0 end
+	for index, candidate in ipairs(songs) do
+		if candidate == song then return index, #songs end
+	end
+	return 0, #songs
 end
 
 function H.Length()
@@ -203,6 +303,17 @@ function H.PreviewSource()
 	return player, H.Chart(player)
 end
 
+-- Each player owns one row.  A lone player's row takes the whole band, which is
+-- what gives its density graph and preview their extra height.
+function H.RowGeometry(player)
+	local humans = GAMESTATE:GetHumanPlayers()
+	local band = H.InnerBottom - H.InnerTop
+	if #humans <= 1 then return H.InnerTop, band end
+	local height = (band - H.RowGap)/2
+	if player == PLAYER_1 then return H.InnerTop, height end
+	return H.InnerTop + height + H.RowGap, height
+end
+
 function H.AddRefresh(actor)
 	actor.OnCommand=function(self) self:queuecommand("Refresh") end
 	actor.CurrentSongChangedMessageCommand=function(self) H.ChartCache={}; self:queuecommand("Refresh") end
@@ -259,13 +370,15 @@ local af = Def.ActorFrame{
 	Name="VOLT26SongSelect",
 	InitCommand=function(self) self:xy(H.Left, H.Top):zoom(H.Scale) end,
 	OnCommand=function(self)
-		local screen = SCREENMAN:GetTopScreen()
-		local wheel = screen and screen.GetMusicWheel and screen:GetMusicWheel()
+		local wheel = H.Wheel()
 		if wheel then
 			if not GAMESTATE:IsCourseMode() and GAMESTATE:GetSortOrder() ~= "SortOrder_Group" then
 				wheel:ChangeSort("SortOrder_Group")
 			end
-			wheel:xy(H.Left + 32*H.Scale, H.Top + 240*H.Scale)
+			-- The wheel is the screen's own actor rather than a child of this
+			-- frame, so it needs the same scale before its rows can be laid out
+			-- in design units.  Its origin is the rail the dots sit on.
+			wheel:xy(H.Left + H.WheelGuide*H.Scale, H.Top + H.WheelCenterY*H.Scale):zoom(H.Scale)
 		end
 		self._refreshElapsed = 0
 		self._refreshKey = ""
@@ -293,27 +406,23 @@ local function componentPath(file)
 	return THEME:GetPathB("ScreenSelectMusic", "overlay/VOLT26/"..file)
 end
 
-af[#af+1] = LoadActor(componentPath("Frame.lua"), H)
-af[#af+1] = LoadActor(componentPath("FocusedBanner.lua"), H)
-af[#af+1] = LoadActor(componentPath("SongInfo.lua"), H)
-local chartPreviewLayer = Def.ActorFrame{
-	Name="ChartPreviewLayer",
-	InitCommand=function(self) self:diffusealpha(0.001) end,
+af[#af+1] = LoadActor(componentPath("TopBar.lua"), H)
+af[#af+1] = LoadActor(componentPath("SongHeader.lua"), H)
+af[#af+1] = LoadActor(componentPath("Songwheel.lua"), H)
+
+local rowLayer = Def.ActorFrame{
+	Name="PlayerRows",
 	-- Modal overlays (sort menu, song search, leaderboard, input test) own the
-	-- screen while they are open. The preview notefield is drawn after them, so
-	-- stop drawing it entirely instead of relying on draw order.
+	-- screen while they are open.  The preview strips draw after them, so stop
+	-- drawing the rows entirely instead of relying on draw order.
 	VOLT26ModalOverlayOpenedMessageCommand=function(self) self:visible(false) end,
 	VOLT26ModalOverlayClosedMessageCommand=function(self) self:visible(true) end,
 }
-chartPreviewLayer[#chartPreviewLayer+1] = LoadActor(componentPath("PreviewBackdrop.lua"), H)
-chartPreviewLayer[#chartPreviewLayer+1] = LoadActor(componentPath("ChartPreview.lua"), H)
-af[#af+1] = chartPreviewLayer
-af[#af+1] = LoadActor(componentPath("GroupPreview.lua"), H)
-af[#af+1] = LoadActor(componentPath("DifficultyStrip.lua"), H)
-af[#af+1] = LoadActor(componentPath("PlayerChart.lua"), {H=H, Player=PLAYER_1})
-af[#af+1] = LoadActor(componentPath("PlayerChart.lua"), {H=H, Player=PLAYER_2})
-af[#af+1] = LoadActor(componentPath("PlayerName.lua"), {H=H, Player=PLAYER_1})
-af[#af+1] = LoadActor(componentPath("PlayerName.lua"), {H=H, Player=PLAYER_2})
+rowLayer[#rowLayer+1] = LoadActor(componentPath("PlayerRow.lua"), {H=H, Player=PLAYER_1})
+rowLayer[#rowLayer+1] = LoadActor(componentPath("PlayerRow.lua"), {H=H, Player=PLAYER_2})
+af[#af+1] = rowLayer
+
+af[#af+1] = LoadActor(componentPath("Footer.lua"), H)
 
 -- Use Song Select idle time to prepare the small shared gameplay/evaluation
 -- textures before the player confirms a chart.

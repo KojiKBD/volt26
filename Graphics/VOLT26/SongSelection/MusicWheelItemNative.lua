@@ -1,19 +1,28 @@
--- Engine-native vertical Song Select row.  MusicWheel keeps ownership of
--- focus, sorting, input, and actor recycling; this actor only presents it.
+-- Engine-native vertical Song Select row.  MusicWheel keeps ownership of focus,
+-- sorting, input, and actor recycling; this actor only presents it.
+--
+-- Every row carries its own slice of the vertical rail, one pitch tall and
+-- drawn behind the dot, so the rail reads as one continuous guide without a
+-- second actor having to track the list.
 local kind = ... or "Song"
-local font = "Helvetica Normal"
-local boldFont = "Helvetica Bold"
-local fontZoom = 116 / 28
-local boldFontZoom = 116 / 29
-local railRed = color("#840000")
-local focusRed = color("#ff0000")
-local black = color("#f6eeee")
-local muted = color("#bdaeb0")
-local songIndent = VOLT26.MusicSelection.WheelSongIndent
 
-local function hasNonASCII(text)
-	return tostring(text or ""):find("[\128-\255]") ~= nil
-end
+local G = VOLT26.MusicSelection.Wheel
+local itemLeft = G.ItemOffset - G.GuideOffset
+local itemWidth = G.Width - G.ItemOffset
+local itemHeight = G.ItemHeight
+local jacketX = itemLeft + 15
+local jacketSize = 38
+local textX = jacketX + jacketSize + 14
+local meterX = itemLeft + itemWidth - 14
+local textWidth = meterX - 18 - textX
+
+local ink = color("#f2f0ec")
+local mute = color("#8a8a94")
+local dim = color("#5a5a64")
+local line = color("#26262c")
+local panel2 = color("#17171b")
+local rail = color("#3a2020")
+local accent = color("#e03a2f")
 
 local function circleVertices(radius, tint)
 	local vertices = {{{0,0,0}, tint}}
@@ -32,9 +41,9 @@ end
 
 -- MusicWheel wraps short lists, so one pack or song can hold several rows at
 -- once.  GAMESTATE cannot tell those copies apart, and every copy claiming
--- focus stacked the tall focused artwork over its neighbours.  The wheel's
--- transform function stamps each row with its distance from the centre, which
--- is the only per-row identity the engine hands out.
+-- focus would light up the highlight in several places.  The wheel's transform
+-- function stamps each row with its distance from the centre, which is the only
+-- per-row identity the engine hands out.
 local function isCenterRow(self)
 	local node = self:GetParent()
 	while node do
@@ -64,47 +73,28 @@ local function label(params)
 	if params.Course then return params.Course:GetDisplayFullTitle() end
 	-- MusicWheel section rows can provide Label as an empty string while Text
 	-- carries the actual group name.  Empty strings are truthy in Lua, so a
-	-- simple `Label or Text` silently erased the focused pack title.
+	-- simple `Label or Text` silently erased the pack title.
 	if params.Label and params.Label ~= "" then return params.Label end
 	return params.Text or ""
 end
 
-local function compactSectionLabel(text)
-	text = tostring(text or "")
-	if #text <= 24 then return text end
-	return text:sub(1,21).."..."
-end
-
-local function artworkPaths(song)
-	if not song then return nil, nil end
-	local small, large
-	if song:HasJacket() then small = song:GetJacketPath() end
-	if not small and song:HasBanner() then small = song:GetBannerPath() end
-	if not small and song:HasBackground() then small = song:GetBackgroundPath() end
-	large = small
-	return small, large
-end
-
-local function sectionSongs(section)
-	if not section or section == "" then return {} end
-	local ok, songs = pcall(function() return SONGMAN:GetSongsInGroup(section) end)
-	return ok and songs or {}
-end
-
-local function sectionArtwork(section)
-	local ok, path = pcall(function() return SONGMAN:GetSongGroupBannerPath(section) end)
-	if ok and path and path ~= "" then return path end
-	local songs = sectionSongs(section)
-	if songs[1] then
-		local small, large = artworkPaths(songs[1])
-		return large or small
-	end
+local function artworkPath(song)
+	if not song then return nil end
+	if song:HasJacket() then return song:GetJacketPath() end
+	if song:HasBanner() then return song:GetBannerPath() end
+	if song:HasBackground() then return song:GetBackgroundPath() end
 	return nil
+end
+
+local function sectionSongCount(section)
+	if not section or section == "" then return 0 end
+	local ok, songs = pcall(function() return SONGMAN:GetSongsInGroup(section) end)
+	return ok and songs and #songs or 0
 end
 
 local function centerCrop(sprite, x, y, width, height)
 	sprite:cropleft(0):cropright(0):croptop(0):cropbottom(0):zoom(1)
-		:align(0.5,0.5):xy(x+width/2,y+height/2)
+		:align(0.5,0.5):xy(x+width/2, y+height/2)
 	local sourceWidth = math.max(1, sprite:GetWidth())
 	local sourceHeight = math.max(1, sprite:GetHeight())
 	local sourceAspect = sourceWidth/sourceHeight
@@ -116,6 +106,18 @@ local function centerCrop(sprite, x, y, width, height)
 		local crop = (1-sourceAspect/targetAspect)/2
 		sprite:croptop(crop):cropbottom(crop):zoom(width/sourceWidth)
 	end
+end
+
+local function meterText(song)
+	if not song then return "" end
+	local style = GAMESTATE:GetCurrentStyle()
+	local stepsType = style and style:GetStepsType() or nil
+	if not stepsType then return "" end
+	local ok, charts = pcall(function() return song:GetStepsByStepsType(stepsType) end)
+	if not ok or not charts or #charts == 0 then return "" end
+	local hardest = 0
+	for chart in ivalues(charts) do hardest = math.max(hardest, tonumber(chart:GetMeter()) or 0) end
+	return hardest > 0 and tostring(hardest) or ""
 end
 
 local af = Def.ActorFrame{
@@ -141,176 +143,161 @@ local af = Def.ActorFrame{
 			or (kind == "Section" and not params.Song and not params.Course)
 		self:visible(matches and true or false)
 		if not matches then return end
+
 		self.song, self.course = params.Song, params.Course
 		self.section = (not params.Song and not params.Course) and (params.Text or params.Label) or nil
-		if self.song then
-			self.smallArt, self.largeArt = artworkPaths(self.song)
-		elseif self.section then
-			local path = sectionArtwork(self.section)
-			self.smallArt, self.largeArt = path, path
+		if self.section == "" then self.section = params.Label end
+
+		local isSong = self.song ~= nil or self.course ~= nil
+		self:GetChild("SongRow"):visible(isSong)
+		self:GetChild("PackRow"):visible(not isSong)
+
+		if isSong then
+			local row = self:GetChild("SongRow")
+			self.artPath = artworkPath(self.song)
+			VOLT26.Type.SetLabel(row:GetChild("Artist"),
+				(self.song and self.song:GetDisplayArtist() or ""):upper(), 10, textWidth)
+			VOLT26.Type.SetDisplay(row:GetChild("Title"), label(params), 20, textWidth)
+			VOLT26.Type.SetLabel(row:GetChild("Meter"), meterText(self.song), 13)
 		else
-			self.smallArt, self.largeArt = nil, nil
+			local row = self:GetChild("PackRow")
+			local title = self.section or ""
+			VOLT26.Type.SetLabel(row:GetChild("Name"), title:upper(), 22, itemWidth - 100)
+			VOLT26.Type.SetLabel(row:GetChild("Count"),
+				string.format("%02d", sectionSongCount(self.section)), 11)
 		end
-		self.sectionTitle = self.section and label(params) or nil
-		if self.section and (not self.sectionTitle or self.sectionTitle == "") then self.sectionTitle = self.section end
-		self:GetChild("Title"):settext(self.section and compactSectionLabel(self.sectionTitle) or label(params))
-		local songs = self.section and sectionSongs(self.section) or nil
-		self.sectionSongCount = songs and #songs or 0
-		local artistText = params.Song and params.Song:GetDisplayArtist()
-			or (songs and ("PACK   -   "..self.sectionSongCount.." SONGS")) or ""
-		self.artistUsesCJK = hasNonASCII(artistText)
-		self:GetChild("Artist"):settext(artistText)
-		self:GetChild("ArtistCJK"):settext(artistText)
-		self:GetChild("PackMark"):settext("PACK")
+
 		self.wasFocus = focused(self)
 		self:playcommand("Focus", {Focused=self.wasFocus})
 	end,
 	FocusCommand=function(self, params)
 		local on = params.Focused
-		local title = self:GetChild("Title")
-		local latinArtist = self:GetChild("Artist")
-		local cjkArtist = self:GetChild("ArtistCJK")
-		latinArtist:visible(false)
-		cjkArtist:visible(false)
-		local artist = self.artistUsesCJK and cjkArtist or latinArtist
-		local compactArt = self:GetChild("Artwork")
-		local hoverArt = self:GetChild("HoverArtwork")
-		local art = compactArt
-		local fallback = self:GetChild("ArtworkFallback")
-		local packMark = self:GetChild("PackMark")
-		local stroke = self:GetChild("ArtworkStroke")
-		-- Pack headers stay on the rail and songs step right of it, so an
-		-- expanded pack is obvious without reading a single title.
-		local indent = kind == "Section" and 0 or songIndent
-		if self.section then
-			title:settext(on and self.sectionTitle or compactSectionLabel(self.sectionTitle))
-			latinArtist:settext("PACK   -   "..self.sectionSongCount.." SONGS")
-			cjkArtist:settext("PACK   -   "..self.sectionSongCount.." SONGS")
-		end
-		local path = on and self.largeArt or self.smallArt
-		hoverArt:visible(false)
-		if path then
-			local ok = pcall(function()
-				-- Set and Focus can run back-to-back for the same recycled row.
-				-- Reopening the same movie decoder on both commands makes animated
-				-- banners accelerate after a few wheel movements.
-				local cacheKey = "loadedArtPath"
-				local loadedNew = self[cacheKey] ~= path
-				if loadedNew then
-					art:Load(path)
-					-- Compact wheel artwork is deliberately a still frame.  This keeps
-					-- every song's own banner visible without allowing recycled wheel
-					-- rows to advance the same movie texture multiple times.
-					art:animate(false)
-					if art.SetDecodeMovie then art:SetDecodeMovie(false) end
-					self[cacheKey] = path
-				end
-			end)
-			if not ok then
-				self.loadedArtPath = nil
-			end
-			art:visible(ok)
-			fallback:visible(not ok)
-			packMark:visible(self.section ~= nil and not ok)
-		else
-			compactArt:visible(false)
-			hoverArt:visible(false)
-			fallback:visible(self.song ~= nil or self.section ~= nil)
-			packMark:visible(self.section ~= nil)
-		end
-		fallback:diffuse(self.section and color("#31090f") or color("#1c1214"))
+		local tint = on and accent or rail
 
-		local dot = self:GetChild("Dot")
-		dot:SetNumVertices(18):SetVertices(circleVertices(on and 7 or 3, on and focusRed or railRed))
-		-- The dots stay in one column, so every indented row grows a branch back
-		-- to the rail.  Idle branches wear the rail's own dark red and sit
-		-- thinner than the selected one, which keeps the bright red the only
-		-- thing competing for attention.  Each starts at its dot's edge.
-		local branch = self:GetChild("RailBranch")
-		local branchStart = on and 7 or 3
-		branch:visible(on or indent > 0):xy(branchStart,0)
-			:zoomto(24+indent-branchStart-1, on and 2 or 1.5)
-			:diffuse(on and focusRed or railRed)
-		stroke:visible(self.section ~= nil):diffuse(on and focusRed or railRed)
-		if on then
-			centerCrop(art,24+indent,-38,132,56)
-			fallback:align(0,0):xy(24+indent,-38):zoomto(132,56)
-			stroke:align(0,0):xy(23+indent,-39):zoomto(134,58)
-			if self.section then
-				-- Explicitly reuse the same actors as a focused song.  MusicWheel
-				-- recycles these rows, so leaving the compact title actor around is
-				-- what previously kept the pack name inside the artwork.
-				title:settext(self.sectionTitle or self.section or ""):stoptweening():visible(true):diffusealpha(1):horizalign(left):xy(24,30):zoom(0.070*boldFontZoom):maxwidth(226/(0.070*boldFontZoom)):diffuse(black)
-				artist:settext("PACK   -   "..self.sectionSongCount.." SONGS"):visible(true):horizalign(left):xy(24,46):zoom(0.041*fontZoom):maxwidth(226/(0.041*fontZoom)):diffuse(muted)
-				packMark:xy(90,-10):zoom(0.052*boldFontZoom):maxwidth(104/(0.052*boldFontZoom))
-			else
-				title:horizalign(left):xy(24+indent,30):zoom(0.070*boldFontZoom):maxwidth((226-indent)/(0.070*boldFontZoom)):diffuse(black)
-				local zoom = self.artistUsesCJK and 0.42 or 0.041*fontZoom
-				artist:horizalign(left):xy(24+indent,46):zoom(zoom):maxwidth((226-indent)/zoom):diffuse(muted)
-				packMark:visible(false)
+		-- The current row's dot grows into the accent while the rest stay small
+		-- and unlit, so the eye finds the selection before reading a word.
+		self:GetChild("Dot")
+			:SetNumVertices(18):SetVertices(circleVertices(on and 5 or 3, tint))
+
+		local highlight = self:GetChild("Highlight")
+		local bar = self:GetChild("Bar")
+		highlight:visible(on)
+		bar:visible(on)
+
+		if self.song or self.course then
+			local row = self:GetChild("SongRow")
+			row:GetChild("Artist"):diffuse(on and accent or dim)
+			row:GetChild("Title"):diffuse(ink)
+			row:GetChild("Meter"):diffuse(on and accent or mute)
+
+			local art = row:GetChild("Jacket")
+			local fallback = row:GetChild("JacketFallback")
+			local loaded = false
+			if self.artPath then
+				loaded = pcall(function()
+					if self.loadedArtPath ~= self.artPath then
+						art:Load(self.artPath)
+						-- Wheel artwork is deliberately a still frame: recycled
+						-- rows sharing one movie texture advance it once per
+						-- actor and visibly accelerate playback.
+						art:animate(false)
+						if art.SetDecodeMovie then art:SetDecodeMovie(false) end
+						self.loadedArtPath = self.artPath
+					end
+				end)
+				if not loaded then self.loadedArtPath = nil end
 			end
+			art:visible(loaded)
+			fallback:visible(not loaded)
+			if loaded then centerCrop(art, jacketX, -jacketSize/2, jacketSize, jacketSize) end
 		else
-			centerCrop(art,24+indent,-14,28,28)
-			fallback:align(0,0):xy(24+indent,-14):zoomto(28,28)
-			stroke:align(0,0):xy(23+indent,-15):zoomto(30,30)
-			local zoom = self.artistUsesCJK and 0.38 or 0.037*fontZoom
-			artist:horizalign(left):xy(59+indent,-7):zoom(zoom):maxwidth(((self.section and 142 or 184)-indent)/zoom):diffuse(muted)
-			title:horizalign(left):xy(59+indent,8):zoom(0.058*boldFontZoom):maxwidth(((self.section and 142 or 184)-indent)/(0.058*boldFontZoom)):diffuse(black)
-			packMark:xy(38+indent,0):zoom(0.025*boldFontZoom):maxwidth(24/(0.025*boldFontZoom))
+			local row = self:GetChild("PackRow")
+			row:GetChild("Name"):diffuse(on and accent or ink)
+			row:GetChild("Count"):diffuse(on and accent or dim)
 		end
-		-- FocusedBanner.lua is the sole owner of selected song banners.  Keeping
-		-- this wheel copy visible underneath it produces a doubled, horizontally
-		-- offset image for static banners and two movie actors for animated ones.
-		if on and self.song and self.song:HasBanner() then
-			art:visible(false)
-			fallback:visible(false)
-		end
-		title:visible(self.song ~= nil or self.course ~= nil or self.section ~= nil)
-		artist:visible(self.song ~= nil or self.section ~= nil)
 	end,
 }
 
 af[#af+1] = Def.Quad{
-	Name="RailBranch",
-	InitCommand=function(self) self:align(0,0.5):xy(7,0):zoomto(16,2):diffuse(focusRed):visible(false) end,
+	Name="Guide",
+	InitCommand=function(self)
+		self:align(0.5,0.5):zoomto(1, G.Pitch):diffuse(rail)
+	end,
 }
+af[#af+1] = Def.Quad{
+	Name="Highlight",
+	InitCommand=function(self)
+		self:align(0,0.5):x(itemLeft):zoomto(itemWidth, itemHeight)
+			:diffuse(accent):diffusealpha(0.22):diffuserightedge(color("0,0,0,0")):visible(false)
+	end,
+}
+af[#af+1] = Def.Quad{
+	Name="Bar",
+	InitCommand=function(self)
+		self:align(0,0.5):x(itemLeft):zoomto(3, itemHeight):diffuse(accent):visible(false)
+	end,
+}
+
+local songRow = Def.ActorFrame{Name="SongRow"}
+songRow[#songRow+1] = Def.Quad{
+	Name="JacketStroke",
+	InitCommand=function(self)
+		self:align(0,0.5):x(jacketX-1):zoomto(jacketSize+2, jacketSize+2):diffuse(line)
+	end,
+}
+songRow[#songRow+1] = Def.Quad{
+	Name="JacketFallback",
+	InitCommand=function(self)
+		self:align(0,0.5):x(jacketX):zoomto(jacketSize, jacketSize):diffuse(panel2)
+	end,
+}
+songRow[#songRow+1] = Def.Banner{
+	Name="Jacket",
+	InitCommand=function(self) self:visible(false) end,
+}
+songRow[#songRow+1] = Def.BitmapText{
+	Name="Artist", Font=VOLT26.Type.Label,
+	InitCommand=function(self)
+		self:xy(textX, -9):horizalign(left):vertalign(middle):shadowlength(0):diffuse(dim)
+	end,
+}
+songRow[#songRow+1] = Def.BitmapText{
+	Name="Title", Font=VOLT26.Type.Display,
+	InitCommand=function(self)
+		self:xy(textX, 8):horizalign(left):vertalign(middle):shadowlength(0):diffuse(ink)
+	end,
+}
+songRow[#songRow+1] = Def.BitmapText{
+	Name="Meter", Font=VOLT26.Type.Label,
+	InitCommand=function(self)
+		self:xy(meterX, 0):horizalign(right):vertalign(middle):shadowlength(0):diffuse(mute)
+	end,
+}
+af[#af+1] = songRow
+
+-- Pack rows wear the same face as the sticky heading they turn into once they
+-- scroll off the top, so the transition reads as one label moving rather than
+-- two labels swapping.
+local packRow = Def.ActorFrame{Name="PackRow"}
+packRow[#packRow+1] = Def.BitmapText{
+	Name="Name", Font=VOLT26.Type.Label,
+	InitCommand=function(self)
+		self:xy(itemLeft+12, 0):horizalign(left):vertalign(middle):shadowlength(0):diffuse(ink)
+	end,
+}
+packRow[#packRow+1] = Def.BitmapText{
+	Name="Count", Font=VOLT26.Type.Label,
+	InitCommand=function(self)
+		self:xy(meterX, 0):horizalign(right):vertalign(middle):shadowlength(0):diffuse(dim)
+	end,
+}
+af[#af+1] = packRow
+
 af[#af+1] = Def.ActorMultiVertex{
 	Name="Dot",
 	InitCommand=function(self)
-		self:SetDrawState({Mode="DrawMode_Fan"}):SetVertices(circleVertices(3, railRed))
+		self:SetDrawState({Mode="DrawMode_Fan"}):SetVertices(circleVertices(3, rail))
 	end,
-}
-af[#af+1] = Def.Quad{
-	Name="ArtworkStroke",
-	InitCommand=function(self) self:align(0,0):diffuse(focusRed):visible(false) end,
-}
-af[#af+1] = Def.Quad{
-	Name="ArtworkFallback",
-	InitCommand=function(self) self:align(0,0):diffuse(color("#1c1214")):visible(false) end,
-}
-af[#af+1] = Def.Banner{
-	Name="Artwork",
-	InitCommand=function(self) self:visible(false) end,
-}
-af[#af+1] = Def.Banner{
-	Name="HoverArtwork",
-	InitCommand=function(self) self:visible(false) end,
-}
-af[#af+1] = Def.BitmapText{
-	Name="PackMark", Font=boldFont,
-	InitCommand=function(self) self:horizalign(center):diffuse(color("#fff4f4")):visible(false) end,
-}
-af[#af+1] = Def.BitmapText{
-	Name="Title", Font=boldFont,
-	InitCommand=function(self) self:horizalign(left):diffuse(black) end,
-}
-af[#af+1] = Def.BitmapText{
-	Name="Artist", Font=font,
-	InitCommand=function(self) self:horizalign(left):diffuse(muted) end,
-}
-af[#af+1] = Def.BitmapText{
-	Name="ArtistCJK", Font="Common Normal",
-	InitCommand=function(self) self:horizalign(left):diffuse(muted):visible(false) end,
 }
 
 return af

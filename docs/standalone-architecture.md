@@ -9,6 +9,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.Core`: bootstrap, lifecycle, and access to runtime state.
 - `VOLT26.Util`: deterministic table, range, mapping, formatting, lookup, and system-message primitives.
 - `VOLT26.Text`: UTF-8-aware emoji attributes, wrapping, and truncation behavior for text actors.
+- `VOLT26.Type`: the theme's two type roles and the face metrics that turn a design pixel size into an actor zoom, including the fallback that sets a string the label face cannot render in the display face.
 - `VOLT26.Compatibility`: engine/game policy, version parsing, theme metadata, and renderer capability checks.
 - `VOLT26.State`: global, per-player, per-stage, and per-session state.
 - `VOLT26.ThemePrefs`: persistent theme configuration.
@@ -18,6 +19,7 @@ VOLT26 is divided into CORE behavior and SCREEN presentation. SCREEN code may ca
 - `VOLT26.Favorites`: legacy import, VOLT26-owned favorite persistence, normalized membership state, and toggling.
 - `VOLT26.ChartData`: immutable snapshots of engine-backed density, NPS, technique counts, and column cues.
 - `VOLT26.ChartAnalysis`: pure stream-sequence, breakdown-text, and measure-total derivation over chart snapshots.
+- `VOLT26.Simfile`: reading a chart's own note rows out of its `.sm`/`.ssc`, bounded to a measure range, for consumers that have to draw the steps rather than count them.
 - `VOLT26.ChartHash`: explicit access to cached GrooveStats-compatible hashing for optional online consumers; ordinary song browsing must not invoke it.
 - `VOLT26.GrooveStats`: optional HTTPS service capability state, bounded response decoding, normalized per-profile identity persistence, and score-service eligibility policy. QR login, automatic downloads, online lobbies, and event payloads remain outside this boundary.
 - `VOLT26.Events`: provider-neutral normalization of optional RPG and ITL memberships returned by GrooveStats score submission. Event presentation remains dormant without validated data and does not authorize downloads or annual local persistence.

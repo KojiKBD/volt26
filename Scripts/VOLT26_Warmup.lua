@@ -21,7 +21,6 @@ local groups = {
 	Selection = {
 		"VOLT26/SharedBackground.png",
 		"VOLT26/SelectColor.png",
-		"VOLT26/Select_B.png",
 		"VOLT26/bg_ss@2x.png",
 	},
 	Play = {
