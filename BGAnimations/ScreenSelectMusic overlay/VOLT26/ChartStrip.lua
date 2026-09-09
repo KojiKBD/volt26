@@ -204,11 +204,13 @@ local holdParts = {"HoldBody","HoldHead","HoldTail","RollBody","RollHead","RollT
 local function draw(self)
 	if not self.receptorY or not self.pools then return end
 	hideAll(self)
-	if not self.notes or not self.timing then return end
+	if not self.notes or not self.timing or not self.scrollPitch then return end
 
 	local top, bottom = self.receptorY, self.bottomY
 	local perSecond = self.spacingIsTime
-	local pitch = self.pitch
+	-- Not `self.pitch`: Actor already answers to that name, and the method
+	-- wins over anything stored beside it.
+	local pitch = self.scrollPitch
 
 	-- The sample the wheel is playing is the clock: the strip shows the part of
 	-- the chart the player is hearing.
@@ -352,7 +354,7 @@ local af = Def.ActorFrame{
 			if self.timing then
 				local pitch, isTime = speedSpacing(chart)
 				local range = isTime and timeSpacingRange or beatSpacingRange
-				self.pitch = math.min(range[2], math.max(range[1], pitch))
+				self.scrollPitch = math.min(range[2], math.max(range[1], pitch))
 				self.spacingIsTime = isTime
 			end
 		end
