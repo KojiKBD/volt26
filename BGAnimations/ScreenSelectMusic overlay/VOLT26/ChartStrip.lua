@@ -133,8 +133,10 @@ local function chartCeilingBpm(chart)
 	local ok, bpms = pcall(function() return chart:GetDisplayBpms() end)
 	local ceiling = ok and type(bpms) == "table" and tonumber(bpms[2]) or nil
 	if not ceiling or ceiling <= 0 then
-		local okActual, actual = pcall(function() return chart:GetTimingData():GetActualBPM() end)
-		ceiling = okActual and type(actual) == "table" and tonumber(actual[2]) or nil
+		-- GetActualBPM answers with the slowest and the fastest as two values,
+		-- not as a table.
+		local okActual, _, fastest = pcall(function() return chart:GetTimingData():GetActualBPM() end)
+		ceiling = okActual and tonumber(fastest) or nil
 	end
 	if not ceiling or ceiling <= 0 then return nil end
 	return ceiling
@@ -143,20 +145,28 @@ end
 -- Returns the spacing the player's own speed mod produces, and whether that
 -- spacing is per second rather than per beat.  C-mod is the one that has to be
 -- laid out in time; X and M both resolve to a multiple of the 1x beat pitch.
+-- Each of these getters answers with the value *and* its rate of approach, so
+-- every call is parenthesised down to one: passing both to tonumber() hands the
+-- second one over as a numeric base.
+local function optionValue(options, name)
+	return tonumber((options[name](options))) or 0
+end
+
 local function speedSpacing(chart)
 	local options = GAMESTATE:GetPlayerState(player):GetPlayerOptions("ModsLevel_Preferred")
 
-	local maxScrollBpm = tonumber(options:MaxScrollBPM()) or 0
+	local maxScrollBpm = optionValue(options, "MaxScrollBPM")
 	if maxScrollBpm > 0 then
 		return laneWidth * maxScrollBpm / (chartCeilingBpm(chart) or maxScrollBpm), false
 	end
 
-	local scrollBpm = tonumber(options:ScrollBPM()) or 0
-	if (tonumber(options:TimeSpacing()) or 0) > 0 and scrollBpm > 0 then
+	local scrollBpm = optionValue(options, "ScrollBPM")
+	if optionValue(options, "TimeSpacing") > 0 and scrollBpm > 0 then
 		return laneWidth * scrollBpm/60, true
 	end
 
-	return laneWidth * (tonumber(options:ScrollSpeed()) or 1), false
+	local scrollSpeed = optionValue(options, "ScrollSpeed")
+	return laneWidth * (scrollSpeed > 0 and scrollSpeed or 1), false
 end
 
 local function lowerBound(list, key, target)
