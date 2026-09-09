@@ -15,7 +15,7 @@ local previewW = 196
 local headerH = 48
 local slotGap = 6
 local slotMaxHeight = 54
-local radarW = 280
+local radarW = 300
 local contentPadX = 18
 local contentPadY = 14
 local blockGap = 12
@@ -69,15 +69,9 @@ local maxGradeStars = 5
 local gradeAssetSize = 200
 local gradeIconSize = 18
 local transparent = color("0,0,0,0")
--- The difficulty slots wear the songwheel's highlight: the accent at the left
--- edge running out to nothing at the right, rather than ending on a second
--- opaque colour.  Edge colours are passed as tables so nothing has to survive a
--- round trip through string.format, whose decimal separator follows the locale.
-local accentFade = {accent[1], accent[2], accent[3], 0}
-local idleTint = {1, 1, 1, 0.055}
 
 local radarLabelDistance = 1.28
-local radarLabelWidth = 58
+local radarLabelWidth = 66
 local radarEdgeMargin = 8
 local radarMaxRadius = math.floor(
 	(radarW/2 - radarLabelWidth - radarEdgeMargin) / (math.cos(math.rad(30)) * radarLabelDistance))
@@ -241,9 +235,9 @@ local difficultyColumn = Def.ActorFrame{
 
 		for i=1, #difficulties do
 			local top = p.BodyTop + (i-1)*(slotH + slotGap)
-			self:GetChild("Border"..i):xy(rowX, top):zoomto(difficultyW, slotH)
-			self:GetChild("Slot"..i):xy(rowX+1, top+1):zoomto(difficultyW-2, slotH-2)
-			self:GetChild("Name"..i):xy(rowX+12, top + slotH/2)
+			self:GetChild("Slot"..i):xy(rowX, top):zoomto(difficultyW, slotH)
+			self:GetChild("Bar"..i):xy(rowX, top):zoomto(3, slotH)
+			self:GetChild("Name"..i):xy(rowX+15, top + slotH/2)
 			self:GetChild("Meter"..i):xy(rowX+difficultyW-12, top + slotH/2)
 		end
 	end,
@@ -251,20 +245,16 @@ local difficultyColumn = Def.ActorFrame{
 		for i, entry in ipairs(difficulties) do
 			local steps = stepsForDifficulty(entry[1])
 			local selected = steps ~= nil and steps == p.Chart
-			local border = self:GetChild("Border"..i)
-			local slot = self:GetChild("Slot"..i)
-			if selected then
-				slot:diffuse(accent):diffusealpha(0.55):diffuserightedge(accentFade)
-				border:diffuse(accent)
-			else
-				slot:diffuse(idleTint):diffuserightedge(transparent)
-				border:diffuse(H.Line)
-			end
-			local nameTint = selected and H.Ink or (steps and H.Mute or H.Dim)
+			-- The rows carry no box of their own.  The one in play wears the
+			-- songwheel's highlight and nothing else does, so the column reads
+			-- as a list with a selection rather than five competing panels.
+			self:GetChild("Slot"..i):visible(selected)
+			self:GetChild("Bar"..i):visible(selected)
+			local tint = selected and H.Ink or (steps and H.Mute or H.Dim)
 			H.SetLabel(self:GetChild("Name"..i), entry[2], 12, difficultyW-74)
-			self:GetChild("Name"..i):diffuse(nameTint)
+			self:GetChild("Name"..i):diffuse(tint)
 			H.SetDisplay(self:GetChild("Meter"..i), steps and steps:GetMeter() or "", 30)
-			self:GetChild("Meter"..i):diffuse(selected and H.Ink or (steps and H.Mute or H.Dim))
+			self:GetChild("Meter"..i):diffuse(selected and accent or tint)
 		end
 	end,
 }
@@ -275,10 +265,16 @@ difficultyColumn[#difficultyColumn+1] = Def.Quad{
 difficultyColumn[#difficultyColumn+1] = H.LabelText{Name="BadgeLabel", Px=11, Tint=H.Ink, Align=center}
 difficultyColumn[#difficultyColumn+1] = H.LabelText{Name="Caption", Px=11, Tint=H.Mute}
 for i=1, #difficulties do
-	difficultyColumn[#difficultyColumn+1] = H.Rule{Name="Border"..i}
 	difficultyColumn[#difficultyColumn+1] = Def.Quad{
 		Name="Slot"..i,
-		InitCommand=function(self) self:align(0,0) end,
+		InitCommand=function(self)
+			self:align(0,0):diffuse(accent):diffusealpha(0.22)
+				:diffuserightedge(transparent):visible(false)
+		end,
+	}
+	difficultyColumn[#difficultyColumn+1] = Def.Quad{
+		Name="Bar"..i,
+		InitCommand=function(self) self:align(0,0):diffuse(accent):visible(false) end,
 	}
 	difficultyColumn[#difficultyColumn+1] = H.LabelText{Name="Name"..i, Px=12, Tint=H.Mute}
 	difficultyColumn[#difficultyColumn+1] = H.DisplayText{Name="Meter"..i, Px=30, Tint=H.Mute, Align=right}
