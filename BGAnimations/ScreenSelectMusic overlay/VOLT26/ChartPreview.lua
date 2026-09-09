@@ -2,7 +2,9 @@ local H = ...
 local previewW, previewH = 354, 350
 local receptorY, bottomY = 30, 342
 local mMod = 600
-local tapPoolSize, minePoolSize, liftPoolSize, holdPoolSize = 36, 10, 8, 12
+-- Sized for the busiest beat window the preview can show.  The window grew when
+-- the geometry below switched to the gameplay column pitch, so these grew with it.
+local tapPoolSize, minePoolSize, liftPoolSize, holdPoolSize = 48, 14, 11, 16
 local noteskin = "cel"
 local fileCache = {}
 local parseCache = setmetatable({}, {__mode="k"})
@@ -15,9 +17,21 @@ for i=1,numColumns do
 	columns[i] = ok and info or {Name="Up"}
 end
 
-local spacing = math.min(46, (previewW-28)/math.max(1,numColumns))
+-- Gameplay divides the style's notefield width evenly between its columns, so one
+-- column is exactly one arrow wide and neighbouring arrows touch.  Deriving the
+-- preview's pitch from that same number, scaled by the note zoom, makes the
+-- preview a straight scale model of the notefield instead of a wider-spaced
+-- approximation of it.  The 64 fallback is the engine's arrow size.
+local columnWidth = 64
+local okStyleWidth, styleWidth = pcall(function() return style:GetWidth(PLAYER_1) end)
+styleWidth = tonumber(okStyleWidth and styleWidth or nil)
+if styleWidth and styleWidth > 0 then columnWidth = styleWidth/math.max(1,numColumns) end
+
+local noteZoom = math.min(0.53, (previewW-28)/(math.max(1,numColumns)*columnWidth))
+-- One scale unit drives both axes: the column pitch and, through pixelsPerBeat
+-- below, the M-mod scroll distance.  Gameplay uses the arrow size for both.
+local spacing = columnWidth*noteZoom
 local firstX = previewW/2 - (numColumns-1)*spacing/2
-local noteZoom = math.min(0.53, spacing/64)
 
 local function fallbackActor(element, name)
 	local tint = element == "Tap Mine" and color("#222222") or color("#ed1c24")

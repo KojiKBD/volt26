@@ -7,7 +7,6 @@ local accent = H.Accent(player)
 -- margin, so the card claims the 28 unused units on its left and keeps equal
 -- 12 unit gutters on both sides.  Everything inside is padded 8 from the box.
 local cardW = 218
-local graphW = cardW - 16
 
 -- Grade artwork.  Tiers 00-04 are drawn as a row of stars rather than reusing
 -- the evaluation grade actors: Song Select only needs a static badge, and the
@@ -90,7 +89,7 @@ local function setLocalizedText(frame, latinName, cjkName, text, latinZoom, cjkZ
 	cjk:visible(useCJK):settext(text):zoom(cjkZoom):maxwidth(width/cjkZoom)
 end
 
-local function graphVertices(data, graphColor, graphH)
+local function graphVertices(data, graphColor, graphW, graphH)
 	local vertices = {}
 	if not data or #data.nps == 0 or data.peak <= 0 then return vertices end
 	local count = #data.nps
@@ -102,6 +101,80 @@ local function graphVertices(data, graphColor, graphH)
 	end
 	return vertices
 end
+
+-- Notes radar.
+--
+-- A pointy-top hexagon: axis 1 sits at the top vertex and the rest run
+-- clockwise, in the order VOLT26.ChartRadar publishes them.  Coordinates are
+-- relative to the radar ActorFrame's own origin, which is its centre.
+local radarAxisCount = VOLT26.ChartRadar.GetAxisCount()
+-- Grid rings, as a fraction of the full radius.  Two is enough to read a value
+-- off the shape without turning the card into graph paper.
+local radarGridLevels = {0.5, 1.0}
+-- Calibration aid.  Flip to true and each axis prints its honest reading next
+-- to its label -- the share of the chart's notes that pattern accounts for, and
+-- the share of measures that are stream -- so the caps in VOLT26.ChartRadar can
+-- be retuned against real charts instead of by eye.  Single-player only; the
+-- two-player card has no room for the numbers.
+local showRadarValues = false
+local radarAngles = {}
+for i=1, radarAxisCount do
+	radarAngles[i] = math.rad(-90 + (i-1) * (360/radarAxisCount))
+end
+
+local function radarPoint(radius, index)
+	local angle = radarAngles[index]
+	return math.cos(angle)*radius, math.sin(angle)*radius
+end
+
+local function radarUniformRadii(radius)
+	local radii = {}
+	for i=1, radarAxisCount do radii[i] = radius end
+	return radii
+end
+
+-- Every radar shape is a quad strip, the one draw mode this card already
+-- depends on for the density graph: a filled area is a fan of degenerate quads
+-- anchored on the centre, and a ring or outline is a band between two radii.
+local function radarFanVertices(radii, rgba)
+	local vertices = {}
+	for i=1, radarAxisCount+1 do
+		local index = i <= radarAxisCount and i or 1
+		local x, y = radarPoint(radii[index] or 0, index)
+		vertices[#vertices+1] = {{0,0,0}, rgba}
+		vertices[#vertices+1] = {{x,y,0}, rgba}
+	end
+	return vertices
+end
+
+local function radarBandVertices(radii, width, rgba)
+	local vertices = {}
+	local half = width/2
+	for i=1, radarAxisCount+1 do
+		local index = i <= radarAxisCount and i or 1
+		local radius = radii[index] or 0
+		local ix, iy = radarPoint(math.max(0, radius-half), index)
+		local ox, oy = radarPoint(radius+half, index)
+		vertices[#vertices+1] = {{ix,iy,0}, rgba}
+		vertices[#vertices+1] = {{ox,oy,0}, rgba}
+	end
+	return vertices
+end
+
+local function setVertices(actor, vertices)
+	actor:SetNumVertices(#vertices):SetVertices(vertices)
+end
+
+-- The note counts, as the single-player card's left-hand column.  TAP + HOLD
+-- OBJECTS is gone: it printed the same number as NOTES.
+local statRows = {
+	{"NOTES", "notes"},
+	{"JUMPS", "jumps"},
+	{"HOLDS", "holds"},
+	{"MINES", "mines"},
+	{"ROLLS", "rolls"},
+	{"HANDS", "hands"},
+}
 
 local function chartLabel(chart)
 	if not chart then return H.Dash end
@@ -134,8 +207,21 @@ local af = Def.ActorFrame{
 		-- their graph keeps just enough height to stay readable.
 		local bestY = single and 62 or 57
 		local gradeSize = single and 18 or 15
-		local graphTop = single and 92 or 74
-		local graphH = single and 88 or 14
+		-- Below the density graph the single-player card is one row: the note
+		-- counts as a narrow column on the left, the radar filling the space to
+		-- their right.  The two-player card has only 152 units of height and no
+		-- room for a six-row column, so there the counts stay on one line above
+		-- a half-width graph and the radar sits beside that instead.
+		local graphTop = single and 92 or 90
+		local graphW = single and (cardW - 16) or 104
+		local graphH = single and 68 or 40
+		local statsY = 70                 -- two-player only: the single line
+		local statTop = 184               -- single-player only: the column
+		local statStep = 16
+		local radarCX = single and 139 or 160
+		local radarCY = single and 224 or 104
+		local radarR = single and 30 or 26
+		local radarGap = single and 7 or 6
 		self:xy(624, panelY)
 
 		self:GetChild("Background"):zoomto(cardW,panelH)
@@ -170,10 +256,18 @@ local af = Def.ActorFrame{
 		setGradeIcon(gradeIcon, best and best.Grade or nil, gradeSize)
 
 		local graph = self:GetChild("Graph")
-		local vertices = graphVertices(data, difficultyColor, graphH)
+		local vertices = graphVertices(data, difficultyColor, graphW, graphH)
 		graph:xy(8,graphTop+graphH):SetNumVertices(#vertices):SetVertices(vertices)
-		self:GetChild("GraphLabel"):xy(8,graphTop-8):settext(
-			data.peak > 0 and string.format("DENSITY / MEASURE   PEAK %.1f NPS", data.peak*VOLT26.MusicSelection.GetMusicRate()) or "DENSITY DATA UNAVAILABLE")
+		local peak = data.peak*VOLT26.MusicSelection.GetMusicRate()
+		local graphLabel = self:GetChild("GraphLabel")
+		if data.peak > 0 then
+			graphLabel:settext(single
+				and string.format("DENSITY / MEASURE   PEAK %.1f NPS", peak)
+				or string.format("PEAK %.1f NPS", peak))
+		else
+			graphLabel:settext("DENSITY DATA UNAVAILABLE")
+		end
+		graphLabel:xy(8,graphTop-8):maxwidth(graphW/H.BoldZoom(0.039))
 
 		for i=0,4 do
 			self:GetChild("VGrid"..i):xy(8+i*graphW/4,graphTop):zoomto(1,graphH)
@@ -182,16 +276,80 @@ local af = Def.ActorFrame{
 			self:GetChild("HGrid"..i):xy(8,graphTop+i*graphH/2):zoomto(graphW,1)
 		end
 
-		local afterGraph = graphTop + graphH
-		local tech = #data.tech > 0 and table.concat(data.tech, "   ") or "NO TECH ANNOTATIONS"
-		self:GetChild("TechTitle"):xy(8,afterGraph+18):settext("TECH")
-		self:GetChild("Tech"):xy(8,afterGraph+32):settext(tech):maxwidth(200/H.BoldZoom(0.044))
-		self:GetChild("Stats"):xy(8,afterGraph+50):settext(string.format(
-			"NOTES %d   JUMPS %d   HOLDS %d   MINES %d",
-			data.notes or 0, data.jumps or 0, data.holds or 0, data.mines or 0))
-		self:GetChild("Extra"):xy(8,afterGraph+71):visible(single):settext(string.format(
-			"ROLLS %d   HANDS %d   TAP + HOLD OBJECTS %d",
-			data.rolls or 0, data.hands or 0, data.notes or 0))
+		-- The counts read as a column beside the radar on the single-player
+		-- card, and fall back to one line on the two-player card.
+		self:GetChild("Stats"):visible(not single):xy(8,statsY)
+			:maxwidth(118/H.NormalZoom(0.044))
+			:settext(string.format(
+				"NOTES %d   JUMPS %d   HOLDS %d   MINES %d",
+				data.notes or 0, data.jumps or 0, data.holds or 0, data.mines or 0))
+		for i, row in ipairs(statRows) do
+			self:GetChild("StatRow"..i)
+				:visible(single)
+				:xy(8, statTop + (i-1)*statStep)
+				:settext(string.format("%s  %d", row[1], data[row[2]] or 0))
+		end
+
+		-- Notes radar.  It replaces the old "XO 5   FS 11" counter line: the
+		-- same tech data, plus how much of the chart is stream, drawn as a shape
+		-- that can be compared against another chart at a glance.
+		local axes = data.radar
+		local hasRadar = data.techAvailable and type(axes) == "table" and #axes == radarAxisCount
+
+		-- The axis labels name the thing, so the radar carries no heading.  This
+		-- line exists only to say when there is nothing to draw.
+		self:GetChild("RadarTitle")
+			:visible(single and not hasRadar)
+			:xy(8, 170)
+			:settext("NO TECH DATA")
+
+		local radar = self:GetChild("Radar")
+		radar:visible(hasRadar)
+		if hasRadar then
+			-- The calibration readout roughly doubles every label's length, so
+			-- it needs its own smaller zoom to stay inside the card.
+			local labelZoom = H.BoldZoom(showRadarValues and single and 0.026 or 0.032)
+			radar:xy(radarCX, radarCY)
+
+			setVertices(radar:GetChild("Base"),
+				radarFanVertices(radarUniformRadii(radarR), {0,0,0,0.55}))
+			for i, level in ipairs(radarGridLevels) do
+				setVertices(radar:GetChild("Ring"..i),
+					radarBandVertices(radarUniformRadii(radarR*level), 1, {1,1,1,0.16}))
+			end
+			for i=1, radarAxisCount do
+				radar:GetChild("Spoke"..i)
+					:zoomto(radarR, 1)
+					:rotationz(-90 + (i-1) * (360/radarAxisCount))
+			end
+
+			local radii = {}
+			for i, axis in ipairs(axes) do radii[i] = radarR * axis.Scaled end
+			local fill = {difficultyColor[1], difficultyColor[2], difficultyColor[3], 0.45}
+			local edge = {difficultyColor[1], difficultyColor[2], difficultyColor[3], 0.95}
+			setVertices(radar:GetChild("Fill"), radarFanVertices(radii, fill))
+			setVertices(radar:GetChild("Outline"), radarBandVertices(radii, 1.4, edge))
+
+			for i, axis in ipairs(axes) do
+				local x, y = radarPoint(radarR + radarGap, i)
+				local cosine = math.cos(radarAngles[i])
+				local label = radar:GetChild("Label"..i)
+				local caption = single and axis.Label or axis.Short
+				if single and showRadarValues then
+					caption = string.format("%s %.1f%%", axis.Label, axis.Raw*100)
+				end
+				label:xy(x, y):zoom(labelZoom)
+					:settext(caption)
+					-- An axis at half its cap or more is what makes a chart
+					-- worth picking out, so it gets the difficulty colour.
+					:diffuse(axis.Value >= 0.5 and difficultyColor or H.Muted)
+				if math.abs(cosine) < 0.01 then
+					label:horizalign(center)
+				else
+					label:horizalign(cosine > 0 and left or right)
+				end
+			end
+		end
 	end,
 }
 
@@ -276,16 +434,49 @@ af[#af+1] = Def.BitmapText{
 	InitCommand=function(self) self:horizalign(left):zoom(H.NormalZoom(0.044)):diffuse(H.Black):maxwidth(200/H.NormalZoom(0.044)) end,
 }
 af[#af+1] = Def.BitmapText{
-	Name="TechTitle", Font=H.FontBold,
+	Name="RadarTitle", Font=H.FontBold,
 	InitCommand=function(self) self:horizalign(left):zoom(H.BoldZoom(0.052)):diffuse(H.Black) end,
 }
-af[#af+1] = Def.BitmapText{
-	Name="Tech", Font=H.FontBold,
-	InitCommand=function(self) self:horizalign(left):zoom(H.BoldZoom(0.044)):diffuse(H.Black) end,
-}
-af[#af+1] = Def.BitmapText{
-	Name="Extra", Font=H.Font,
-	InitCommand=function(self) self:horizalign(left):zoom(H.NormalZoom(0.044)):diffuse(H.Black) end,
-}
+
+-- The radar's own frame, so the whole thing can be positioned and hidden as a
+-- unit.  Its origin is the hexagon's centre and every child is placed relative
+-- to it, which is what lets the same actors serve both card sizes.
+local radarFrame = Def.ActorFrame{ Name="Radar" }
+local function radarShape(name)
+	return Def.ActorMultiVertex{
+		Name=name,
+		InitCommand=function(self) self:SetDrawState({Mode="DrawMode_QuadStrip"}) end,
+	}
+end
+radarFrame[#radarFrame+1] = radarShape("Base")
+for i=1, #radarGridLevels do
+	radarFrame[#radarFrame+1] = radarShape("Ring"..i)
+end
+for i=1, radarAxisCount do
+	radarFrame[#radarFrame+1] = Def.Quad{
+		Name="Spoke"..i,
+		-- Anchored at the centre and rotated outwards, so one quad per axis is
+		-- all the spokes cost.
+		InitCommand=function(self) self:align(0,0.5):diffuse(H.White):diffusealpha(0.12) end,
+	}
+end
+radarFrame[#radarFrame+1] = radarShape("Fill")
+radarFrame[#radarFrame+1] = radarShape("Outline")
+for i=1, radarAxisCount do
+	radarFrame[#radarFrame+1] = Def.BitmapText{
+		Name="Label"..i, Font=H.FontBold,
+		InitCommand=function(self) self:diffuse(H.Muted) end,
+	}
+end
+af[#af+1] = radarFrame
+for i=1, #statRows do
+	af[#af+1] = Def.BitmapText{
+		Name="StatRow"..i, Font=H.Font,
+		InitCommand=function(self)
+			self:horizalign(left):zoom(H.NormalZoom(0.040)):diffuse(H.Black)
+				:maxwidth(58/H.NormalZoom(0.040))
+		end,
+	}
+end
 H.AddSettledRefresh(af, 0.35, 16, 0)
 return af

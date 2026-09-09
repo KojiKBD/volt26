@@ -101,6 +101,36 @@ function H.Radar(chart, player, category)
 	return ok and value and value >= 0 and math.floor(value + 0.5) or 0
 end
 
+-- Reference BPM for stream detection.  The chart's own timing data is the
+-- authority; the song's display BPM is the fallback for anything that does not
+-- expose timing data, such as a course Trail.
+local function chartBpm(chart)
+	local okTiming, bpm = pcall(function()
+		local timing = chart.GetTimingData and chart:GetTimingData() or nil
+		if not timing or not timing.GetActualBPM then return nil end
+		local _, fastest = timing:GetActualBPM()
+		return fastest
+	end)
+	if okTiming and tonumber(bpm) and bpm > 0 then return bpm end
+
+	local item = H.Item()
+	local okDisplay, bpms = pcall(function()
+		return item and item.GetDisplayBpms and item:GetDisplayBpms() or nil
+	end)
+	if okDisplay and type(bpms) == "table" and tonumber(bpms[2]) and bpms[2] > 0 then return bpms[2] end
+	return nil
+end
+
+-- Keys match VOLT26.ChartRadar's axis keys so the counts can be handed straight
+-- to it without a second translation table.
+local techCategories = {
+	{"Crossovers",   "TechCountsCategory_Crossovers"},
+	{"Footswitches", "TechCountsCategory_Footswitches"},
+	{"Sideswitches", "TechCountsCategory_Sideswitches"},
+	{"Brackets",     "TechCountsCategory_Brackets"},
+	{"Jacks",        "TechCountsCategory_Jacks"},
+}
+
 local function appendChartData(data, steps, player)
 	if not steps then return end
 	local okNps, nps = pcall(function() return steps:GetNpsPerMeasure(player) end)
@@ -113,16 +143,15 @@ local function appendChartData(data, steps, player)
 	end
 	local okTech, tech = pcall(function() return steps:GetTechCounts(player) end)
 	if okTech and tech then
-		local keys = {
-			{"FS", "TechCountsCategory_Footswitches"},
-			{"XO", "TechCountsCategory_Crossovers"},
-			{"SW", "TechCountsCategory_Sideswitches"},
-			{"BR", "TechCountsCategory_Brackets"},
-			{"JA", "TechCountsCategory_Jacks"},
-		}
-		for _, pair in ipairs(keys) do
-			local value = tech:GetValue(pair[2]) or 0
-			if value > 0 then data.tech[#data.tech+1] = pair[1].." "..math.floor(value+0.5) end
+		-- A chart with no tech at all still counts as "available": the radar
+		-- should draw an empty hexagon rather than disappear.  Only an engine
+		-- that cannot answer at all leaves this false.
+		data.techAvailable = true
+		for _, pair in ipairs(techCategories) do
+			local value = tonumber(tech:GetValue(pair[2])) or 0
+			if value > 0 then
+				data.techCounts[pair[1]] = (data.techCounts[pair[1]] or 0) + math.floor(value+0.5)
+			end
 		end
 	end
 end
@@ -131,19 +160,29 @@ function H.ChartData(player)
 	local chart = H.Chart(player)
 	local cached = H.ChartCache[player]
 	if cached and cached.chart == chart then return cached.data end
-	local data = {chart=chart, nps={}, peak=0, tech={}}
+	local data = {chart=chart, nps={}, peak=0, techCounts={}, techAvailable=false}
 	if chart then
 		if GAMESTATE:IsCourseMode() and chart.GetTrailEntries then
 			for entry in ivalues(chart:GetTrailEntries()) do appendChartData(data, entry:GetSteps(), player) end
 		else
 			appendChartData(data, chart, player)
 		end
+
 		data.notes = H.Radar(chart, player, "RadarCategory_TapsAndHolds")
 		data.jumps = H.Radar(chart, player, "RadarCategory_Jumps")
 		data.holds = H.Radar(chart, player, "RadarCategory_Holds")
 		data.mines = H.Radar(chart, player, "RadarCategory_Mines")
 		data.rolls = H.Radar(chart, player, "RadarCategory_Rolls")
 		data.hands = H.Radar(chart, player, "RadarCategory_Hands")
+
+		-- Built last: the tech axes are measured against the chart's own note
+		-- count, so the radar cannot be assembled before that count is known.
+		data.stream = VOLT26.ChartRadar.ComputeStream(data.nps, chartBpm(chart))
+		data.radar = VOLT26.ChartRadar.Build{
+			TechCounts = data.techCounts,
+			Stream = data.stream,
+			TotalNotes = data.notes,
+		}
 	end
 	H.ChartCache[player] = {chart=chart, data=data}
 	return data
