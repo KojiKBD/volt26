@@ -10,48 +10,27 @@ VOLT26.Type = {
 	Label = "VOLT26 Label",
 }
 
--- Miso's ascent is 15 units of a 20-unit em; Wendy's cap height is 37 units of
--- a 53-unit em.
+-- The label face is the display face's pages with a wider advance, so both
+-- share one metric: an ascent of 15 units in a 20-unit em.  An actor's face is
+-- fixed when it is built -- the engine does not expose LoadFromFont to Lua, and
+-- it substitutes nothing for a glyph a font lacks -- which is exactly why the
+-- two faces are built from the same pages: any string one can set, the other
+-- can too.
 function VOLT26.Type.DisplayZoom(px) return px/20 end
-function VOLT26.Type.LabelZoom(px) return px/53 end
+function VOLT26.Type.LabelZoom(px) return px/20 end
 
-local labelFace, displayFace
-
-local function faces()
-	if not labelFace then
-		labelFace = THEME:GetPathF("", VOLT26.Type.Label)
-		displayFace = THEME:GetPathF("", VOLT26.Type.Display)
-	end
-	return labelFace, displayFace
-end
-
--- The label face carries Latin-1 and Cyrillic only, so a string outside that --
--- a CJK song title, a pack named in Greek -- is set in the display face
--- instead.  LoadFromFont reloads the face, so each actor remembers the one it
--- already carries rather than reloading on every refresh.
-local function labelFaceCovers(text)
-	return tostring(text or ""):find("[\128-\255]") == nil
-end
-
--- Sets a label to `text` at the design's pixel size, optionally capping it to
--- `width` pixels, and returns the zoom it settled on.
-function VOLT26.Type.SetLabel(actor, text, px, width)
-	text = tostring(text or "")
-	local label, display = faces()
-	local face = labelFaceCovers(text) and label or display
-	if actor.VOLT26Face ~= face then
-		actor:LoadFromFont(face)
-		actor.VOLT26Face = face
-	end
-	local zoom = face == label and VOLT26.Type.LabelZoom(px) or VOLT26.Type.DisplayZoom(px)
-	actor:settext(text):zoom(zoom)
-	if width then actor:maxwidth(width/zoom) end
-	return zoom
-end
-
-function VOLT26.Type.SetDisplay(actor, text, px, width)
-	local zoom = VOLT26.Type.DisplayZoom(px)
+local function setText(actor, text, zoom, width)
 	actor:settext(tostring(text or "")):zoom(zoom)
 	if width then actor:maxwidth(width/zoom) end
 	return zoom
+end
+
+-- Both take the design's pixel size, optionally cap the result to `width`
+-- pixels, and return the zoom they settled on.
+function VOLT26.Type.SetLabel(actor, text, px, width)
+	return setText(actor, text, VOLT26.Type.LabelZoom(px), width)
+end
+
+function VOLT26.Type.SetDisplay(actor, text, px, width)
+	return setText(actor, text, VOLT26.Type.DisplayZoom(px), width)
 end
