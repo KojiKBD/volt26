@@ -7,7 +7,7 @@
 VOLT26.Simfile = {}
 
 local fileCache = {}
-local rowCache = setmetatable({}, {__mode="k"})
+local noteCache = setmetatable({}, {__mode = "k"})
 
 local function readFile(path)
 	if not path or path == "" then return nil end
@@ -111,59 +111,95 @@ local function quantization(rowIndex, rowCount)
 	return 0
 end
 
--- Measures(steps, player, firstMeasure, lastMeasure)
---   -> { {Column, Position, Quantization, Kind}, ... }, measureCount
+local function elapsedAt(timing, beat)
+	local ok, seconds = pcall(function() return timing:GetElapsedTimeFromBeat(beat) end)
+	return ok and tonumber(seconds) or nil
+end
+
+-- Notes(steps, player, untilSeconds) -> notes, holds
 --
--- Notes are ordered by position and Position is counted in measures from the
--- start of the chart, so a caller only has to decide what a measure is worth in
--- pixels.  Only measures inside the requested range are turned into notes: a
--- caller that draws a window of a chart should not pay for the rest of it.  The
--- measure count covers the whole chart either way.
-function VOLT26.Simfile.Measures(steps, player, firstMeasure, lastMeasure)
-	firstMeasure = firstMeasure or 0
-	lastMeasure = lastMeasure or math.huge
+--   notes: { {Column, Beat, Time, Quantization, Kind}, ... } ordered by beat,
+--          where Kind is "tap", "lift", "mine" or "fake"
+--   holds: { {Column, Beat, Time, EndBeat, EndTime, Kind}, ... } ordered by
+--          beat, where Kind is "hold" or "roll"
+--
+-- Both beat and elapsed time are carried because a caller's spacing depends on
+-- which speed mod is in play: X and M space by beat, C spaces by time.  Reading
+-- stops once the chart passes `untilSeconds`, so a caller that previews a
+-- window does not pay for the whole chart.
+function VOLT26.Simfile.Notes(steps, player, untilSeconds)
+	untilSeconds = untilSeconds or math.huge
 
-	local cached = rowCache[steps]
+	local cached = noteCache[steps]
 	local entry = cached and cached[player]
-	if entry and entry.first == firstMeasure and entry.last == lastMeasure then
-		return entry.notes, entry.measures
-	end
+	if entry and entry.until_ == untilSeconds then return entry.notes, entry.holds end
 
-	local notes, measureCount = {}, 0
+	local notes, holds, openHolds = {}, {}, {}
+	local lastBeat, lastTime = 0, 0
 	local raw = VOLT26.Simfile.NoteData(steps, player)
-	if raw then
+	local timing = steps and steps.GetTimingData and steps:GetTimingData() or nil
+	if raw and timing then
+		local measureIndex = 0
 		for measure in (raw..","):gmatch("(.-),") do
-			if measureCount >= firstMeasure and measureCount <= lastMeasure then
-				local rows = {}
-				for line in measure:gmatch("[^\r\n]+") do
-					local row = trim(line)
-					if row ~= "" and row ~= ";" then rows[#rows+1] = row:gsub(";", "") end
+			local rows = {}
+			for line in measure:gmatch("[^\r\n]+") do
+				local row = trim(line)
+				if row ~= "" and row ~= ";" then rows[#rows+1] = row:gsub(";", "") end
+			end
+			local past = false
+			for rowIndex, row in ipairs(rows) do
+				local beat = measureIndex*4 + (rowIndex-1)*4/#rows
+				local seconds = elapsedAt(timing, beat)
+				if not seconds then break end
+				if seconds > untilSeconds then
+					past = true
+					lastBeat, lastTime = beat, seconds
+					break
 				end
-				for rowIndex, row in ipairs(rows) do
-					local position = measureCount + (rowIndex-1)/#rows
-					for column = 1, #row do
-						local value = row:sub(column, column):upper()
-						local kind
-						if value == "1" or value == "L" then kind = "tap"
-						elseif value == "2" or value == "4" then kind = "hold"
-						elseif value == "M" then kind = "mine" end
-						if kind then
-							notes[#notes+1] = {
-								Column = column,
-								Position = position,
-								Quantization = quantization(rowIndex-1, #rows),
-								Kind = kind,
-							}
-						end
+				local quant = quantization(rowIndex-1, #rows)
+				for column = 1, #row do
+					local value = row:sub(column, column):upper()
+					if value == "1" or value == "M" or value == "L" or value == "F" then
+						local kind = value == "M" and "mine"
+							or value == "L" and "lift"
+							or value == "F" and "fake"
+							or "tap"
+						notes[#notes+1] = {
+							Column = column, Beat = beat, Time = seconds,
+							Quantization = quant, Kind = kind,
+						}
+					elseif value == "2" or value == "4" then
+						openHolds[column] = {
+							Column = column, Beat = beat, Time = seconds,
+							Quantization = quant, Kind = value == "4" and "roll" or "hold",
+						}
+					elseif value == "3" and openHolds[column] then
+						local hold = openHolds[column]
+						hold.EndBeat, hold.EndTime = beat, seconds
+						holds[#holds+1] = hold
+						openHolds[column] = nil
 					end
 				end
+				lastBeat, lastTime = beat, seconds
 			end
-			measureCount = measureCount + 1
+			measureIndex = measureIndex + 1
+			if past then break end
+		end
+
+		-- A hold that starts inside the window but is released past its end
+		-- would otherwise vanish, so anything still open is closed at the edge.
+		for _, hold in pairs(openHolds) do
+			hold.EndBeat, hold.EndTime = lastBeat, lastTime
+			if hold.EndBeat > hold.Beat then holds[#holds+1] = hold end
 		end
 	end
 
+	-- Notes are appended in row order already.  Holds close out of start order,
+	-- so only that much smaller collection needs sorting.
+	table.sort(holds, function(a, b) return a.Beat < b.Beat end)
+
 	cached = cached or {}
-	cached[player] = {notes=notes, measures=measureCount, first=firstMeasure, last=lastMeasure}
-	rowCache[steps] = cached
-	return notes, measureCount
+	cached[player] = {notes = notes, holds = holds, until_ = untilSeconds}
+	noteCache[steps] = cached
+	return notes, holds
 end

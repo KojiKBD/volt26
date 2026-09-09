@@ -5,176 +5,369 @@ local stripX = args.X
 local stripW = args.Width
 local pn = ToEnumShortString(player)
 
--- The chart preview: a vertical slice of the stepchart, scrolling, drawn as
--- rhythm-coloured diamonds rather than a notefield.  It exists to show what the
--- chart looks like, not to be played, so it carries no receptors, no hold
--- bodies and no noteskin.
+-- The chart preview: a scale model of this player's notefield, scrolling with
+-- the song sample.  It uses the noteskin the player has chosen and spaces the
+-- notes by the speed mod they have chosen, so what the strip shows is what they
+-- are about to play rather than a generic picture of the chart.
 
 local headerH = 24
-local measurePitch = 52
+local receptorGap = 42
+local bottomGap = 8
 local designLaneWidth = 38
-local diamondRatio = 18/designLaneWidth
-local notePool = 96
-local measurePool = 14
--- Notes closer together than this in one column are fully hidden behind the one
--- above them at this pitch, so drawing them only costs pool slots.
-local minColumnGap = 5
-local fadeDepth = 28
--- How much of the chart the strip cycles through before returning to the start
--- of its window.
-local loopMeasures = 32
-local scrollMeasuresPerSecond = 1
-
-local quantColors = {
-	[4]  = color("#e04a3a"),
-	[8]  = color("#3a7de0"),
-	[16] = color("#8b45d6"),
-}
-local otherQuantColor = color("#e0a13a")
-local mineColor = color("#8a8a94")
+local arrowSize = 64
+local tapPool = 20
+local minePool = 4
+local liftPool = 4
+local holdPool = 6
+local measurePool = 6
+local fadeDepth = 26
+-- A preview whose notes are a pixel apart says nothing, and one that fits a
+-- single note says little more, so the modelled spacing is held inside these
+-- bands.  They are wide enough that an ordinary speed mod passes through
+-- untouched and only absurd ones are caught.  Beat spacing and time spacing are
+-- in different units, so each gets its own.
+local beatSpacingRange = {8, 170}
+local timeSpacingRange = {50, 700}
 local transparent = color("0,0,0,0")
 
+local style = GAMESTATE:GetCurrentStyle()
 local columnCount = 4
 do
-	local style = GAMESTATE:GetCurrentStyle()
 	local ok, count = pcall(function() return style:ColumnsPerPlayer() end)
 	if ok and tonumber(count) and count > 0 then columnCount = count end
 end
+
+local columns = {}
+for i = 1, columnCount do
+	local ok, info = pcall(function() return style:GetColumnInfo(player, i) end)
+	columns[i] = (ok and info and info.Name) or "Up"
+end
+
 local laneWidth = math.min(designLaneWidth, (stripW - 16)/columnCount)
-local diamondSize = laneWidth*diamondRatio
--- A square rotated a quarter turn is as wide as its diagonal, so the side that
--- draws an 18 unit diamond is 18 over root two.
-local diamondSide = diamondSize/math.sqrt(2)
+-- One scale factor drives both axes.  Gameplay draws one arrow per column width
+-- and advances one column width per beat at 1x, so keeping the same ratio here
+-- makes the strip a scale model rather than an approximation of one.
+local noteZoom = laneWidth/arrowSize
 local laneOrigin = stripX + stripW/2 - (columnCount-1)*laneWidth/2
 
-local function noteColor(note)
-	if note.Kind == "mine" then return mineColor end
-	return quantColors[note.Quantization] or otherQuantColor
-end
-
--- The window worth showing is the busiest one: a preview of the first sixteen
--- measures of a chart that opens on silence says nothing about it.  The engine
--- already publishes notes per measure, so this costs nothing and answers before
--- the simfile is read, which is what lets the parse be bounded to the window.
-local function busiestStart(nps, windowMeasures)
-	local count = nps and #nps or 0
-	if count <= windowMeasures then return 0 end
-	local best, bestStart, running = -1, 0, 0
-	for index = 1, count do
-		running = running + (nps[index] or 0)
-		if index > windowMeasures then running = running - (nps[index-windowMeasures] or 0) end
-		if index >= windowMeasures and running > best then
-			best, bestStart = running, index - windowMeasures
+-- The noteskin is read once, when this actor tree is built.  Changing it means
+-- visiting Player Options, and returning from there rebuilds the screen.
+local noteskin
+do
+	local ok, modifiers = pcall(function() return VOLT26.Options.GetPlayerModifiers(player) end)
+	local chosen = ok and modifiers and modifiers.NoteSkin or nil
+	for _, candidate in ipairs({chosen, "cel", "default"}) do
+		if candidate and NOTESKIN:DoesNoteSkinExist(candidate) then
+			noteskin = candidate
+			break
 		end
 	end
-	return bestStart
 end
 
--- Notes are ordered by position, so the first one that can be on screen is
--- found rather than scanned to: a long chart would otherwise walk its whole
--- note list every frame.
-local function firstVisible(notes, position)
-	local low, high = 1, #notes+1
+local function fallbackActor(element, name)
+	local tint = element == "Tap Mine" and color("#8a8a94") or H.Accent(player)
+	return Def.Quad{
+		Name = name,
+		InitCommand = function(self)
+			self:zoomto(element == "Receptor" and 42 or 30, element == "Receptor" and 5 or 30)
+				:diffuse(tint):diffusealpha(element == "Receptor" and 0.45 or 0.9)
+		end,
+	}
+end
+
+local function loadNote(columnName, element, name)
+	if not noteskin then return fallbackActor(element, name) end
+	local ok, actor = pcall(NOTESKIN.LoadActorForNoteSkin, NOTESKIN, columnName, element, noteskin)
+	if not ok or not actor then return fallbackActor(element, name) end
+	actor.Name = name
+	return actor
+end
+
+local function noteTexture(columnName, element)
+	if not noteskin then return THEME:GetPathG("", "_blank") end
+	local ok, path = pcall(NOTESKIN.GetPathForNoteSkin, NOTESKIN, columnName, element, noteskin)
+	return ok and path or THEME:GetPathG("", "_blank")
+end
+
+local function holdBodyVertices(width, top, bottom, textureHeight)
+	local span = (bottom-top) / math.max(1, textureHeight*noteZoom)
+	local textureBottom = math.ceil(span-0.0001)
+	local textureTop = textureBottom-span
+	local half = width/2
+	local tint = {1,1,1,1}
+	return {
+		{{-half, top, 0},    tint, {0, textureTop}},
+		{{ half, top, 0},    tint, {1, textureTop}},
+		{{ half, bottom, 0}, tint, {1, textureBottom}},
+		{{-half, bottom, 0}, tint, {0, textureBottom}},
+	}, textureBottom
+end
+
+local function holdTailVertices(width, top, length, textureRow)
+	local half = width/2
+	local tint = {1,1,1,1}
+	return {
+		{{-half, top, 0},        tint, {0, textureRow}},
+		{{ half, top, 0},        tint, {1, textureRow}},
+		{{0, top+length, 0},     tint, {0.5, textureRow}},
+	}
+end
+
+-- Rhythm colours live as vertically stacked frames in the tap texture, so a
+-- skin that follows that convention is coloured by shifting its texture.  A
+-- skin that does not simply keeps its own default frame.
+local function rhythmOffset(quant)
+	local order = {[4]=0, [8]=1, [12]=3, [16]=2, [24]=5, [32]=4, [48]=6, [64]=7}
+	return (order[quant] or 7) * 0.03125
+end
+
+local function setRhythm(actor, quant)
+	local visual = actor and actor:GetChild("Visual")
+	if visual and visual.texturetranslate then visual:texturetranslate(rhythmOffset(quant), 0) end
+end
+
+-- The chart's own ceiling, as the reference an M-mod is measured against.  The
+-- declared display ceiling wins so a hidden gimmick BPM cannot collapse the
+-- whole preview into a note wall.
+local function chartCeilingBpm(chart)
+	local ok, bpms = pcall(function() return chart:GetDisplayBpms() end)
+	local ceiling = ok and type(bpms) == "table" and tonumber(bpms[2]) or nil
+	if not ceiling or ceiling <= 0 then
+		local okActual, actual = pcall(function() return chart:GetTimingData():GetActualBPM() end)
+		ceiling = okActual and type(actual) == "table" and tonumber(actual[2]) or nil
+	end
+	if not ceiling or ceiling <= 0 then return nil end
+	return ceiling
+end
+
+-- Returns the spacing the player's own speed mod produces, and whether that
+-- spacing is per second rather than per beat.  C-mod is the one that has to be
+-- laid out in time; X and M both resolve to a multiple of the 1x beat pitch.
+local function speedSpacing(chart)
+	local options = GAMESTATE:GetPlayerState(player):GetPlayerOptions("ModsLevel_Preferred")
+
+	local maxScrollBpm = tonumber(options:MaxScrollBPM()) or 0
+	if maxScrollBpm > 0 then
+		return laneWidth * maxScrollBpm / (chartCeilingBpm(chart) or maxScrollBpm), false
+	end
+
+	local scrollBpm = tonumber(options:ScrollBPM()) or 0
+	if (tonumber(options:TimeSpacing()) or 0) > 0 and scrollBpm > 0 then
+		return laneWidth * scrollBpm/60, true
+	end
+
+	return laneWidth * (tonumber(options:ScrollSpeed()) or 1), false
+end
+
+local function lowerBound(list, key, target)
+	local low, high = 1, #list+1
 	while low < high do
 		local middle = math.floor((low+high)/2)
-		if notes[middle].Position < position then low = middle+1 else high = middle end
+		if list[middle][key] < target then low = middle+1 else high = middle end
 	end
 	return low
 end
 
-local function draw(self)
-	local notes = self.notes
-	local top, bottom = self.stripTop, self.stripBottom
-	if not top then return end
-	local first = top + diamondSize/2
-	local last = bottom - diamondSize/2
-	local origin = (self.startMeasure or 0) + (self.scroll or 0)
+-- Every pooled actor is looked up once and kept.  This frame holds well over a
+-- hundred children and the pools are walked on every drawn frame, so resolving
+-- them by name each time would be the most expensive thing on the screen.
+local poolSizes = {tap = tapPool, mine = minePool, lift = liftPool, hold = holdPool}
+local poolPrefix = {tap = "Tap_", mine = "Mine_", lift = "Lift_", hold = "Hold_"}
 
-	local used = 0
-	local lastInColumn = {}
-	if notes and #notes > 0 then
-		for index = firstVisible(notes, origin), #notes do
-			local note = notes[index]
-			local y = first + (note.Position - origin)*measurePitch
-			if y > last then break end
-			if note.Column <= columnCount then
-				local previous = lastInColumn[note.Column]
-				if not previous or y - previous >= minColumnGap then
-					lastInColumn[note.Column] = y
-					used = used + 1
-					if used > notePool then break end
-					self:GetChild("Note"..used)
-						:visible(true)
-						:xy(laneOrigin + (note.Column-1)*laneWidth, y)
-						:diffuse(noteColor(note))
+local function bindPools(self)
+	local pools = {}
+	for kind, size in pairs(poolSizes) do
+		pools[kind] = {}
+		for column = 1, columnCount do
+			pools[kind][column] = {}
+			for i = 1, size do
+				pools[kind][column][i] = self:GetChild(poolPrefix[kind]..column.."_"..i)
+			end
+		end
+	end
+	pools.measure = {}
+	for i = 1, measurePool do pools.measure[i] = self:GetChild("Measure"..i) end
+	self.pools = pools
+end
+
+local function hideAll(self)
+	for kind in pairs(poolSizes) do
+		for column = 1, columnCount do
+			for _, actor in ipairs(self.pools[kind][column]) do actor:visible(false) end
+		end
+	end
+	for _, actor in ipairs(self.pools.measure) do actor:visible(false) end
+end
+
+local holdParts = {"HoldBody","HoldHead","HoldTail","RollBody","RollHead","RollTail"}
+
+local function draw(self)
+	if not self.receptorY or not self.pools then return end
+	hideAll(self)
+	if not self.notes or not self.timing then return end
+
+	local top, bottom = self.receptorY, self.bottomY
+	local perSecond = self.spacingIsTime
+	local pitch = self.pitch
+
+	-- The sample the wheel is playing is the clock: the strip shows the part of
+	-- the chart the player is hearing.
+	local ok, current = pcall(function() return GAMESTATE:GetCurMusicSeconds() end)
+	current = ok and tonumber(current) or nil
+	if not current or current < self.sampleStart - 2 then
+		current = self.sampleStart + (self.freeClock or 0)
+	end
+	local okBeat, currentBeat = pcall(function() return self.timing:GetBeatFromElapsedTime(current) end)
+	currentBeat = okBeat and tonumber(currentBeat) or nil
+	if not currentBeat then return end
+
+	local span = bottom - top
+	local key = perSecond and "Time" or "Beat"
+	local now = perSecond and current or currentBeat
+	local last = now + span/pitch
+	local function yAt(value) return top + (value - now)*pitch end
+
+	local used = {}
+	for column = 1, columnCount do used[column] = {tap=0, mine=0, lift=0, hold=0} end
+
+	for index = lowerBound(self.notes, key, now), #self.notes do
+		local note = self.notes[index]
+		if note[key] > last then break end
+		local column = note.Column
+		if column <= columnCount then
+			local kind = note.Kind == "mine" and "mine" or (note.Kind == "lift" and "lift" or "tap")
+			local pool = kind == "mine" and minePool or (kind == "lift" and liftPool or tapPool)
+			used[column][kind] = used[column][kind] + 1
+			if used[column][kind] <= pool then
+				local actor = self.pools[kind][column][used[column][kind]]
+				actor:visible(true)
+					:xy(laneOrigin + (column-1)*laneWidth, yAt(note[key]))
+					:zoom(noteZoom)
+					:diffusealpha(note.Kind == "fake" and 0.38 or 1)
+				setRhythm(actor, note.Quantization)
+			end
+		end
+	end
+
+	for _, hold in ipairs(self.holds) do
+		local endKey = perSecond and hold.EndTime or hold.EndBeat
+		local startKey = hold[key]
+		if endKey and endKey >= now and startKey <= last and hold.Column <= columnCount then
+			local column = hold.Column
+			used[column].hold = used[column].hold + 1
+			if used[column].hold <= holdPool then
+				local actor = self.pools.hold[column][used[column].hold]
+				local rawStartY, rawEndY = yAt(startKey), yAt(endKey)
+				local startY = math.max(top, rawStartY)
+				local endY = math.min(bottom, rawEndY)
+				if endY > startY then
+					local isRoll = hold.Kind == "roll"
+					local head = actor:GetChild(isRoll and "RollHead" or "HoldHead")
+					local body = actor:GetChild(isRoll and "RollBody" or "HoldBody")
+					local tail = actor:GetChild(isRoll and "RollTail" or "HoldTail")
+					actor:visible(true):x(laneOrigin + (column-1)*laneWidth)
+					for _, name in ipairs(holdParts) do actor:GetChild(name):visible(false) end
+
+					local active = startKey <= now + 0.001
+					local headY = active and top or startY
+					local texture = body:GetTexture()
+					local textureHeight = texture and texture:GetSourceHeight() or (isRoll and 256 or 128)
+					local bodyWidth = arrowSize*noteZoom
+					local bodyVertices, textureBottom = holdBodyVertices(bodyWidth, headY, endY, textureHeight)
+					body:visible(true):SetNumVertices(4):SetVertices(bodyVertices)
+					head:visible(true):y(headY):zoom(noteZoom):diffusealpha(active and 0.82 or 1)
+					local capHeight = math.min(18*noteZoom, bottom - rawEndY)
+					local showTail = rawEndY <= bottom and rawEndY >= top and capHeight > 0
+					tail:visible(showTail)
+					if showTail then
+						tail:SetNumVertices(3):SetVertices(holdTailVertices(bodyWidth, rawEndY, capHeight, textureBottom))
+					end
+					setRhythm(actor, hold.Quantization)
 				end
 			end
 		end
 	end
-	for index = math.min(used, notePool)+1, notePool do
-		self:GetChild("Note"..index):visible(false)
-	end
 
+	-- Measure lines are laid out in beats even under a C-mod: they mark the
+	-- chart's own structure, not the scroll's.
 	local lines = 0
-	for measure = math.ceil(origin), math.ceil(origin) + measurePool do
-		local y = first + (measure - origin)*measurePitch
-		if y > last or lines >= measurePool then break end
+	local firstMeasure = math.ceil(currentBeat/4)
+	for measure = firstMeasure, firstMeasure + measurePool do
+		local beat = measure*4
+		local value = beat
+		if perSecond then
+			local okTime, seconds = pcall(function() return self.timing:GetElapsedTimeFromBeat(beat) end)
+			value = okTime and tonumber(seconds) or nil
+		end
+		if not value then break end
+		local y = yAt(value)
+		if y > bottom then break end
 		lines = lines + 1
-		self:GetChild("Measure"..lines):visible(true):y(y)
-	end
-	for index = lines+1, measurePool do
-		self:GetChild("Measure"..index):visible(false)
+		if lines > measurePool then break end
+		self.pools.measure[lines]:visible(true):y(y)
 	end
 end
 
 local af = Def.ActorFrame{
-	Name=pn.."ChartStrip",
-	RefreshCommand=function(self)
+	Name = pn.."ChartStrip",
+	RefreshCommand = function(self)
 		local joined = GAMESTATE:IsHumanPlayer(player)
 		self:visible(joined)
 		if not joined then return end
 
 		local rowTop, rowHeight = H.RowGeometry(player)
-		local stripTop = rowTop + headerH
-		local stripBottom = rowTop + rowHeight
-		self.stripTop = stripTop
-		self.stripBottom = stripBottom
+		self.receptorY = rowTop + headerH + receptorGap
+		self.bottomY = rowTop + rowHeight - bottomGap
 
 		self:GetChild("Border"):xy(stripX-1, rowTop-1):zoomto(stripW+2, rowHeight+2)
 		self:GetChild("Background"):xy(stripX, rowTop):zoomto(stripW, rowHeight)
-		self:GetChild("HeaderRule"):xy(stripX, stripTop):zoomto(stripW, 1)
+		self:GetChild("HeaderRule"):xy(stripX, rowTop + headerH):zoomto(stripW, 1)
 		H.SetLabel(self:GetChild("Caption"), H.String("Preview"), 9, stripW-16)
 		self:GetChild("Caption"):xy(stripX + stripW/2, rowTop + headerH/2)
-		self:GetChild("TopFade"):xy(stripX, stripTop):zoomto(stripW, fadeDepth)
-		self:GetChild("BottomFade"):xy(stripX, stripBottom):zoomto(stripW, fadeDepth)
+		self:GetChild("TopFade"):xy(stripX, rowTop + headerH + 1):zoomto(stripW, fadeDepth)
+		self:GetChild("BottomFade"):xy(stripX, self.bottomY + bottomGap):zoomto(stripW, fadeDepth)
+		for column = 1, columnCount do
+			self:GetChild("Receptor_"..column)
+				:xy(laneOrigin + (column-1)*laneWidth, self.receptorY):zoom(noteZoom)
+		end
 
 		local chart = H.Chart(player)
 		if chart ~= self.chart then
 			self.chart = chart
-			self.notes = nil
-			local windowMeasures = math.max(1, math.ceil((stripBottom-stripTop)/measurePitch))
-			local start = 0
+			self.notes, self.holds, self.timing = nil, nil, nil
+			self.freeClock = 0
+			local song = GAMESTATE:GetCurrentSong()
+			self.sampleStart = song and song.GetSampleStart and song:GetSampleStart() or 0
 			if chart and not GAMESTATE:IsCourseMode() then
-				start = busiestStart(H.ChartData(player).nps, windowMeasures)
-				local ok, notes = pcall(function()
-					return VOLT26.Simfile.Measures(chart, player, start, start + loopMeasures + windowMeasures)
+				local sampleLength = song and song.GetSampleLength and song:GetSampleLength() or 15
+				local untilSeconds = self.sampleStart + math.max(15, tonumber(sampleLength) or 0) + 8
+				local ok, notes, holds = pcall(function()
+					return VOLT26.Simfile.Notes(chart, player, untilSeconds)
 				end)
-				if ok then self.notes = notes end
+				if ok then
+					self.notes, self.holds = notes, holds
+					self.timing = chart:GetTimingData()
+				end
 			end
-			self.startMeasure = start
-			-- Cycling past what was parsed would leave the strip empty, so the
-			-- loop never runs past the window the notes came from.
-			local available = #(self.notes or {}) > 0
-				and (self.notes[#self.notes].Position - start - windowMeasures + 1) or 0
-			self.loopSpan = math.max(1, math.min(loopMeasures, available))
-			self.scroll = 0
+			if self.timing then
+				local pitch, isTime = speedSpacing(chart)
+				local range = isTime and timeSpacingRange or beatSpacingRange
+				self.pitch = math.min(range[2], math.max(range[1], pitch))
+				self.spacingIsTime = isTime
+			end
 		end
 		draw(self)
 	end,
-	OnCommand=function(self)
+	OnCommand = function(self)
+		bindPools(self)
+		self.advanceElapsed = 0
 		self:SetUpdateFunction(function(frame, delta)
-			if not frame.notes or #frame.notes == 0 then return end
-			frame.scroll = (frame.scroll + (delta or 0)*scrollMeasuresPerSecond) % frame.loopSpan
+			if not frame:GetVisible() then return end
+			frame.advanceElapsed = frame.advanceElapsed + (delta or 0)
+			local interval = VOLT26.Performance.IsEnabled() and (1/30) or 0
+			if frame.advanceElapsed < interval then return end
+			frame.freeClock = (frame.freeClock or 0) + frame.advanceElapsed
+			frame.advanceElapsed = 0
 			draw(frame)
 		end)
 	end,
@@ -185,34 +378,88 @@ af[#af+1] = H.Rule{Name="Background", Tint=H.Panel}
 af[#af+1] = H.Rule{Name="HeaderRule"}
 af[#af+1] = H.LabelText{Name="Caption", Px=9, Tint=H.Dim, Align=center}
 
-for index = 1, measurePool do
+for i = 1, measurePool do
 	af[#af+1] = Def.Quad{
-		Name="Measure"..index,
-		InitCommand=function(self)
+		Name = "Measure"..i,
+		InitCommand = function(self)
 			self:align(0,0.5):x(stripX):zoomto(stripW, 1):diffuse(H.Line):visible(false)
 		end,
 	}
 end
-for index = 1, notePool do
-	af[#af+1] = Def.Quad{
-		Name="Note"..index,
-		InitCommand=function(self)
-			self:align(0.5,0.5):zoomto(diamondSide, diamondSide):rotationz(45):visible(false)
-		end,
+
+for column = 1, columnCount do
+	local columnName = columns[column]
+	af[#af+1] = Def.ActorFrame{
+		Name = "Receptor_"..column,
+		InitCommand = function(self) self:diffusealpha(0.5) end,
+		loadNote(columnName, "Receptor"),
 	}
+	for i = 1, tapPool do
+		af[#af+1] = Def.ActorFrame{
+			Name = "Tap_"..column.."_"..i,
+			InitCommand = function(self) self:visible(false) end,
+			loadNote(columnName, "Tap Note", "Visual"),
+		}
+	end
+	for i = 1, minePool do
+		af[#af+1] = Def.ActorFrame{
+			Name = "Mine_"..column.."_"..i,
+			InitCommand = function(self) self:visible(false) end,
+			loadNote(columnName, "Tap Mine", "Visual"),
+		}
+	end
+	for i = 1, liftPool do
+		af[#af+1] = Def.ActorFrame{
+			Name = "Lift_"..column.."_"..i,
+			InitCommand = function(self) self:visible(false) end,
+			loadNote(columnName, "Tap Lift", "Visual"),
+		}
+	end
+	for i = 1, holdPool do
+		af[#af+1] = Def.ActorFrame{
+			Name = "Hold_"..column.."_"..i,
+			InitCommand = function(self) self:visible(false) end,
+			Def.ActorMultiVertex{
+				Name = "HoldBody", Texture = noteTexture(columnName, "Hold Body Inactive"),
+				InitCommand = function(self)
+					self:SetDrawState({Mode="DrawMode_Quads"}):texturewrapping(true):visible(false)
+				end,
+			},
+			loadNote(columnName, "Hold Head Inactive", "HoldHead"),
+			Def.ActorMultiVertex{
+				Name = "HoldTail", Texture = noteTexture(columnName, "Hold Body Inactive"),
+				InitCommand = function(self)
+					self:SetDrawState({Mode="DrawMode_Triangles"}):texturewrapping(true):visible(false)
+				end,
+			},
+			Def.ActorMultiVertex{
+				Name = "RollBody", Texture = noteTexture(columnName, "Roll Body Inactive"),
+				InitCommand = function(self)
+					self:SetDrawState({Mode="DrawMode_Quads"}):texturewrapping(true):visible(false)
+				end,
+			},
+			loadNote(columnName, "Roll Head Inactive", "RollHead"),
+			Def.ActorMultiVertex{
+				Name = "RollTail", Texture = noteTexture(columnName, "Roll Body Inactive"),
+				InitCommand = function(self)
+					self:SetDrawState({Mode="DrawMode_Triangles"}):texturewrapping(true):visible(false)
+				end,
+			},
+		}
+	end
 end
 
 -- The strip has no clip of its own, so notes are only ever placed inside it and
 -- these two fades carry the edges into the card colour.
 af[#af+1] = Def.Quad{
-	Name="TopFade",
-	InitCommand=function(self)
+	Name = "TopFade",
+	InitCommand = function(self)
 		self:align(0,0):diffuse(H.Panel):diffusebottomedge(transparent)
 	end,
 }
 af[#af+1] = Def.Quad{
-	Name="BottomFade",
-	InitCommand=function(self)
+	Name = "BottomFade",
+	InitCommand = function(self)
 		self:align(0,1):diffuse(H.Panel):diffusetopedge(transparent)
 	end,
 }
