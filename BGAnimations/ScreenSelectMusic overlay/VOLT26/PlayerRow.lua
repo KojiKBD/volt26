@@ -68,6 +68,12 @@ local maxGradeStars = 5
 local gradeAssetSize = 200
 local gradeIconSize = 15
 local transparent = color("0,0,0,0")
+-- The difficulty slots wear the songwheel's highlight: the accent at the left
+-- edge running out to nothing at the right, rather than ending on a second
+-- opaque colour.  Edge colours are passed as tables so nothing has to survive a
+-- round trip through string.format, whose decimal separator follows the locale.
+local accentFade = {accent[1], accent[2], accent[3], 0}
+local idleTint = {1, 1, 1, 0.055}
 
 local radarLabelDistance = 1.28
 local radarLabelWidth = 46
@@ -244,11 +250,10 @@ local difficultyColumn = Def.ActorFrame{
 			local border = self:GetChild("Border"..i)
 			local slot = self:GetChild("Slot"..i)
 			if selected then
-				slot:diffuse(accent):diffusealpha(0.55)
-					:diffuserightedge(color(("%f,%f,%f,0.04"):format(accent[1], accent[2], accent[3])))
+				slot:diffuse(accent):diffusealpha(0.55):diffuserightedge(accentFade)
 				border:diffuse(accent)
 			else
-				slot:diffuse(color("1,1,1,0.055")):diffuserightedge(transparent)
+				slot:diffuse(idleTint):diffuserightedge(transparent)
 				border:diffuse(H.Line)
 			end
 			local nameTint = selected and H.Ink or (steps and H.Mute or H.Dim)

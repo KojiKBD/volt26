@@ -38,31 +38,33 @@ local af = Def.ActorFrame{
 		position:x(H.W - H.Pad - self:GetChild("Clock"):GetZoomedWidth() - 28)
 		H.SetLabel(position, positionText(), 12, 560)
 	end,
-	ClockCommand=function(self)
-		H.SetLabel(self:GetChild("Clock"), string.format("%02d:%02d", Hour(), Minute()), clockSize)
-		self:queuecommand("Refresh")
-		self:sleep(10):queuecommand("Clock")
-	end,
 	OnCommand=function(self)
 		self:GetChild("Brand"):settext("SELECT")
 		if showPaidTimer then
 			H.SetDisplay(self:GetChild("Clock"),
 				math.max(0, math.ceil(tonumber(SL.Global.MenuTimer.ScreenSelectMusic) or 0)), clockSize)
-			self.timerElapsed = 0
-			self:SetUpdateFunction(function(frame, delta)
-				frame.timerElapsed = frame.timerElapsed + (delta or 0)
-				if frame.timerElapsed < 0.10 then return end
-				frame.timerElapsed = 0
-				local remaining = menuTimerSeconds()
-				if remaining and remaining ~= frame.remaining then
-					frame.remaining = remaining
-					H.SetDisplay(frame:GetChild("Clock"), remaining, clockSize)
-					frame:playcommand("Refresh")
-				end
-			end)
-		else
-			self:queuecommand("Clock")
 		end
+		-- The right-hand readout is driven from an update function rather than a
+		-- sleep chain: this actor also receives queued Refresh commands, and a
+		-- pending multi-second sleep would hold every one of them in the tween
+		-- queue until it expired, which overflows it.
+		self.tickElapsed = math.huge
+		self:SetUpdateFunction(function(frame, delta)
+			frame.tickElapsed = frame.tickElapsed + (delta or 0)
+			if frame.tickElapsed < (showPaidTimer and 0.10 or 5) then return end
+			frame.tickElapsed = 0
+			local reading = showPaidTimer and menuTimerSeconds()
+				or string.format("%02d:%02d", Hour(), Minute())
+			if reading and reading ~= frame.reading then
+				frame.reading = reading
+				if showPaidTimer then
+					H.SetDisplay(frame:GetChild("Clock"), reading, clockSize)
+				else
+					H.SetLabel(frame:GetChild("Clock"), reading, clockSize)
+				end
+				frame:playcommand("Refresh")
+			end
+		end)
 		self:queuecommand("Refresh")
 	end,
 }
