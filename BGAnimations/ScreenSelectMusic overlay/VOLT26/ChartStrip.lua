@@ -249,12 +249,24 @@ local function draw(self)
 	-- wins over anything stored beside it.
 	local pitch = self.scrollPitch
 
-	-- The sample the wheel is playing is the clock: the strip shows the part of
-	-- the chart the player is hearing.
-	local ok, current = pcall(function() return GAMESTATE:GetCurMusicSeconds() end)
-	current = ok and tonumber(current) or nil
-	if not current or current < self.sampleStart - 2 then
-		current = self.sampleStart + (self.freeClock or 0)
+	-- The strip is anchored on the song's preview marker: it opens on the part
+	-- of the chart the marker points at, which is also the part the wheel plays.
+	--
+	-- The music clock refines that when it can be trusted, but it cannot always
+	-- be: the wheel plays a fallback loop between selections and while the list
+	-- is scrolling fast, and that loop reports a position too.  Only a reading
+	-- inside the sample's own window belongs to this song.
+	local current
+	if self.trustMusicClock then
+		local ok, seconds = pcall(function() return GAMESTATE:GetCurMusicSeconds() end)
+		seconds = ok and tonumber(seconds) or nil
+		if seconds and seconds >= self.sampleStart - 1
+			and seconds <= self.sampleStart + self.sampleLength + 2 then
+			current = seconds
+		end
+	end
+	if not current then
+		current = self.sampleStart + (self.freeClock or 0) % self.sampleLength
 	end
 	local okBeat, currentBeat = pcall(function() return self.timing:GetBeatFromElapsedTime(current) end)
 	currentBeat = okBeat and tonumber(currentBeat) or nil
@@ -376,10 +388,20 @@ local af = Def.ActorFrame{
 			self.notes, self.holds, self.timing = nil, nil, nil
 			self.freeClock = 0
 			local song = GAMESTATE:GetCurrentSong()
-			self.sampleStart = song and song.GetSampleStart and song:GetSampleStart() or 0
+			self.sampleStart = math.max(0, tonumber(song and song:GetSampleStart()) or 0)
+			local length = tonumber(song and song:GetSampleLength()) or 0
+			-- A song can leave the length unset, which the engine reports as a
+			-- negative; the wheel then plays its own default window.
+			self.sampleLength = length > 0 and length or 15
+			-- With a separate preview file the engine plays that file from zero,
+			-- so its position says nothing about where we are in the chart and
+			-- the strip has to run on its own clock from the marker.
+			local okPreview, previewPath = pcall(function() return song:GetPreviewMusicPath() end)
+			local okMusic, musicPath = pcall(function() return song:GetMusicPath() end)
+			self.trustMusicClock = okPreview and okMusic and previewPath == musicPath
+
 			if chart and not GAMESTATE:IsCourseMode() then
-				local sampleLength = song and song.GetSampleLength and song:GetSampleLength() or 15
-				local untilSeconds = self.sampleStart + math.max(15, tonumber(sampleLength) or 0) + 8
+				local untilSeconds = self.sampleStart + math.max(15, self.sampleLength) + 8
 				local ok, notes, holds = pcall(function()
 					return VOLT26.Simfile.Notes(chart, player, untilSeconds)
 				end)

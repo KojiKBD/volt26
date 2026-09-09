@@ -10,6 +10,11 @@ local left = _screen.cx - W*scale/2
 local top = _screen.cy - H*scale/2
 
 local ground = color("#0a0a0c")
+-- The artwork sits behind a veil of the ground colour.  The screen's panels are
+-- near-black and its text is thin, so a full-strength illustration behind them
+-- competes with the content; this is the one number to turn if the art should
+-- read stronger or weaker.
+local artVeil = 0.70
 -- One pixel of white at three percent, repeating every 46 units along each
 -- diagonal.  Any more and the lattice stops being texture and starts being
 -- pattern.
@@ -74,6 +79,22 @@ return Def.ActorFrame{
 			-- Sized past the design rectangle so a non-16:9 screen keeps the
 			-- same ground colour out to its own edges.
 			self:align(0,0):xy(-W, -H):zoomto(W*3, H*3):diffuse(ground)
+		end,
+	},
+	Def.Sprite{
+		Name="Art",
+		Texture=THEME:GetPathG("", "VOLT26/SongSelection/backdrop.png"),
+		InitCommand=function(self)
+			-- Authored at the design's own size, so it maps onto the design
+			-- rectangle one to one and needs no cropping.
+			self:align(0,0):xy(0,0):zoomto(W, H)
+		end,
+	},
+	Def.Quad{
+		Name="ArtVeil",
+		InitCommand=function(self)
+			self:align(0,0):xy(-W, -H):zoomto(W*3, H*3)
+				:diffuse(ground):diffusealpha(artVeil)
 		end,
 	},
 	Def.ActorMultiVertex{
