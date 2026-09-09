@@ -2,12 +2,12 @@ local H = ...
 
 local bandTop = H.H - H.FooterH
 local middleY = bandTop + H.FooterH/2
-local keyHeight = 20
+local keyHeight = 24
 local keyPadX = 6
 local keyGap = 8
 local itemGap = 28
 local startPadX = 26
-local startHeight = 38
+local startHeight = 42
 local indicatorGap = 24
 local dotSize = 8
 
@@ -80,7 +80,7 @@ local af = Def.ActorFrame{
 		-- The right of the band is laid out from the screen edge inwards, so the
 		-- START button keeps its place whatever the player names cost.
 		local startLabel = self:GetChild("StartLabel")
-		H.SetLabel(startLabel, "START", 18)
+		H.SetLabel(startLabel, "START", 22)
 		local startWidth = startLabel:GetZoomedWidth() + startPadX*2
 		local right = H.W - H.Pad
 		self:GetChild("StartFill"):xy(right, middleY):zoomto(startWidth, startHeight)
@@ -137,7 +137,7 @@ af[#af+1] = Def.Quad{
 	Name="StartFill",
 	InitCommand=function(self) self:align(1,0.5):diffuse(H.Ink) end,
 }
-af[#af+1] = H.LabelText{Name="StartLabel", Px=18, Tint=H.Bg, Align=center}
+af[#af+1] = H.LabelText{Name="StartLabel", Px=22, Tint=H.Bg, Align=center}
 
 H.AddRefresh(af)
 return af

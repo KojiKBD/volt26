@@ -1243,11 +1243,11 @@ VOLT26.MusicSelection = {}
 -- is the wheel's own origin; ItemOffset places the left edge of a row's body.
 VOLT26.MusicSelection.Wheel = {
 	X = 32,
-	Width = 420,
+	Width = 540,
 	GuideOffset = 5,
 	ItemOffset = 22,
-	Pitch = 55,
-	ItemHeight = 52,
+	Pitch = 68,
+	ItemHeight = 62,
 }
 
 -- Every row keeps the same pitch and the selection stays on the wheel's centre,
@@ -2550,7 +2550,10 @@ function VOLT26.Evaluation.StorePlayerSnapshot(player)
 	local snapshot = VOLT26.Evaluation.BuildPlayerSnapshot(player)
 	stage.result_snapshot = DeepCopy(snapshot)
 	-- Compatibility aliases for inherited actors that are outside EVAL-01.
-	for key, value in pairs(snapshot) do stage[key] = DeepCopy(value) end
+	for key, value in pairs(snapshot) do
+		-- DeepCopy walks its argument with pairs(), so only tables go through it.
+		stage[key] = type(value) == "table" and DeepCopy(value) or value
+	end
 	return DeepCopy(snapshot)
 end
 

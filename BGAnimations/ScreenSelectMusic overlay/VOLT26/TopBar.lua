@@ -4,7 +4,7 @@ local middleY = H.TopBarH/2
 -- In paid mode the band's right-hand slot belongs to the menu timer instead of
 -- the clock: the number that is running out matters more than the time of day.
 local showPaidTimer = VOLT26.MenuTimer.IsPaidMode()
-local clockSize = showPaidTimer and 22 or 12
+local clockSize = showPaidTimer and 26 or 13
 
 local function modeText()
 	local style = GAMESTATE:GetCurrentStyle()
@@ -71,9 +71,9 @@ local af = Def.ActorFrame{
 
 af[#af+1] = H.Rule{Name="Divider", Y=H.TopBarH-1, Width=H.W, Height=1}
 
-af[#af+1] = H.LabelText{Name="Brand", Px=30, Tint=H.Ink, X=H.Pad, Y=middleY}
-af[#af+1] = H.Rule{Name="BrandRule", AlignX=0.5, AlignY=0.5, X=H.Pad+152, Y=middleY, Width=1, Height=26}
-af[#af+1] = H.LabelText{Name="Mode", Px=12, Tint=H.Mute, X=H.Pad+172, Y=middleY}
+af[#af+1] = H.LabelText{Name="Brand", Px=34, Tint=H.Ink, X=H.Pad, Y=middleY}
+af[#af+1] = H.Rule{Name="BrandRule", AlignX=0.5, AlignY=0.5, X=H.Pad+178, Y=middleY, Width=1, Height=26}
+af[#af+1] = H.LabelText{Name="Mode", Px=12, Tint=H.Mute, X=H.Pad+198, Y=middleY}
 
 af[#af+1] = H.LabelText{Name="Position", Px=12, Tint=H.Mute, Align=right, Y=middleY}
 af[#af+1] = H.LabelText{

@@ -9,7 +9,10 @@
 
 local player = ...
 local pause_poll_elapsed = 0
-local actor = Def.Actor{
+-- An ActorFrame, not a plain Actor: SetUpdateFunction is an ActorFrame
+-- method, so the pause poll below never ran and the Game Over duration
+-- counted paused time as played time.
+local actor = Def.ActorFrame{
 	OnCommand=function(self)
 		VOLT26.Session.BeginGameplay(player, GetTimeSinceStart())
 		self:SetUpdateFunction(function(_, delta)

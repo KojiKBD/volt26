@@ -10,10 +10,11 @@ local accent = H.Accent(player)
 -- header above.
 
 local gap = 16
-local difficultyW = 206
+local difficultyW = 178
 local previewW = 196
-local headerH = 44
+local headerH = 48
 local slotGap = 6
+local slotMaxHeight = 54
 local radarW = 280
 local contentPadX = 18
 local contentPadY = 14
@@ -66,7 +67,7 @@ local gradeLetters = {
 }
 local maxGradeStars = 5
 local gradeAssetSize = 200
-local gradeIconSize = 15
+local gradeIconSize = 18
 local transparent = color("0,0,0,0")
 -- The difficulty slots wear the songwheel's highlight: the accent at the left
 -- edge running out to nothing at the right, rather than ending on a second
@@ -76,7 +77,7 @@ local accentFade = {accent[1], accent[2], accent[3], 0}
 local idleTint = {1, 1, 1, 0.055}
 
 local radarLabelDistance = 1.28
-local radarLabelWidth = 46
+local radarLabelWidth = 58
 local radarEdgeMargin = 8
 local radarMaxRadius = math.floor(
 	(radarW/2 - radarLabelWidth - radarEdgeMargin) / (math.cos(math.rad(30)) * radarLabelDistance))
@@ -224,7 +225,10 @@ local af = Def.ActorFrame{
 local difficultyColumn = Def.ActorFrame{
 	Name="Difficulty",
 	LayOutCommand=function(self, p)
-		local slotH = (p.BodyHeight - slotGap*(#difficulties-1))/#difficulties
+		-- The slots no longer stretch to the card's full height: five boxes that
+		-- tall read as the loudest thing on the row, which they are not.  They
+		-- take the height they need and leave the rest of the column empty.
+		local slotH = math.min(slotMaxHeight, (p.BodyHeight - slotGap*(#difficulties-1))/#difficulties)
 		self:GetChild("Badge"):xy(rowX, p.RowTop + headerH/2)
 		local badgeLabel = self:GetChild("BadgeLabel")
 		H.SetLabel(badgeLabel, pn, 11)
@@ -239,8 +243,8 @@ local difficultyColumn = Def.ActorFrame{
 			local top = p.BodyTop + (i-1)*(slotH + slotGap)
 			self:GetChild("Border"..i):xy(rowX, top):zoomto(difficultyW, slotH)
 			self:GetChild("Slot"..i):xy(rowX+1, top+1):zoomto(difficultyW-2, slotH-2)
-			self:GetChild("Name"..i):xy(rowX+16, top + slotH/2)
-			self:GetChild("Meter"..i):xy(rowX+difficultyW-16, top + slotH/2)
+			self:GetChild("Name"..i):xy(rowX+12, top + slotH/2)
+			self:GetChild("Meter"..i):xy(rowX+difficultyW-12, top + slotH/2)
 		end
 	end,
 	FillCommand=function(self, p)
@@ -257,9 +261,9 @@ local difficultyColumn = Def.ActorFrame{
 				border:diffuse(H.Line)
 			end
 			local nameTint = selected and H.Ink or (steps and H.Mute or H.Dim)
-			H.SetLabel(self:GetChild("Name"..i), entry[2], 12, difficultyW-90)
+			H.SetLabel(self:GetChild("Name"..i), entry[2], 12, difficultyW-74)
 			self:GetChild("Name"..i):diffuse(nameTint)
-			H.SetDisplay(self:GetChild("Meter"..i), steps and steps:GetMeter() or "", 26)
+			H.SetDisplay(self:GetChild("Meter"..i), steps and steps:GetMeter() or "", 30)
 			self:GetChild("Meter"..i):diffuse(selected and H.Ink or (steps and H.Mute or H.Dim))
 		end
 	end,
@@ -277,7 +281,7 @@ for i=1, #difficulties do
 		InitCommand=function(self) self:align(0,0) end,
 	}
 	difficultyColumn[#difficultyColumn+1] = H.LabelText{Name="Name"..i, Px=12, Tint=H.Mute}
-	difficultyColumn[#difficultyColumn+1] = H.DisplayText{Name="Meter"..i, Px=26, Tint=H.Mute, Align=right}
+	difficultyColumn[#difficultyColumn+1] = H.DisplayText{Name="Meter"..i, Px=30, Tint=H.Mute, Align=right}
 end
 af[#af+1] = difficultyColumn
 
@@ -307,7 +311,7 @@ local card = Def.ActorFrame{
 		local badgeWidth = badgeLabel:GetZoomedWidth() + 16
 		self:GetChild("Badge"):zoomto(badgeWidth, 18)
 		badgeLabel:x(cardX + contentPadX + badgeWidth/2)
-		H.SetDisplay(self:GetChild("Name"), H.PlayerName(player), 23, 240)
+		H.SetDisplay(self:GetChild("Name"), H.PlayerName(player), 27, 230)
 		self:GetChild("Name"):x(cardX + contentPadX + badgeWidth + 12)
 
 		-- The right of the header reads back what the player has actually
@@ -320,7 +324,7 @@ local card = Def.ActorFrame{
 
 		local right = cardX + cardW - contentPadX
 		local authorText = self:GetChild("Author")
-		H.SetLabel(authorText, author ~= "" and ("STEPS BY "..author) or "", 11, 220)
+		H.SetLabel(authorText, author ~= "" and ("STEPS BY "..author) or "", 11, 190)
 		authorText:x(right)
 		right = right - (author ~= "" and authorText:GetZoomedWidth() + 22 or 0)
 
@@ -330,7 +334,7 @@ local card = Def.ActorFrame{
 		right = right - rate:GetZoomedWidth() - 22
 
 		local chartLine = self:GetChild("ChartLine")
-		H.SetLabel(chartLine, difficulty ~= "" and (difficulty.." "..meter) or "", 11, 220)
+		H.SetLabel(chartLine, difficulty ~= "" and (difficulty.." "..meter) or "", 11, 190)
 		chartLine:x(right)
 	end,
 }
@@ -341,7 +345,7 @@ card[#card+1] = H.Rule{Name="HeaderRule"}
 card[#card+1] = H.Rule{Name="RadarRule"}
 card[#card+1] = Def.Quad{Name="Badge", InitCommand=function(self) self:align(0,0.5):diffuse(accent) end}
 card[#card+1] = H.LabelText{Name="BadgeLabel", Px=11, Tint=H.Ink, Align=center}
-card[#card+1] = H.DisplayText{Name="Name", Px=23, Tint=H.Ink}
+card[#card+1] = H.DisplayText{Name="Name", Px=27, Tint=H.Ink}
 card[#card+1] = H.LabelText{Name="ChartLine", Px=11, Tint=H.Mute, Align=right}
 card[#card+1] = H.LabelText{Name="Rate", Px=11, Tint=H.Mute, Align=right}
 card[#card+1] = H.LabelText{Name="Author", Px=11, Tint=H.Dim, Align=right}
@@ -355,8 +359,8 @@ local body = Def.ActorFrame{
 		local inner = p.BodyHeight - contentPadY*2
 		-- The score row is a 9 unit label sitting on a 40 unit number, both
 		-- anchored on the same baseline.
-		local scoreH = 58
-		local countersH = 9 + 21 + countersPadY*2 + 6
+		local scoreH = 66
+		local countersH = 13 + 26 + countersPadY*2 + 6
 		local graphH = inner - scoreH - countersH - blockGap*2
 		local top = p.BodyTop + contentPadY
 
@@ -374,8 +378,8 @@ local body = Def.ActorFrame{
 		local cellWidth = contentInnerW/#counters
 		for i=1, #counters do
 			local x = contentX + (i-0.5)*cellWidth
-			self:GetChild("CounterLabel"..i):xy(x, countersTop + countersPadY + 5)
-			self:GetChild("CounterValue"..i):xy(x, countersTop + countersPadY + 24)
+			self:GetChild("CounterLabel"..i):xy(x, countersTop + countersPadY + 8)
+			self:GetChild("CounterValue"..i):xy(x, countersTop + countersPadY + 32)
 		end
 
 		local plotHeight = self.plotHeight
@@ -398,14 +402,14 @@ local body = Def.ActorFrame{
 		local function scoreBlock(labelName, valueName, suffixName, labelText, valueText, tint)
 			local label = self:GetChild(labelName)
 			H.SetLabel(label, labelText, 9)
-			label:xy(x, baseline - 50)
+			label:xy(x, baseline - 56)
 			local value = self:GetChild(valueName)
-			H.SetDisplay(value, valueText, 40)
+			H.SetDisplay(value, valueText, 44)
 			value:xy(x, baseline):diffuse(tint)
 			local width = value:GetZoomedWidth()
 			if suffixName then
 				local suffix = self:GetChild(suffixName)
-				H.SetDisplay(suffix, "%", 18)
+				H.SetDisplay(suffix, "%", 20)
 				suffix:xy(x + width + 3, baseline)
 				width = width + 3 + suffix:GetZoomedWidth()
 			end
@@ -420,7 +424,7 @@ local body = Def.ActorFrame{
 
 		local gradeLabel = self:GetChild("GradeLabel")
 		H.SetLabel(gradeLabel, "GRADE", 9)
-		gradeLabel:xy(x, baseline - 50)
+		gradeLabel:xy(x, baseline - 56)
 		local gradeIcon = self:GetChild("GradeIcon")
 		gradeIcon:xy(x, baseline - gradeIconSize/2 - 4)
 		setGradeIcon(gradeIcon, best and best.Grade or nil)
@@ -428,7 +432,7 @@ local body = Def.ActorFrame{
 		for i, counter in ipairs(counters) do
 			local value = data[counter[2]] or 0
 			H.SetLabel(self:GetChild("CounterLabel"..i), counter[1], 9)
-			H.SetDisplay(self:GetChild("CounterValue"..i), value, 21)
+			H.SetDisplay(self:GetChild("CounterValue"..i), value, 26)
 			-- A count of zero is a fact about the chart, not a number to read,
 			-- so it steps back to the label colour.
 			self:GetChild("CounterValue"..i):diffuse(value > 0 and H.Ink or H.Dim)
@@ -446,11 +450,11 @@ local body = Def.ActorFrame{
 	end,
 }
 body[#body+1] = H.LabelText{Name="BestLabel", Px=9, Tint=H.Dim}
-body[#body+1] = H.DisplayText{Name="BestValue", Px=40, Tint=H.Ink, VAlign=bottom}
-body[#body+1] = H.DisplayText{Name="BestSuffix", Px=18, Tint=H.Mute, VAlign=bottom}
+body[#body+1] = H.DisplayText{Name="BestValue", Px=44, Tint=H.Ink, VAlign=bottom}
+body[#body+1] = H.DisplayText{Name="BestSuffix", Px=20, Tint=H.Mute, VAlign=bottom}
 body[#body+1] = H.LabelText{Name="ExLabel", Px=9, Tint=H.Dim}
-body[#body+1] = H.DisplayText{Name="ExValue", Px=40, Tint=H.Mute, VAlign=bottom}
-body[#body+1] = H.DisplayText{Name="ExSuffix", Px=18, Tint=H.Mute, VAlign=bottom}
+body[#body+1] = H.DisplayText{Name="ExValue", Px=44, Tint=H.Mute, VAlign=bottom}
+body[#body+1] = H.DisplayText{Name="ExSuffix", Px=20, Tint=H.Mute, VAlign=bottom}
 body[#body+1] = H.LabelText{Name="GradeLabel", Px=9, Tint=H.Dim}
 
 local gradeIcon = Def.ActorFrame{Name="GradeIcon"}
@@ -471,7 +475,7 @@ body[#body+1] = H.Rule{Name="CountersTopRule"}
 body[#body+1] = H.Rule{Name="CountersBottomRule"}
 for i=1, #counters do
 	body[#body+1] = H.LabelText{Name="CounterLabel"..i, Px=9, Tint=H.Dim, Align=center}
-	body[#body+1] = H.DisplayText{Name="CounterValue"..i, Px=21, Tint=H.Ink, Align=center}
+	body[#body+1] = H.DisplayText{Name="CounterValue"..i, Px=26, Tint=H.Ink, Align=center}
 end
 
 body[#body+1] = H.LabelText{Name="GraphLabel", Px=9, Tint=H.Dim}

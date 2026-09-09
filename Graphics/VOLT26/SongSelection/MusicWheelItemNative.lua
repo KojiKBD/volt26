@@ -11,10 +11,10 @@ local itemLeft = G.ItemOffset - G.GuideOffset
 local itemWidth = G.Width - G.ItemOffset
 local itemHeight = G.ItemHeight
 local jacketX = itemLeft + 15
-local jacketSize = 38
-local textX = jacketX + jacketSize + 14
-local meterX = itemLeft + itemWidth - 14
-local textWidth = meterX - 18 - textX
+local jacketSize = 48
+local textX = jacketX + jacketSize + 16
+local meterX = itemLeft + itemWidth - 16
+local textWidth = meterX - 24 - textX
 
 local ink = color("#f2f0ec")
 local mute = color("#8a8a94")
@@ -156,15 +156,15 @@ local af = Def.ActorFrame{
 			local row = self:GetChild("SongRow")
 			self.artPath = artworkPath(self.song)
 			VOLT26.Type.SetLabel(row:GetChild("Artist"),
-				(self.song and self.song:GetDisplayArtist() or ""):upper(), 10, textWidth)
-			VOLT26.Type.SetDisplay(row:GetChild("Title"), label(params), 20, textWidth)
-			VOLT26.Type.SetLabel(row:GetChild("Meter"), meterText(self.song), 13)
+				(self.song and self.song:GetDisplayArtist() or ""):upper(), 13, textWidth)
+			VOLT26.Type.SetDisplay(row:GetChild("Title"), label(params), 26, textWidth)
+			VOLT26.Type.SetLabel(row:GetChild("Meter"), meterText(self.song), 17)
 		else
 			local row = self:GetChild("PackRow")
 			local title = self.section or ""
-			VOLT26.Type.SetLabel(row:GetChild("Name"), title:upper(), 22, itemWidth - 100)
+			VOLT26.Type.SetLabel(row:GetChild("Name"), title:upper(), 26, itemWidth - 110)
 			VOLT26.Type.SetLabel(row:GetChild("Count"),
-				string.format("%02d", sectionSongCount(self.section)), 11)
+				string.format("%02d", sectionSongCount(self.section)), 14)
 		end
 
 		self.wasFocus = focused(self)
@@ -177,7 +177,7 @@ local af = Def.ActorFrame{
 		-- The current row's dot grows into the accent while the rest stay small
 		-- and unlit, so the eye finds the selection before reading a word.
 		self:GetChild("Dot")
-			:SetNumVertices(18):SetVertices(circleVertices(on and 5 or 3, tint))
+			:SetNumVertices(18):SetVertices(circleVertices(on and 6 or 4, tint))
 
 		local highlight = self:GetChild("Highlight")
 		local bar = self:GetChild("Bar")
@@ -258,13 +258,13 @@ songRow[#songRow+1] = Def.Banner{
 songRow[#songRow+1] = Def.BitmapText{
 	Name="Artist", Font=VOLT26.Type.Label,
 	InitCommand=function(self)
-		self:xy(textX, -9):horizalign(left):vertalign(middle):shadowlength(0):diffuse(dim)
+		self:xy(textX, -12):horizalign(left):vertalign(middle):shadowlength(0):diffuse(dim)
 	end,
 }
 songRow[#songRow+1] = Def.BitmapText{
 	Name="Title", Font=VOLT26.Type.Display,
 	InitCommand=function(self)
-		self:xy(textX, 8):horizalign(left):vertalign(middle):shadowlength(0):diffuse(ink)
+		self:xy(textX, 11):horizalign(left):vertalign(middle):shadowlength(0):diffuse(ink)
 	end,
 }
 songRow[#songRow+1] = Def.BitmapText{
@@ -296,7 +296,7 @@ af[#af+1] = packRow
 af[#af+1] = Def.ActorMultiVertex{
 	Name="Dot",
 	InitCommand=function(self)
-		self:SetDrawState({Mode="DrawMode_Fan"}):SetVertices(circleVertices(3, rail))
+		self:SetDrawState({Mode="DrawMode_Fan"}):SetVertices(circleVertices(4, rail))
 	end,
 }
 

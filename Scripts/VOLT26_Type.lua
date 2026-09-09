@@ -16,8 +16,14 @@ VOLT26.Type = {
 -- it substitutes nothing for a glyph a font lacks -- which is exactly why the
 -- two faces are built from the same pages: any string one can set, the other
 -- can too.
+-- The design's smallest labels assume a hinted vector face that stays crisp at
+-- nine pixels.  A bitmap face scaled down does not, so anything under the floor
+-- is lifted to it: below this the caps turn to mush and the label stops being
+-- readable at all, which is worse than losing a step of hierarchy.
+local labelFloor = 13
+
 function VOLT26.Type.DisplayZoom(px) return px/20 end
-function VOLT26.Type.LabelZoom(px) return px/20 end
+function VOLT26.Type.LabelZoom(px) return math.max(px, labelFloor)/20 end
 
 local function setText(actor, text, zoom, width)
 	actor:settext(tostring(text or "")):zoom(zoom)

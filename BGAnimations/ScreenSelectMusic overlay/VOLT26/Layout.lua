@@ -98,7 +98,7 @@ H.Left = _screen.cx - H.W*H.Scale/2
 H.Top = _screen.cy - H.H*H.Scale/2
 
 -- The list geometry, shared by the wheel rows, the sticky heading and the fades.
-H.WheelListTop = H.InnerTop + 34
+H.WheelListTop = H.InnerTop + 42
 H.WheelListBottom = H.InnerBottom
 H.WheelCenterY = (H.WheelListTop + H.WheelListBottom)/2
 

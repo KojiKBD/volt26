@@ -5,7 +5,7 @@ local H = ...
 -- from ending on a hard edge.  The rows themselves draw the rail and the
 -- highlight, in Graphics/VOLT26/SongSelection/MusicWheelItemNative.lua.
 
-local headingY = H.InnerTop + 14
+local headingY = H.InnerTop + 18
 local listTop = H.WheelListTop
 -- How far a heading travels while the next one pushes it out.  Kept short
 -- enough that the outgoing label has faded out inside the padding strip the
@@ -97,11 +97,11 @@ local af = Def.ActorFrame{
 		local nextHeading = self:GetChild("NextHeading")
 		if current ~= self.currentPack then
 			self.currentPack = current
-			H.SetLabel(heading, tostring(current):upper(), 22, 300)
+			H.SetLabel(heading, tostring(current):upper(), 26, 360)
 		end
 		if incoming ~= self.incomingPack then
 			self.incomingPack = incoming
-			H.SetLabel(nextHeading, tostring(incoming or ""):upper(), 22, 300)
+			H.SetLabel(nextHeading, tostring(incoming or ""):upper(), 26, 360)
 		end
 
 		heading:y(headingY - offset):diffusealpha(1 - progress)
@@ -112,7 +112,7 @@ local af = Def.ActorFrame{
 		local count = total > 0 and string.format("%02d / %02d", index, total) or ""
 		if count ~= self.countText then
 			self.countText = count
-			H.SetLabel(self:GetChild("Count"), count, 11)
+			H.SetLabel(self:GetChild("Count"), count, 14)
 		end
 	end,
 }
@@ -134,9 +134,9 @@ af[#af+1] = Def.Quad{
 	end,
 }
 
-af[#af+1] = H.LabelText{Name="Heading", Px=22, Tint=H.Ink, X=H.WheelItemX, Y=headingY}
-af[#af+1] = H.LabelText{Name="NextHeading", Px=22, Tint=H.Ink, X=H.WheelItemX, Y=headingY}
-af[#af+1] = H.LabelText{Name="Count", Px=11, Tint=H.Mute, Align=right, X=countX, Y=headingY}
+af[#af+1] = H.LabelText{Name="Heading", Px=26, Tint=H.Ink, X=H.WheelItemX, Y=headingY}
+af[#af+1] = H.LabelText{Name="NextHeading", Px=26, Tint=H.Ink, X=H.WheelItemX, Y=headingY}
+af[#af+1] = H.LabelText{Name="Count", Px=14, Tint=H.Mute, Align=right, X=countX, Y=headingY}
 
 -- Hard edge for the push: the content block's own top padding, which the
 -- outgoing heading fades out inside.

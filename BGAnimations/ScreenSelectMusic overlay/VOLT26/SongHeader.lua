@@ -59,9 +59,9 @@ local af = Def.ActorFrame{
 		H.SetLabel(self:GetChild("BpmLabel"), "BPM", 9)
 		H.SetLabel(self:GetChild("DurationLabel"), H.String("Duration"), 9)
 		H.SetLabel(self:GetChild("PackLabel"), "PACK", 9)
-		H.SetDisplay(self:GetChild("BpmValue"), bpmText(), 22, 220)
-		H.SetDisplay(self:GetChild("DurationValue"), H.Length(), 22, 220)
-		H.SetDisplay(self:GetChild("PackValue"), H.Pack():upper(), 22, 260)
+		H.SetDisplay(self:GetChild("BpmValue"), bpmText(), 28, 220)
+		H.SetDisplay(self:GetChild("DurationValue"), H.Length(), 28, 220)
+		H.SetDisplay(self:GetChild("PackValue"), H.Pack():upper(), 28, 300)
 
 		local banner = self:GetChild("Banner")
 		local path = item and bannerPath() or nil
@@ -82,9 +82,9 @@ local af = Def.ActorFrame{
 		H.SetLabel(eyebrow, H.String("NowSelected").." - "..H.String("SharedInfo"), 11, 620)
 
 		local title = self:GetChild("Title")
-		H.SetDisplay(title, H.Title(item), 46, 620)
+		H.SetDisplay(title, H.Title(item), 52, 620)
 		local artist = self:GetChild("Artist")
-		H.SetDisplay(artist, H.Artist(item), 19, 620)
+		H.SetDisplay(artist, H.Artist(item), 24, 620)
 
 		-- The metadata block starts one gap past whichever of the three title
 		-- lines runs longest, so it never overlaps and never drifts.
@@ -119,12 +119,12 @@ af[#af+1] = Def.Quad{
 }
 
 af[#af+1] = H.LabelText{Name="Eyebrow", Px=11, Tint=H.Mute, X=H.Pad, Y=bandTop+31}
-af[#af+1] = H.DisplayText{Name="Title", Px=46, Tint=H.Ink, X=H.Pad, Y=bandTop+62}
-af[#af+1] = H.DisplayText{Name="Artist", Px=19, Tint=H.Mute, X=H.Pad, Y=bandTop+98}
+af[#af+1] = H.DisplayText{Name="Title", Px=52, Tint=H.Ink, X=H.Pad, Y=bandTop+62}
+af[#af+1] = H.DisplayText{Name="Artist", Px=24, Tint=H.Mute, X=H.Pad, Y=bandTop+100}
 
 for _, field in ipairs({"Bpm", "Duration", "Pack"}) do
-	af[#af+1] = H.LabelText{Name=field.."Label", Px=9, Tint=H.Dim, Y=bandTop+55}
-	af[#af+1] = H.DisplayText{Name=field.."Value", Px=22, Tint=H.Ink, Y=bandTop+72}
+	af[#af+1] = H.LabelText{Name=field.."Label", Px=9, Tint=H.Dim, Y=bandTop+52}
+	af[#af+1] = H.DisplayText{Name=field.."Value", Px=28, Tint=H.Ink, Y=bandTop+74}
 end
 
 af[#af+1] = H.Rule{Name="Divider", Y=bandBottom-1, Width=H.W, Height=1}
