@@ -52,25 +52,52 @@ local laneOrigin = stripX + stripW/2 - (columnCount-1)*laneWidth/2
 
 -- The noteskin is read once, when this actor tree is built.  Changing it means
 -- visiting Player Options, and returning from there rebuilds the screen.
+--
+-- A player who has never picked one has no noteskin in the theme's modifiers,
+-- so the engine is asked next: PlayerOptions:NoteSkin() answers with the
+-- machine default rather than nothing.  The list is built by appending, never
+-- as a literal with holes in it -- ipairs stops at the first nil, which would
+-- silently drop every fallback behind an unset choice.
 local noteskin
 do
-	local ok, modifiers = pcall(function() return VOLT26.Options.GetPlayerModifiers(player) end)
-	local chosen = ok and modifiers and modifiers.NoteSkin or nil
-	for _, candidate in ipairs({chosen, "cel", "default"}) do
-		if candidate and NOTESKIN:DoesNoteSkinExist(candidate) then
+	local candidates = {}
+	local function offer(name)
+		if type(name) == "string" and name ~= "" then candidates[#candidates+1] = name end
+	end
+
+	local okMods, modifiers = pcall(function() return VOLT26.Options.GetPlayerModifiers(player) end)
+	if okMods and modifiers then offer(modifiers.NoteSkin) end
+
+	local okEngine, engineSkin = pcall(function()
+		return GAMESTATE:GetPlayerState(player):GetPlayerOptions("ModsLevel_Preferred"):NoteSkin()
+	end)
+	if okEngine then offer(engineSkin) end
+
+	offer("cel")
+	local okNames, names = pcall(function() return NOTESKIN:GetNoteSkinNames(false) end)
+	if okNames and names then
+		for name in ivalues(names) do offer(name) end
+	end
+
+	for _, candidate in ipairs(candidates) do
+		if NOTESKIN:DoesNoteSkinExist(candidate) then
 			noteskin = candidate
 			break
 		end
 	end
 end
 
+-- Only reached when the game has no usable noteskin at all.  A note stands in
+-- as a diamond rather than a square so the strip still reads as a stepchart.
 local function fallbackActor(element, name)
+	local receptor = element == "Receptor"
 	local tint = element == "Tap Mine" and color("#8a8a94") or H.Accent(player)
 	return Def.Quad{
 		Name = name,
 		InitCommand = function(self)
-			self:zoomto(element == "Receptor" and 42 or 30, element == "Receptor" and 5 or 30)
-				:diffuse(tint):diffusealpha(element == "Receptor" and 0.45 or 0.9)
+			self:zoomto(receptor and 42 or 22, receptor and 5 or 22)
+				:diffuse(tint):diffusealpha(receptor and 0.45 or 0.9)
+				:rotationz(receptor and 0 or 45)
 		end,
 	}
 end
