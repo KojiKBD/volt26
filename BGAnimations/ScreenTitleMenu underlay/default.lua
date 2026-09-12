@@ -2,6 +2,13 @@
 -- Reset game-cycle state through the VOLT26 CORE API.
 VOLT26.Core.ResetSession()
 
+-- Temporary visual prototype; set false to restore the original title underlay.
+local USE_3D_PROTOTYPE = true
+if USE_3D_PROTOTYPE then
+    local prototype = LoadActor(THEME:GetPathB("ScreenTitleMenu", "underlay/Prototype3D.lua"))
+    return prototype
+end
+
 -- -----------------------------------------------------------------------
 -- preliminary Lua setup is done
 -- now define actors to be passed back to the SM engine
