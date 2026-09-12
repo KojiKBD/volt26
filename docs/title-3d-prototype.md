@@ -1,5 +1,36 @@
 # Title room prototype
 
+## Live star banners replace the movies (2026-09-13)
+
+Branch: `codex/title-star-banners`. The AVI sprites are gone.
+`ScreenTitleMenu underlay/StarBanner.lua` returns three layers in a centered
+1408x512 canvas, the size of the replaced movies, and `Prototype3D.lua` places
+each layer on its banner surface one further 0.02 m lift toward the street, so
+coplanar layers cannot z-fight:
+
+1. a radial dark-red gradient on an 8x4 vertex-colored grid;
+2. the stripes: ten center/tip/inner-corner star triangles, clipped to the canvas
+   once at load and textured with the wrapping `TitleTravelCity/star_stripes.png`
+   (64x4, red and transparent halves). Texture coordinates are the distance to the
+   star's edge lines, which is linear inside each triangle, so translating the
+   texture every frame expands exact concentric stars;
+3. the caption PNG, cropped to the opaque bounds shared by all four captions.
+
+Cost follows the banners' on-screen pixels, and nothing is drawn off screen. An
+earlier iteration drew each banner into a 1408x512 ActorFrameTexture every frame,
+about 8-9 MP of fill for four targets, which weighed on the integrated GPU. It also
+misplaced the artwork: `RageTextureRenderTarget::BeginRenderingTo` loads a pixel
+ortho projection of the target and an identity transform.
+
+Values measured from the `City_bg/gameplay` frames: one red+dark stripe pair is
+84 px, stripes move outward at 3 pairs per second, dark stripes run from `#2D0000`
+at the center to `#6E0000` at the corners. Captions are zoomed 1.45 and centered
+at (713, 361), the mean placement across the four movies (each within about 12 px).
+The star is upright and centered; the movies' exact star center was not recovered.
+
+Verification: static review only; not yet loaded in ITGmania. The AVI files and
+`tools/build-title-banner-movies.py` are no longer referenced by the theme.
+
 ## Animated Edit, Options and Exit banners (2026-09-12)
 
 Branch: `codex/title-3d-remaining-banners`. The active `Prototype3D.lua` now

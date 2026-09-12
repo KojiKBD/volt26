@@ -10,6 +10,7 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ### Changed
 
+- The four 3D title banners render live concentric red stars behind their captions instead of playing AVI movies.
 - The theme accent is now fixed rather than chosen at runtime. `VOLT26.Brand.AccentColorIndex` pins every shared element to Phantom Red (`#FF0000`); `VOLT26.Brand.PlayerAccentColorIndex` gives Player 1 that same red and differentiates Player 2 with Metaverse Violet (`#9B1BFF`). `GetCurrentColor()` and `PlayerColor()` read from those, and `SL.Global.ActiveColorIndex` is a constant.
 - `DifficultyColor()` no longer derives from the accent index. It delegates to `VOLT26.ChartData.GetDifficultyColor()`, the fixed per-difficulty palette, so difficulty tints stay stable and legible now that the accent never rotates.
 - `ScreenSelectStyle` pads are tinted from `PlayerColor()`: single/double/solo red, versus red on the left and violet on the right.

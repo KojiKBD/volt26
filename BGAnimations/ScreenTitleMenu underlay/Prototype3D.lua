@@ -74,11 +74,11 @@ end
 
 -- Banner_play is one quad in the OBJ, bounds X -6.615, Y 5.475 to 8.125, Z -3.64 to
 -- 3.64, with a full 0-1 UV square. Its `gameplay` material carries no map and the mesh
--- converter writes palette-only UVs, so the 90 frame loop rides on a separate actor
+-- converter writes palette-only UVs, so the animated banner rides on a separate actor
 -- pinned to those bounds. Def.Model flips Y and a Sprite does not, hence the negated
 -- centre height.
 local playBanner = {
-    name = "play", rx = 0, ry = 90, nx = 1, ny = 0, nz = 0,
+    name = "play", caption = "gameplay", rx = 0, ry = 90, nx = 1, ny = 0, nz = 0,
     x = -6.615, y = 6.8, z = 0,
     width = 7.28, height = 2.65,
     lift = 0.02, -- meters toward the street, clear of the quad behind it
@@ -90,18 +90,18 @@ local playBanner = {
     mirrored = true, -- confirmed in engine: the sprite faces the street mirrored
 }
 
--- OBJ positions are Y-up; Sprite positions negate height, preserving OBJ Z.
+-- OBJ positions are Y-up; banner layer positions negate height, preserving OBJ Z.
 -- Each surface gets its own normal offset and orientation. Width follows the
 -- camera's right vector, so Edit/Options read along +X and Exit along -Z.
-local movieBanners = {
+local bannerSurfaces = {
     playBanner,
-    {name = "edit", x = 10.9534255, y = 13.896204, z = -19.341549,
+    {name = "edit", caption = "edit", x = 10.9534255, y = 13.896204, z = -19.341549,
      width = 8.203149, height = 2.654254, rx = 0, ry = 0,
      nx = 0, ny = 0, nz = 1},
-    {name = "options", x = -0.012378, y = 0.405, z = -48,
+    {name = "options", caption = "options", x = -0.012378, y = 0.405, z = -48,
      width = 7.735, height = 2.650002, rx = -90, ry = 0,
      nx = 0, ny = -1, nz = 0},
-    {name = "exit", x = 6.615, y = 21.157425, z = -72,
+    {name = "exit", caption = "exit", x = 6.615, y = 21.157425, z = -72,
      width = 8.190002, height = 2.650002, rx = 0, ry = 90,
      nx = -1, ny = 0, nz = 0},
 }
@@ -144,23 +144,26 @@ for part=0,modelParts-1 do
         InitCommand=function(self) self:cullmode("CullMode_None"):zbuffer(true) end,
     }
 end
-for _, banner in ipairs(movieBanners) do
-room[#room+1] = Def.Sprite{
-    Name="Banner_"..banner.name,
-    Texture=THEME:GetPathG("", "VOLT26/TitleTravelCity/banner_"..banner.name..".avi"),
-    InitCommand=function(self)
-        local overscan, lift = banner.overscan or 1.01, banner.lift or 0.02
-        local width = banner.width * overscan * modelUnits
-        self:zoomto(banner.mirrored and -width or width,
-                    banner.height * overscan * modelUnits)
-            :xy((banner.x+banner.nx*lift)*modelUnits, (-banner.y+banner.ny*lift)*modelUnits)
-            :z((banner.z+banner.nz*lift)*modelUnits)
-            :rotationx(banner.rx):rotationy(banner.ry)
-            :zbuffer(true) -- otherwise it draws through the facade from other stops
-        local texture = self:GetTexture()
-        if texture and texture.SetLooping then texture:SetLooping(true) end
-    end,
-}
+local starBannerPath = THEME:GetPathB("ScreenTitleMenu", "underlay/StarBanner.lua")
+for _, banner in ipairs(bannerSurfaces) do
+    local artwork = LoadActor(starBannerPath, banner.caption)
+    local overscan = banner.overscan or 1.01
+    local zoomX = banner.width * overscan * modelUnits / artwork.Width
+    local zoomY = banner.height * overscan * modelUnits / artwork.Height
+    for layer, actor in ipairs(artwork.Layers) do
+        -- Each layer steps one more lift toward the street; coplanar layers would z-fight.
+        local lift = (banner.lift or 0.02) * layer
+        room[#room+1] = Def.ActorFrame{
+            Name="Banner_"..banner.name.."_"..layer,
+            InitCommand=function(self)
+                self:xy((banner.x+banner.nx*lift)*modelUnits, (-banner.y+banner.ny*lift)*modelUnits)
+                    :z((banner.z+banner.nz*lift)*modelUnits)
+                    :rotationx(banner.rx):rotationy(banner.ry)
+                    :zoomx(banner.mirrored and -zoomX or zoomX):zoomy(zoomY)
+            end,
+            actor,
+        }
+    end
 end
 
 return Def.ActorFrame{

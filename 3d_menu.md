@@ -1,5 +1,15 @@
 # VOLT26 3D menu handoff
 
+## Live star banners (2026-09-13)
+
+On `codex/title-star-banners`, the four banners no longer play AVI movies.
+`BGAnimations/ScreenTitleMenu underlay/StarBanner.lua` builds gradient, star-stripe,
+and caption layers (`Graphics/VOLT26/<caption>_text.png`, placed where the movies
+showed it) that `Prototype3D.lua` draws directly on each banner surface, one 0.02 m
+lift apart. Banner bounds and camera are unchanged. No render targets are used.
+Not yet verified in ITGmania. The AVI files and
+`tools/build-title-banner-movies.py` are no longer referenced.
+
 ## All four animated banners (2026-09-12, Codex follow-up)
 
 On `codex/title-3d-remaining-banners`, the Play movie-sprite approach now also
