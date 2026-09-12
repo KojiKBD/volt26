@@ -29,6 +29,10 @@ local fadeDepth = 26
 local beatSpacingRange = {8, 170}
 local timeSpacingRange = {50, 700}
 local transparent = color("0,0,0,0")
+-- The fades that swallow the notes at each end have to be stronger than the
+-- ground they sit on: at the scrim's own strength a note would still be a third
+-- visible where it is meant to be gone.
+local fadeAlpha = 0.92
 
 local style = GAMESTATE:GetCurrentStyle()
 local columnCount = 4
@@ -368,15 +372,24 @@ local af = Def.ActorFrame{
 
 		local rowTop, rowHeight = H.RowGeometry(player)
 		self.receptorY = rowTop + headerH + receptorGap
-		self.bottomY = rowTop + rowHeight - bottomGap
+		-- Notes are drawn from their centre, so a spawn line sitting on the
+		-- strip's inner edge puts half an arrow outside it.  Half a lane is
+		-- exactly half an arrow at this zoom, so pulling the line up by that
+		-- much keeps the whole note inside the frame as it appears.
+		self.bottomY = rowTop + rowHeight - bottomGap - laneWidth/2
 
-		self:GetChild("Border"):xy(stripX-1, rowTop-1):zoomto(stripW+2, rowHeight+2)
 		self:GetChild("Background"):xy(stripX, rowTop):zoomto(stripW, rowHeight)
+		self:GetChild("EdgeL"):xy(stripX-1, rowTop-1):zoomto(1, rowHeight+2)
+		self:GetChild("EdgeR"):xy(stripX+stripW, rowTop-1):zoomto(1, rowHeight+2)
+		self:GetChild("EdgeT"):xy(stripX-1, rowTop-1):zoomto(stripW+2, 1)
+		self:GetChild("EdgeB"):xy(stripX-1, rowTop+rowHeight):zoomto(stripW+2, 1)
 		self:GetChild("HeaderRule"):xy(stripX, rowTop + headerH):zoomto(stripW, 1)
 		H.SetLabel(self:GetChild("Caption"), H.String("Preview"), 9, stripW-16)
 		self:GetChild("Caption"):xy(stripX + stripW/2, rowTop + headerH/2)
 		self:GetChild("TopFade"):xy(stripX, rowTop + headerH + 1):zoomto(stripW, fadeDepth)
-		self:GetChild("BottomFade"):xy(stripX, self.bottomY + bottomGap):zoomto(stripW, fadeDepth)
+		-- The fade stays on the frame's own edge rather than on the spawn line,
+		-- which now sits a little above it.
+		self:GetChild("BottomFade"):xy(stripX, rowTop + rowHeight):zoomto(stripW, fadeDepth)
 		for column = 1, columnCount do
 			self:GetChild("Receptor_"..column)
 				:xy(laneOrigin + (column-1)*laneWidth, self.receptorY):zoom(noteZoom)
@@ -434,8 +447,17 @@ local af = Def.ActorFrame{
 	end,
 }
 
-af[#af+1] = H.Rule{Name="Border"}
-af[#af+1] = H.Rule{Name="Background", Tint=H.Panel}
+-- No box, and a ground held back to the shared scrim so the backdrop still
+-- reads under the notes.  The fades that mask the notes running past its ends
+-- are that same scrim rather than the wheel's solid one, so the strip does not
+-- turn opaque again at its two ends.
+af[#af+1] = H.Rule{Name="Background", Tint=H.Panel, Alpha=H.ScrimAlpha}
+-- Drawn as an outline rather than a filled quad behind the ground: a filled one
+-- would show through the scrim and close the strip off again.
+af[#af+1] = H.Rule{Name="EdgeL"}
+af[#af+1] = H.Rule{Name="EdgeR"}
+af[#af+1] = H.Rule{Name="EdgeT"}
+af[#af+1] = H.Rule{Name="EdgeB"}
 af[#af+1] = H.Rule{Name="HeaderRule"}
 af[#af+1] = H.LabelText{Name="Caption", Px=9, Tint=H.Dim, Align=center}
 
@@ -515,13 +537,13 @@ end
 af[#af+1] = Def.Quad{
 	Name = "TopFade",
 	InitCommand = function(self)
-		self:align(0,0):diffuse(H.Panel):diffusebottomedge(transparent)
+		self:align(0,0):diffuse(H.Panel):diffusealpha(fadeAlpha):diffusebottomedge(transparent)
 	end,
 }
 af[#af+1] = Def.Quad{
 	Name = "BottomFade",
 	InitCommand = function(self)
-		self:align(0,1):diffuse(H.Panel):diffusetopedge(transparent)
+		self:align(0,1):diffuse(H.Panel):diffusealpha(fadeAlpha):diffusetopedge(transparent)
 	end,
 }
 

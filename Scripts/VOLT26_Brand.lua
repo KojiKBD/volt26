@@ -10,6 +10,18 @@ VOLT26.Brand = {
 
 	},
 	TextColor = "#ffffff",
+
+	-- The theme accent is fixed: ScreenSelectColor and the per-profile colour
+	-- choice were removed.  Player 1 (and every shared/global element) uses
+	-- Phantom Red; Player 2 is differentiated with Metaverse Violet.
+	-- Both values are indices into Colors above.
+	AccentColorIndex = 1,
+	-- Keyed by PlayerNumber enum value (PLAYER_1 == "PlayerNumber_P1").
+	PlayerAccentColorIndex = {
+		PlayerNumber_P1 = 1,
+		PlayerNumber_P2 = 6,
+	},
+
     GetFactionName = function(idx)
 		-- Assuming that idx is 1-indexed and
 		-- follows the order of the colours above
@@ -23,9 +35,6 @@ VOLT26.Brand = {
 			return ""
 		end
 	end,
-	-- internal flag
-	firstRun = false,
-
 	GetLogo = function()
 		return "logo_main (doubleres).png"
 	end,
@@ -47,24 +56,14 @@ VOLT26.Brand = {
 		return lines[math.random(#lines)]
 	end,
 	Activate = function(self)
-		self.firstRun = true
-
-		local screen = SCREENMAN:GetTopScreen()
-		if screen ~= nil and screen:GetName() == "ScreenTitleMenu" then
-			self:MaybeRandomizeColor()
-		end
+		-- The accent is a constant, so activation only has to make sure the
+		-- shared runtime state agrees with it.
+		VOLT26.State.Global.ActiveColorIndex = self.AccentColorIndex
 	end,
+
+	-- Retained as a no-op adapter: the accent is no longer chosen or randomized.
 	MaybeRandomizeColor = function(self)
-		if self.firstRun then
-			VOLT26.State.Global.ActiveColorIndex = 2
-			ThemePrefs.Set("VOLT26Color", 2)
-			MESSAGEMAN:Broadcast("ColorSelected")
-			self.firstRun = false
-		elseif not ThemePrefs.Get("AllowScreenSelectColor") then
-			VOLT26.State.Global.ActiveColorIndex = MersenneTwister.Random(#self.Colors)
-			ThemePrefs.Set("VOLT26Color", VOLT26.State.Global.ActiveColorIndex)
-			MESSAGEMAN:Broadcast("ColorSelected")
-		end
+		VOLT26.State.Global.ActiveColorIndex = self.AccentColorIndex
 	end,
 }
 

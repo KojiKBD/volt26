@@ -134,6 +134,17 @@ af[#af+1] = Def.Quad{
 	end,
 }
 
+-- The wheel's row pool is taller than the list band, so the row past the last
+-- visible one keeps travelling below the gradient and shows again underneath
+-- it.  This is the bottom twin of TopCover: the hard edge the fade lands on.
+af[#af+1] = Def.Quad{
+	Name="BottomCover",
+	InitCommand=function(self)
+		self:align(0,0):xy(H.WheelX, H.InnerBottom)
+			:zoomto(H.WheelW, H.H - H.InnerBottom):diffuse(H.Bg)
+	end,
+}
+
 af[#af+1] = H.LabelText{Name="Heading", Px=26, Tint=H.Ink, X=H.WheelItemX, Y=headingY}
 af[#af+1] = H.LabelText{Name="NextHeading", Px=26, Tint=H.Ink, X=H.WheelItemX, Y=headingY}
 af[#af+1] = H.LabelText{Name="Count", Px=14, Tint=H.Mute, Align=right, X=countX, Y=headingY}

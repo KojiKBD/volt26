@@ -1,5 +1,12 @@
-local sort_wheel = ...
+local menu = ...
 -- this handles user input while in the SortMenu
+--
+-- The menu is a dock with an optional strip above it, so left and right travel
+-- the row the cursor is in, up and down move between the two rows, and Back
+-- puts the strip away before it puts the menu away.  The choice under the
+-- cursor is Focused(), which answers in the same shape the wheel's focused
+-- actor did -- kind, sort_by, change, new_overlay -- so every branch below
+-- reads as it always did.
 local input = function(event)
 	if not (event and event.PlayerNumber and event.button) then
 		return false
@@ -11,17 +18,36 @@ local input = function(event)
 	if SCREENMAN:GetTopScreen():GetMusicWheel():IsLocked() then
 		overlay:queuecommand("DirectInputToEngine")
 	end
-	
+
 	if event.type ~= "InputEventType_Release" then
-		if event.GameButton == "MenuRight" or event.GameButton == "MenuDown" then
-			sort_wheel:scroll_by_amount(1)
+		if event.GameButton == "MenuRight" then
+			menu:Move(1)
 			sortmenu:GetChild("change_sound"):play()
-		elseif event.GameButton == "MenuLeft" or event.GameButton == "MenuUp" then
-			sort_wheel:scroll_by_amount(-1)
+		elseif event.GameButton == "MenuLeft" then
+			menu:Move(-1)
 			sortmenu:GetChild("change_sound"):play()
+		elseif event.GameButton == "MenuUp" then
+			-- Up reaches into the open category's strip; with nothing open there
+			-- is nowhere above the dock to go, so it walks the dock instead.
+			if menu:Ascend() then
+				sortmenu:GetChild("change_sound"):play()
+			else
+				menu:Move(-1)
+				sortmenu:GetChild("change_sound"):play()
+			end
+		elseif event.GameButton == "MenuDown" then
+			if menu:Descend() then
+				sortmenu:GetChild("change_sound"):play()
+			else
+				menu:Move(1)
+				sortmenu:GetChild("change_sound"):play()
+			end
 		elseif event.GameButton == "Start" then
+			-- An option the current state cannot offer still holds the cursor so
+			-- the player can see it exists; pressing Start on it does nothing.
+			if not menu:IsFocusEnabled() then return false end
 			sortmenu:GetChild("start_sound"):play()
-			local focus = sort_wheel:get_actor_item_at_focus_pos()
+			local focus = menu:Focused()
 			if focus.kind == "SortBy" then
 				VOLT26.SongBrowsing.ChangeSort(focus.sort_by)
 				overlay:queuecommand("DirectInputToEngine")
@@ -146,7 +172,7 @@ local input = function(event)
 						-- how it works to load from the profile directory.
 						if VOLT26.SongBrowsing.UsePlaylist(VOLT26.Favorites.GetPath(event.PlayerNumber), screen) then
 							overlay:queuecommand("DirectInputToEngine")
-						else 
+						else
 							VOLT26.Util.SystemMessage(THEME:GetString("ScreenSelectMusic", "NoFavoritesAvailable"))
 						end
 					else
@@ -161,7 +187,11 @@ local input = function(event)
 			end
 
 		elseif event.GameButton == "Back" or event.GameButton == "Select" then
-			overlay:queuecommand("DirectInputToEngine")
+			-- One step at a time out of the menu: the open category first, the
+			-- menu itself once there is nothing left to close.
+			if not menu:CloseCategory() then
+				overlay:queuecommand("DirectInputToEngine")
+			end
 		end
 	end
 	return false

@@ -43,17 +43,6 @@ function Navigation.AllowScreenSelectProfile()
 end
 
 function Navigation.AfterSelectProfile()
-	return Navigation.AllowScreenSelectColor()
-end
-
-function Navigation.AllowScreenSelectColor()
-	if VOLT26.ThemePrefs.Get("AllowScreenSelectColor") and not VOLT26.ThemePrefs.Get("RainbowMode") then
-		return "ScreenSelectColor"
-	end
-	return Navigation.AfterScreenSelectColor()
-end
-
-function Navigation.AfterScreenSelectColor()
 	if THEME:GetMetric("Common", "AutoSetStyle") then
 		local styles = {"single", "versus"}
 		GAMESTATE:SetCurrentStyle(styles[math.max(GAMESTATE:GetNumSidesJoined(), 1)])
@@ -187,8 +176,6 @@ Branch.AfterScreenRankingDouble = Navigation.AfterScreenRankingDouble
 Branch.AfterScreenDemonstration = Navigation.AfterScreenDemonstration
 Branch.AllowScreenSelectProfile = Navigation.AllowScreenSelectProfile
 Branch.AfterSelectProfile = Navigation.AfterSelectProfile
-Branch.AllowScreenSelectColor = Navigation.AllowScreenSelectColor
-Branch.AfterScreenSelectColor = Navigation.AfterScreenSelectColor
 Branch.AllowScreenSelectPlayMode = Navigation.AllowScreenSelectPlayMode
 Branch.AllowScreenSelectPlayMode2 = Navigation.AllowScreenSelectPlayMode2
 Branch.AfterEvaluationStage = Navigation.AfterEvaluationStage

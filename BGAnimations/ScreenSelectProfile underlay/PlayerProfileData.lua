@@ -119,6 +119,9 @@ for i=1, PROFILEMAN:GetNumLocalProfiles() do
 		dir = dir,
 		displayname = profile:GetDisplayName(),
 		totalsongs = TotalSongs(profile:GetNumTotalSongsPlayed()),
+		-- the raw count as well: the picker states the number on its own and
+		-- names it underneath, rather than spelling it out in a sentence
+		songs = profile:GetNumTotalSongsPlayed(),
 		mods = mods,
 		noteskin = noteskin,
 		judgment = judgment,

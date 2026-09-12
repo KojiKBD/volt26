@@ -1,46 +1,146 @@
 ------------------------------------------------------------
--- set up the SortMenu's choices first, prior to Actor initialization
--- sick_wheel_mt is a metatable with global scope defined in ./Scripts/Consensual-sick_wheel.lua
-local sort_wheel = setmetatable({}, sick_wheel_mt)
-sort_wheel.custom_functions = {}
--- the logic that handles navigating the SortMenu
--- (scrolling through choices, choosing one, canceling)
--- is complex enough to be in its own file
-local sortmenu_input    = LoadActor("SortMenu_InputHandler.lua", sort_wheel)
+-- The VOLT26 SortMenu.
+--
+-- Every option the menu can offer -- sorts, profile entries, styles, playlists,
+-- the advanced actions -- is reached from one dock: a row of square tiles
+-- pinned to the bottom of the screen, one tile per option, each an icon and a
+-- word.  Categories are tiles too; opening one raises a strip of text pills
+-- above the dock and moves the cursor into it, so the player can always see
+-- where they came from.
+--
+-- Tiles hold their places and the cursor travels, which is the behavioural
+-- promise the layout makes: an option can be found by where it sits rather than
+-- by reading the whole row.  Only the tile under the cursor moves, and only by
+-- growing.
+--
+-- The option tree below is unchanged from the wheel this replaces: conditions,
+-- categories and the keys the input handler branches on all keep their meaning.
 
--- input handlers for TestInput and Leaderboards are similarly complex
+local L      = LoadActor("./Layout.lua")
+local Icons  = LoadActor("./Icons.lua")
+local D      = LoadActor("./Descriptors.lua", L)
+local Tile   = LoadActor("./Tile.lua", L, Icons)
+local Strip  = LoadActor("./Strip.lua", L)
+
+------------------------------------------------------------
+-- The menu model.
+--
+-- The input handler talks to this and nothing else, so the tiles stay a drawing
+-- concern.  Focused() answers in the same shape the wheel's focused actor did
+-- -- kind, sort_by, change, new_overlay -- so the handler's branches did not
+-- have to be rewritten to follow it.
+
+local menu = {
+	root = {items = {}, descriptors = {}, index = 1},
+	sub  = {items = {}, descriptors = {}, index = 1},
+	level = 1,            -- 1: the dock.  2: the open category's strip.
+	open = nil,           -- the key of the open category, if any
+	custom_functions = {},
+	frame = nil,
+}
+
+function menu:Active()
+	return (self.level == 2 and #self.sub.items > 0) and self.sub or self.root
+end
+
+function menu:Move(delta)
+	local row = self:Active()
+	local count = #row.items
+	if count == 0 then return end
+	row.index = ((row.index - 1 + delta) % count) + 1
+
+	-- Stepping off the category that raised the strip puts it away: the strip
+	-- belongs to the tile under the cursor, and nothing else.
+	if row == self.root and self.open ~= nil then
+		local option = row.items[row.index]
+		if not (option and option[2] == self.open) then
+			self:CloseCategory()
+			return
+		end
+	end
+	self:Redraw()
+end
+
+function menu:HasOpenCategory()
+	return self.open ~= nil and #self.sub.items > 0
+end
+
+-- Into the strip and back out of it.  Neither closes the category: the strip
+-- stays raised while the cursor is on the tile that raised it.
+function menu:Ascend()
+	if self.level == 1 and self:HasOpenCategory() then
+		self.level = 2
+		self:Redraw()
+		return true
+	end
+	return false
+end
+
+function menu:Descend()
+	if self.level == 2 then
+		self.level = 1
+		self:Redraw()
+		return true
+	end
+	return false
+end
+
+function menu:CloseCategory()
+	if self.open == nil then return false end
+	self.open = nil
+	self.sub = {items = {}, descriptors = {}, index = 1}
+	self.level = 1
+	self:Redraw()
+	return true
+end
+
+function menu:FocusedOption()
+	local row = self:Active()
+	return row.items[row.index]
+end
+
+function menu:FocusedDescriptor()
+	local row = self:Active()
+	return row.descriptors[row.index]
+end
+
+function menu:IsFocusEnabled()
+	local descriptor = self:FocusedDescriptor()
+	return descriptor == nil or descriptor.Enabled ~= false
+end
+
+-- The shape the input handler reads.
+function menu:Focused()
+	local option = self:FocusedOption()
+	if not option then return {} end
+
+	local focus = {kind = option[1]}
+	if focus.kind == "SortBy" then
+		focus.sort_by = option[2]
+	elseif focus.kind == "ChangeMode" or focus.kind == "ChangeStyle" or focus.kind == "ChangePlayMode" then
+		focus.change = option[2]
+	else
+		focus.new_overlay = option[2]
+	end
+	return focus
+end
+
+function menu:Redraw()
+	if self.frame then self.frame:playcommand("RedrawList") end
+end
+
+------------------------------------------------------------
+-- Input.
+--
+-- Navigating the menu, and the TestInput and Leaderboard overlays it can open,
+-- are each complex enough to live in their own file.
+
+local sortmenu_input    = LoadActor("SortMenu_InputHandler.lua", menu)
 local testinput_input   = LoadActor("TestInput_InputHandler.lua")
 local leaderboard_input = LoadActor("Leaderboard_InputHandler.lua")
 
--- logic for song search is also in its own file
 local SongSearchSettings = LoadActor("../SongSearch/SongSearchSettings.lua")
 
-local sortmenu_dimensions = { w=210, h=204 }
-local helveticaScale = 0.42
-
--- "MT" is my personal means of denoting that this thing (the file, the variable, whatever)
--- has something to do with a Lua metatable.
---
--- metatables in Lua are a useful construct when designing reusable components.
--- For example, I'm using them here to define a generic definition of any choice within the SortMenu.
--- The file WheelItemMT.lua contains a metatable definition; the "MT" is my own personal convention
--- in this inherited wheel implementation.
---
--- Unfortunately, many online tutorials and guides on Lua metatables are
--- *incredibly* obtuse and unhelpful for non-computer-science people (like me).
--- https://lua.org/pil/13.html is just frustratingly scant.
---
--- http://phrogz.net/lua/LearningLua_ValuesAndMetatables.html is less bad than most.
--- I do get immediately lost in the criss-crossing diagrams, and I'll continue to
--- argue that naming things foo, bar, and baz "because we want to teach an idea, not a skill"
--- results in programming tutorials so abstract they don't seem applicable to this world,
--- but its prose was approachable enough for wastes-of-space like me, so I guess I'll
--- recommend it until I find a more helpful one.
---                                      -quietly
-local sortmenu_dimensions = { w=210, h=204 }
-local wheel_item_mt = LoadActor("WheelItemMT.lua", {sortmenu_dimensions})
-local lastCategory = ""
-local openCategory = nil
 local IsActionEnabled = VOLT26.SongBrowsing.IsActionEnabled
 
 -- General purpose function to redirect input back to the engine.
@@ -63,15 +163,16 @@ local DirectInputToEngine = function(self)
 end
 
 ------------------------------------------------------------
+-- The option tree.
 
 local function AddFavorites()
 	if not IsActionEnabled("Preferred") or GAMESTATE:IsCourseMode() then return false end
 
-    for player in ivalues(GAMESTATE:GetHumanPlayers()) do
+	for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 		if VOLT26.Favorites.HasAny(player) then
 			return true
 		end
-    end
+	end
 	return false
 end
 
@@ -89,7 +190,7 @@ local function AddSorts()
 	if GAMESTATE:IsCourseMode() then return {} end
 
 	return {
-		{{"SortBy", "Series"} },
+		{ {"SortBy", "Series"} },
 		{ {"SortBy", "Group"} },
 		{ {"SortBy", "Title"} },
 		{ {"SortBy", "Artist"} },
@@ -158,7 +259,6 @@ local function AddPlaylists()
 	return player_sort_options
 end
 
-
 local function GetChangeableStyles()
 	if not IsActionEnabled("ChangeStyle") then return {} end
 	local style = GAMESTATE:GetCurrentStyle():GetName():gsub("8", "")
@@ -166,7 +266,7 @@ local function GetChangeableStyles()
 	-- Allow players to switch from single to double and from double to single
 	-- but only present these options if Joint Double or Joint Premium is enabled
 	-- and we're not in "AutoSetStyle" mode (all styles presented simultaneously like PIU does)
-	
+
 	if ThemePrefs.Get("PreferredStyle")=="auto" then
 		-- Check number of players
 		if ThemePrefs.Get("AllowDanceSolo") then
@@ -178,7 +278,7 @@ local function GetChangeableStyles()
 		table.insert(available_styles, {{"ChangeStyle", "Versus"}, not (GAMESTATE:GetNumPlayersEnabled() == 1)  })
 		table.insert(available_styles, {{"ChangeStyle", "Routine"}, not (GAMESTATE:GetNumPlayersEnabled() == 1)  })
 		table.insert(available_styles, {{"ChangeStyle", "Couple"}, not (GAMESTATE:GetNumPlayersEnabled() == 1) })
-	else 
+	else
 		if not (PREFSMAN:GetPreference("Premium") == "Premium_Off" and GAMESTATE:GetCoinMode() == "CoinMode_Pay") then
 			if style == "single" then
 				table.insert(available_styles, {{"ChangeStyle", "Double"}})
@@ -215,7 +315,6 @@ local function GetChangeableStyles()
 
 	return available_styles
 end
-local style = GAMESTATE:GetCurrentStyle():GetName():gsub("8", "")
 
 local function ResolveVisibleSubOptions(option)
 	local source_sub_options = nil
@@ -242,6 +341,7 @@ local function ResolveVisibleSubOptions(option)
 	return sub_options
 end
 
+------------------------------------------------------------
 
 local t = Def.ActorFrame {
 	Name="SortMenu",
@@ -249,12 +349,13 @@ local t = Def.ActorFrame {
 	custom_functions = {},
 	InitCommand=function(self)
 		self:draworder(5)
-		self.custom_functions = sort_wheel.custom_functions
+		self.custom_functions = menu.custom_functions
+		menu.frame = self
 		self.wheel_options = {
 			-- This is the master table that controls the SortMenu's choices
 			-- The structure is as follows:
 			-- The top level table contains the options that will be displayed in the SortMenu.
-			-- For instance: { {"SortBy", "Group"} } adds the SortBy (toptext) Group (bottomtext) option to the SortMenu.
+			-- For instance: { {"SortBy", "Group"} } adds the SortBy (label) Group (name) option to the SortMenu.
 
 			-- If a second element is present, this means we're either providing a condition determining whether or not the option is displayed.
 			-- or we're creating a submenu.
@@ -268,7 +369,7 @@ local t = Def.ActorFrame {
 
 			-- Submenus:
 			-- We can create categories within the SortMenu by providing a table as the second element
-			-- The first element becomes the top and bottomtext for the category.
+			-- The first element becomes the label and name for the category.
 			-- The second element's table contains that options will show under this category.
 			-- It follows the same structure as the top level table.
 
@@ -287,7 +388,6 @@ local t = Def.ActorFrame {
 			{ {"ChangePlayMode", "Nonstop"}, IsActionEnabled("ChangePlayMode") and not GAMESTATE:IsCourseMode() and ChangePlayModeAvailable() },
 			{ {"ChangePlayMode", "Regular"}, IsActionEnabled("ChangePlayMode") and GAMESTATE:IsCourseMode() and ChangePlayModeAvailable() },
 			{
-
 				{"", "CategorySorts"},
 				AddSorts(),
 			},
@@ -321,20 +421,29 @@ local t = Def.ActorFrame {
 	end,
 	-- Always ensure player input is directed back to the engine when leaving SelectMusic.
 	OffCommand=function(self) self:playcommand("DirectInputToEngine") end,
-	-- Figure out which choices to put in the SortWheel based on various current conditions.
+	-- Figure out which choices to put in the dock based on various current conditions.
 	OnCommand=function(self) self:playcommand("AssessAvailableChoices") end,
-	ShowSortMenuCommand=function(self) self:visible(true) end,
-	HideSortMenuCommand=function(self) self:visible(false) end,
+	ShowSortMenuCommand=function(self)
+		self:visible(true):finishtweening():diffusealpha(0):linear(0.10):diffusealpha(1)
+		local composition = self:GetChild("Composition")
+		if composition then
+			composition:finishtweening():y(_screen.cy + 40*L.Scale)
+				:decelerate(0.14):y(_screen.cy)
+		end
+	end,
+	HideSortMenuCommand=function(self) self:finishtweening():visible(false):diffusealpha(1) end,
 	ToggleCategoryCommand=function(self, params)
 		if not (params and params.Category) then return end
-		if openCategory == params.Category then
-			openCategory = nil
-			lastCategory = params.Category
+		if menu.open == params.Category then
+			menu:CloseCategory()
 		else
-			openCategory = params.Category
-			lastCategory = ""
+			menu.open = params.Category
+			self:playcommand("AssessAvailableChoices")
+			-- The strip is raised for the player to act in, so the cursor follows
+			-- it up rather than making them press again to get there.
+			menu.level = #menu.sub.items > 0 and 2 or 1
+			menu:Redraw()
 		end
-		self:playcommand("AssessAvailableChoices")
 	end,
 	EnterCategoryMessageCommand=function(self, params)
 		self:playcommand("ToggleCategory", params)
@@ -398,83 +507,129 @@ local t = Def.ActorFrame {
 	end,
 
 	AssessAvailableChoicesCommand=function(self)
-
-		local filtered_wheel_options = {}
-		if openCategory ~= nil then
-			for i=1, #self.wheel_options do
-				local option = self.wheel_options[i]
-				if option ~= nil and option[1] ~= nil and option[1][2] == openCategory then
-					local sub_options = ResolveVisibleSubOptions(option)
-					if #sub_options > 0 then
-						-- Keep the category row visible so pressing Start on it toggles closed.
-						table.insert(filtered_wheel_options, {"", openCategory})
-						for j=1, #sub_options do
-							table.insert(filtered_wheel_options, sub_options[j])
-						end
-					else
-						openCategory = nil
-						lastCategory = ""
+		local ctx = {
+			SortOrder = ToEnumShortString(GAMESTATE:GetSortOrder()),
+			OpenCategory = menu.open,
+			CategoryEntries = function(key)
+				for i=1, #self.wheel_options do
+					local option = self.wheel_options[i]
+					if option and option[1] and option[1][2] == key then
+						return ResolveVisibleSubOptions(option)
 					end
-					break
+				end
+				return {}
+			end,
+		}
+
+		-- The dock: every top level option the current state can offer, with a
+		-- category kept only while it has something in it.
+		local tiles = {}
+		for i=1, #self.wheel_options do
+			local option = self.wheel_options[i]
+			if option ~= nil then
+				-- If this is a category (empty label) and uses either
+				-- a table or a function as its submenu source, resolve it
+				local is_category = type(option[1]) == "table" and option[1][1] == "" and option[1][2] ~= nil
+				if is_category and (type(option[2]) == "table" or type(option[2]) == "function") then
+					if #ResolveVisibleSubOptions(option) > 0 then
+						table.insert(tiles, {option[1][1], option[1][2]})
+					end
+				elseif type(option[2]) == "function" then
+					if option[2]() then
+						table.insert(tiles, {option[1][1], option[1][2]})
+					end
+				elseif option[2] == nil or option[2] == true then
+					table.insert(tiles, {option[1][1], option[1][2]})
 				end
 			end
 		end
 
-		if openCategory == nil then
-			for i=1, #self.wheel_options do
-				local option = self.wheel_options[i]
-				if option ~= nil then
-					-- If this is a category (empty top text) and uses either
-					-- a table or a function as its submenu source, resolve it
-					local is_category = type(option[1]) == "table" and option[1][1] == "" and option[1][2] ~= nil
-					if is_category and (type(option[2]) == "table" or type(option[2]) == "function") then
-						local sub_options = ResolveVisibleSubOptions(option)
-						if #sub_options > 0 then
-							table.insert(filtered_wheel_options, {option[1][1], option[1][2]})
-						end
-					elseif type(option[2]) == "function" then
-						if option[2]() then
-							table.insert(filtered_wheel_options, {option[1][1], option[1][2]})
-						end
-					elseif option[2] == nil or option[2] == true then
-						table.insert(filtered_wheel_options, {option[1][1], option[1][2]})
-					end
-				end
+		-- Which tile holds the cursor: the one it was already on, if the rebuild
+		-- kept it, and otherwise the first option that is not the way out.
+		local wanted = menu.root.items[menu.root.index]
+		wanted = wanted and wanted[2] or nil
+		local index = nil
+		for i=1, #tiles do
+			if tiles[i][2] == wanted then index = i break end
+		end
+		if index == nil then
+			index = 1
+			for i=1, #tiles do
+				if tiles[i][2] ~= "GoBack" then index = i break end
 			end
 		end
 
-		-- Override sick_wheel's default focus_pos, which is math.floor(num_items / 2)
-		--
-		-- keep in mind that num_items is the number of Actors in the wheel (here, 7)
-		-- NOT the total number of things you can eventually scroll through (#wheel_options = 14)
-		--
-		-- so, math.floor(9/2) gives focus to the fifth item in the wheel.
-		sort_wheel.focus_pos = 5
-		-- get the currently active SortOrder and truncate the "SortOrder_" from the beginning
-		local current_sort_order = ToEnumShortString(GAMESTATE:GetSortOrder())
-		local current_sort_order_index = 1
-		-- find the sick_wheel index of the item we want to display first when the player activates this SortMenu
-		if openCategory ~= nil then
-			current_sort_order_index = 1
-		elseif lastCategory == "" then
-			for i=1, #filtered_wheel_options do
-				if filtered_wheel_options[i][2] == current_sort_order then
-					current_sort_order_index = i
-					break
-				end
-			end
+		local descriptors = {}
+		for i, option in ipairs(tiles) do
+			descriptors[i] = D.Describe(option, ctx)
+		end
+		menu.root = {items = tiles, descriptors = descriptors, index = math.max(1, math.min(index, math.max(1, #tiles)))}
+
+		-- The strip, when a category is open and still has entries.  A category
+		-- that has just emptied -- the last playlist deleted, a song deselected
+		-- -- puts itself away rather than leaving an empty bar on screen.
+		local entries = menu.open and ctx.CategoryEntries(menu.open) or {}
+		if #entries == 0 then
+			menu.open = nil
+			menu.sub = {items = {}, descriptors = {}, index = 1}
+			menu.level = 1
 		else
-			for i=1, #filtered_wheel_options do
-				if filtered_wheel_options[i][2] == lastCategory then
-					current_sort_order_index = i
-					break
-				end
+			local previous = menu.sub.items[menu.sub.index]
+			previous = previous and previous[2] or nil
+			local subIndex = 1
+			for i=1, #entries do
+				if entries[i][2] == previous then subIndex = i break end
 			end
+
+			local subDescriptors = {}
+			for i, option in ipairs(entries) do
+				subDescriptors[i] = D.Describe(option, ctx)
+			end
+			menu.sub = {items = entries, descriptors = subDescriptors, index = subIndex}
 		end
-		lastCategory = ""
-		-- the second argument passed to set_info_set is the index of the item in wheel_options
-		-- that we want to have focus when the wheel is displayed
-		sort_wheel:set_info_set(filtered_wheel_options, current_sort_order_index)
+
+		menu:Redraw()
+	end,
+
+	-- Repainting is all this does: the descriptors were built when the menu was
+	-- assembled, so moving the cursor costs one row of tiles and a strip.
+	RedrawListCommand=function(self)
+		local composition = self:GetChild("Composition")
+		if not composition then return end
+
+		local dock = composition:GetChild("Dock")
+		local descriptors = menu.root.descriptors
+		local count = #descriptors
+
+		-- A dock wider than the pool is shown through a window that keeps the
+		-- cursor near its middle; in practice the option tree never fills it.
+		local first = 1
+		if count > L.MaxTiles then
+			first = math.max(1, math.min(menu.root.index - math.floor(L.MaxTiles/2), count - L.MaxTiles + 1))
+		end
+		local shown = math.min(L.MaxTiles, count)
+
+		local contentW = shown > 0 and (shown*L.TileSize + (shown-1)*L.TileGap) or 0
+		local barWidth = math.min(L.MaxBarW, contentW + L.BarPadX*2)
+		local left = -contentW/2 + L.TileSize/2
+
+		local fill = dock:GetChild("BarFill")
+		fill:finishtweening():decelerate(0.12):zoomto(barWidth, L.DockH)
+		L.SizeFrame(dock:GetChild("BarEdge"), barWidth, L.DockH, 1, L.Line)
+
+		local cursorOnDock = menu.level == 1 or #menu.sub.items == 0
+		for slot = 1, L.MaxTiles do
+			local item_index = first + slot - 1
+			local descriptor = slot <= shown and descriptors[item_index] or nil
+			Tile.Apply(dock:GetChild("Tile"..slot), descriptor, {
+				X        = left + (slot-1)*(L.TileSize + L.TileGap),
+				Focused  = cursorOnDock and item_index == menu.root.index,
+				Distance = math.abs(item_index - menu.root.index),
+				Open     = descriptor ~= nil and menu.open ~= nil and descriptor.Key == menu.open,
+			})
+		end
+
+		Strip.Apply(composition:GetChild("Strip"), menu.sub.descriptors, menu.sub.index, not cursorOnDock)
 	end,
 
 	CurrentSongChangedMessageCommand=function(self)
@@ -483,60 +638,58 @@ local t = Def.ActorFrame {
 		end
 	end,
 
-	-- slightly darken the entire screen
+	-- The scrim sits outside the design-space frame so it covers the whole
+	-- screen whatever the aspect ratio letterboxes away.  The song select screen
+	-- stays readable underneath: the dock is a layer over the screen, not a
+	-- replacement for it.
 	Def.Quad {
-		InitCommand=function(self) self:FullScreen():diffuse(Color.Black):diffusealpha(0.8) end
+		InitCommand=function(self) self:FullScreen():diffuse(L.Bg):diffusealpha(0.6) end
 	},
-	-- OptionsList Header Quad
-	Def.Quad {
-		InitCommand=function(self) self:Center():zoomto(sortmenu_dimensions.w+2,22):xy(_screen.cx, _screen.cy-92) end
-	},
-	-- "Options" text
-	Def.BitmapText{
-		Font="Helvetica Bold",
-		Text=ScreenString("Options"),
-		InitCommand=function(self)
-			self:xy(_screen.cx, _screen.cy-92):zoom(0.4*helveticaScale)
-				:diffuse( Color.Black )
-		end
-	},
-	-- white border
-	Def.Quad {
-		InitCommand=function(self) self:Center():zoomto(sortmenu_dimensions.w+2, sortmenu_dimensions.h+2) end
-	},
-	-- BG of the sortmenu box
-	Def.Quad {
-		InitCommand=function(self) self:Center():zoomto(sortmenu_dimensions.w, sortmenu_dimensions.h):diffuse(Color.Black) end
-	},
-	-- top mask
-	Def.Quad {
-		InitCommand=function(self)
-			self:zoomto(sortmenu_dimensions.w, _screen.h):MaskSource():valign(1)
-			self:Center():y(self:GetY()-sortmenu_dimensions.h/2)
-		end
-	},
-	-- bottom mask
-	Def.Quad {
-		InitCommand=function(self)
-			self:zoomto(sortmenu_dimensions.w, _screen.h):MaskSource():valign(0)
-			self:Center():y(self:GetY()+sortmenu_dimensions.h/2)
-		end
-	},
-	-- "Press SELECT To Cancel" text
-	Def.BitmapText{
-		Font="Helvetica Bold",
-		Text=ScreenString("Cancel"),
-		InitCommand=function(self)
-			if PREFSMAN:GetPreference("ThreeKeyNavigation") then
-				self:visible(false)
-			else
-				self:Center():valign(0):y(self:GetY()+sortmenu_dimensions.h/2 + 15):zoom(0.3*helveticaScale):diffuse(0.7,0.7,0.7,1)
-			end
-		end
-	},
-	-- this returns an ActorFrame ( see: ./Scripts/Consensual-sick_wheel.lua )
-	sort_wheel:create_actors( "Sort Menu", 9, wheel_item_mt, _screen.cx, _screen.cy )
 }
+
+------------------------------------------------------------
+-- The composition, in design space.
+
+local composition = Def.ActorFrame{
+	Name="Composition",
+	InitCommand=function(self) self:xy(_screen.cx, _screen.cy):zoom(L.Scale) end,
+}
+
+-- Every icon the dock can ask for, loaded once so swapping a tile's texture
+-- mid-menu never reads a file.
+local preload = Def.ActorFrame{
+	Name="IconPreload",
+	InitCommand=function(self) self:visible(false) end,
+}
+for _, name in ipairs(Icons.All()) do
+	preload[#preload+1] = Def.Sprite{
+		InitCommand=function(self) self:Load(Icons.Path(name)):zoom(0.01) end,
+	}
+end
+composition[#composition+1] = preload
+
+composition[#composition+1] = Strip.Build()
+
+local dock = Def.ActorFrame{Name="Dock"}
+dock[#dock+1] = Def.Quad{
+	Name="BarFill",
+	InitCommand=function(self)
+		self:y(L.DockTop + L.DockH/2):zoomto(100, L.DockH):diffuse(L.Panel):diffusealpha(0.96)
+	end,
+}
+local dockEdge = L.Frame("BarEdge", L.Line)
+dockEdge.InitCommand = function(self)
+	self:y(L.DockTop + L.DockH/2)
+	L.SizeFrame(self, 100, L.DockH, 1)
+end
+dock[#dock+1] = dockEdge
+for index = 1, L.MaxTiles do
+	dock[#dock+1] = Tile.Build(index)
+end
+composition[#composition+1] = dock
+
+t[#t+1] = composition
+
 t[#t+1] = LoadActor( THEME:GetPathS("ScreenSelectMaster", "change") )..{ Name="change_sound", IsAction=true, SupportPan=false }
 t[#t+1] = LoadActor( THEME:GetPathS("common", "start") )..{ Name="start_sound", IsAction=true, SupportPan=false }
 return t

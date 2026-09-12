@@ -139,22 +139,6 @@ VOLT26_Prefs.Get = function()
 			Values  = { true, false }
 		},
 		-- - - - - - - - - - - - - - - - - - - -
-		-- SimplyLoveColor saves the theme color for the next time
-		-- the StepMania application is started.
-		SimplyLoveColor =
-		{
-			-- a nice pinkish-purple, by default
-			Default = 3,
-			Choices = { 1,2,3,4,5,6,7,8,9,10,11,12 },
-			Values  = { 1,2,3,4,5,6,7,8,9,10,11,12 }
-		},
-		VOLT26Color =
-		{
-			Default = 2,
-			Choices = { 1,2,3 },
-			Values  = { 1,2,3 }
-		},
-		-- - - - - - - - - - - - - - - - - - - -
 		-- Save the last seen song in Edit Mode to disk so that ScreenEditMenu
 		-- can load with it already selected, instead of the first song in the
 		-- first pack.  See: ./BGAnimations/ScreenEditMenu underlay.lua
@@ -224,12 +208,6 @@ VOLT26_Prefs.Get = function()
 		AllowScreenSelectProfile =
 		{
 			Default = false,
-			Choices = { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
-			Values  = { true, false }
-		},
-		AllowScreenSelectColor =
-		{
-			Default = true,
 			Choices = { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
 			Values  = { true, false }
 		},
@@ -324,7 +302,7 @@ VOLT26_Prefs.MigrateLegacy = function()
 	if not legacy then return false end
 	local migrated = {}
 	for name, definition in pairs(VOLT26_Prefs.Get()) do
-		if name ~= "VOLT26Color" and VOLT26_Prefs.IsValid(definition, legacy[name]) then
+		if VOLT26_Prefs.IsValid(definition, legacy[name]) then
 			migrated[name] = legacy[name]
 		end
 	end

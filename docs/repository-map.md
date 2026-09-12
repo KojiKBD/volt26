@@ -91,7 +91,6 @@ Keep this map current whenever directories are added, removed, or given a materi
     - `TabbedStepchartList/`: tabbed chart list implementation.
   - `VOLT26/`: VOLT26-specific selection layout: frame, banner, group preview, difficulty strip, chart preview, player chart/name, song info, and preview backdrop.
 - Adjacent `ScreenSelectMusic background.lua`, `out.lua`, `cancel.redir`, and casual-mode redirect provide screen lifecycle pieces.
-- `ScreenSelectColor...`: theme color selection.
 
 ### Gameplay
 

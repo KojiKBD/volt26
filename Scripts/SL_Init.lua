@@ -182,7 +182,9 @@ local GlobalDefaults = {
 
 		-- These values outside initialize() won't be reset each game cycle,
 		-- but are rather manipulated as needed by the theme.
-		ActiveColorIndex = ThemePrefs.Get("VOLT26Color") or ThemePrefs.Get("SimplyLoveColor") or 2,
+		-- The theme accent is fixed (see VOLT26.Brand.AccentColorIndex).
+		-- ScreenSelectColor and the persisted colour preference were removed.
+		ActiveColorIndex = 1,
 	}
 }
 
@@ -3033,7 +3035,7 @@ local OperatorMenuLines = {
 
 local ThemeOptionLines = {
 	"PerformanceMode", "MusicWheelSpeed", "PreferredStyle", "AllowFailingOutOfSet", "NumberOfContinuesAllowed",
-	"SelectProfile", "SelectColor", "SelectPlayMode", "SelectPlayMode2", "EvalSummary",
+	"SelectProfile", "SelectPlayMode", "SelectPlayMode2", "EvalSummary",
 	"NameEntry", "GameOver", "HideStockNoteSksins", "DanceSolo", "WriteCustomScores",
 	"KeyboardFeatures", "SampleMusicLoops", "SampleMusicStartsImmediately", "RescoreEarlyHits",
 	"DefaultSort",

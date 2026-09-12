@@ -20,7 +20,6 @@ local groups = {
 	},
 	Selection = {
 		"VOLT26/SharedBackground.png",
-		"VOLT26/SelectColor.png",
 		"VOLT26/bg_ss@2x.png",
 		"VOLT26/SongSelection/backdrop.png",
 	},

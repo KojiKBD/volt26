@@ -1,6 +1,16 @@
 local NumEntries = 13
 local RowHeight = 24
 
+-- Helvetica Normal is drawn at a 26px cap height and a 59px line at zoom 1, so
+-- an unzoomed row would stand more than twice the height of the row it sits in
+-- and every entry would overlap the next.  This zoom fits one line inside
+-- RowHeight; maxwidths are stated in drawn pixels and divided by it, because
+-- maxwidth measures the unzoomed text.
+local EntryZoom = 0.4
+local PromptZoom = 0.5
+
+local function ColumnWidth(drawn) return drawn/EntryZoom end
+
 local SetEntryText = function(rank, name, score, date, actor)
 	if actor == nil then return end
 
@@ -310,7 +320,7 @@ local af = Def.ActorFrame{
 	Def.Quad{ InitCommand=function(self) self:FullScreen():diffuse(0,0,0,0.875) end },
 	LoadFont("Helvetica Normal")..{
 		Text=THEME:GetString("Common", "PopupDismissText"),
-		InitCommand=function(self) self:xy(_screen.cx, _screen.h-50):zoom(1.1) end
+		InitCommand=function(self) self:xy(_screen.cx, _screen.h-50):zoom(PromptZoom) end
 	},
 	RequestResponseActor(17, 50)..{
 		SendLeaderboardRequestCommand=function(self)
@@ -557,6 +567,7 @@ for player in ivalues( PlayerNumber ) do
 				Name="LeftIcon",
 				Text="&MENULEFT;",
 				InitCommand=function(self)
+					self:zoom(EntryZoom)
 					self:x(-paneWidth/2 + 10)
 				end,
 				OnCommand=function(self) self:queuecommand("Bounce") end,
@@ -570,6 +581,8 @@ for player in ivalues( PlayerNumber ) do
 				Name="Text",
 				Text=THEME:GetString("GrooveStats", "MoreLeaderboards"),
 				InitCommand=function(self)
+					self:zoom(EntryZoom)
+					self:maxwidth(ColumnWidth(paneWidth - 40))
 					self:diffuse(Color.White)
 				end,
 			},
@@ -578,6 +591,7 @@ for player in ivalues( PlayerNumber ) do
 				Name="RightIcon",
 				Text="&MENURiGHT;",
 				InitCommand=function(self)
+					self:zoom(EntryZoom)
 					self:x(paneWidth/2 - 10)
 				end,
 				OnCommand=function(self) self:queuecommand("Bounce") end,
@@ -611,8 +625,9 @@ for player in ivalues( PlayerNumber ) do
 				Name="Rank",
 				Text="",
 				InitCommand=function(self)
+					self:zoom(EntryZoom)
 					self:horizalign(right)
-					self:maxwidth(30)
+					self:maxwidth(ColumnWidth(30))
 					self:x(-paneWidth2Player/2 + 30 + borderWidth)
 					self:diffuse(Color.White)
 				end,
@@ -626,8 +641,9 @@ for player in ivalues( PlayerNumber ) do
 				Name="Name",
 				Text=(i==1 and THEME:GetString("GrooveStats", "Loading") or ""),
 				InitCommand=function(self)
+					self:zoom(EntryZoom)
 					self:horizalign(center)
-					self:maxwidth(130)
+					self:maxwidth(ColumnWidth(130))
 					self:x(-paneWidth2Player/2 + 100)
 					self:diffuse(Color.White)
 				end,
@@ -641,7 +657,9 @@ for player in ivalues( PlayerNumber ) do
 				Name="Score",
 				Text="",
 				InitCommand=function(self)
+					self:zoom(EntryZoom)
 					self:horizalign(right)
+					self:maxwidth(ColumnWidth(60))
 					self:x(paneWidth2Player/2-borderWidth)
 					self:diffuse(Color.White)
 				end,
@@ -654,7 +672,9 @@ for player in ivalues( PlayerNumber ) do
 				Name="Date",
 				Text="",
 				InitCommand=function(self)
+					self:zoom(EntryZoom)
 					self:horizalign(right)
+					self:maxwidth(ColumnWidth(95))
 					self:x(paneWidth2Player/2 + 100 - borderWidth)
 					self:diffuse(Color.White)
 				end,

@@ -1,48 +1,41 @@
 local args = ...
-local af = args.af
-local scrollers = args.Scrollers
-local profile_data = args.ProfileData
+local Selection = args.Selection
 
 -- a simple boolean flag we'll use to ignore input once profiles have been
 -- selected and the screen's OffCommand has been queued.
 --
 -- aside: SM's screen class does have a RemoveInputCallback() method,
 -- but it needs a reference to the original input handler funtion as
--- a passed-in argument, and that's tricky with how I've split
--- ScreenSelectProfile's code across multiple files.
+-- a passed-in argument, and that's tricky with how this screen's code is
+-- split across multiple files.
 local finished = false
 
--- Table used to determine whether a player has selected their profile. 
--- This value basically represents the amount of players that are ready to
--- move forward.
+-- Whether each side still owes the screen a decision.  A side that is not
+-- joined owes nothing, so it starts satisfied.
 local readyPlayers = {
-	["P1"] = false,
-	["P2"] = false,
+	["P1"] = not GAMESTATE:IsSideJoined(PLAYER_1),
+	["P2"] = not GAMESTATE:IsSideJoined(PLAYER_2),
 }
-
--- If a player is not joined, we'll set their readyPlayers flag to true
--- to bypass that side
-if not GAMESTATE:IsSideJoined(PLAYER_1) then
-	readyPlayers["P1"] = true
-end
-if not GAMESTATE:IsSideJoined(PLAYER_2) then
-	readyPlayers["P2"] = true
-end
-
--- we need to calculate how many dummy rows the scroller was "padded" with
--- (to achieve the desired transform behavior since I am not mathematically
--- perspicacious enough to have done so otherwise).
--- we'll use index_padding to get the correct info out of profile_data.
-local index_padding = 0
-for profile in ivalues(profile_data) do
-	if profile.index == nil or profile.index <= 0 then
-		index_padding = index_padding + 1
-	end
-end
 
 local PreferredStyle = VOLT26.Profile.GetPreferredStyle()
 
 local Handle = {}
+
+-- ----------------------------------------------------------------------------
+
+local function BothOnSameProfile()
+	if PROFILEMAN:GetNumLocalProfiles() <= 0 then return false end
+	if #GAMESTATE:GetHumanPlayers() <= 1 then return false end
+	if GAMESTATE:IsAnyHumanPlayerUsingMemoryCard() then return false end
+
+	local one, two = Selection.Get(PLAYER_1), Selection.Get(PLAYER_2)
+	if not (one and two) then return false end
+	-- Two players may both play as [ GUEST ]; they may not both play as the
+	-- same saved profile.
+	return one.index == two.index and one.index ~= 0
+end
+
+-- ----------------------------------------------------------------------------
 
 Handle.Start = function(event)
 	-- Nothing to do if the player has already selected a profile
@@ -88,31 +81,20 @@ Handle.Start = function(event)
 		topscreen:SetProfileIndex(event.PlayerNumber, -1)
 	else
 
-		local other_player = event.PlayerNumber == PLAYER_1 and PLAYER_2 or PLAYER_1
-
-		-- we only bother checking scrollers to see if both players are
-		-- trying to choose the same profile if there are scrollers because
-		-- there are local profiles.  If there are no local profiles, there are
-		-- no scrollers to compare.
-		if PROFILEMAN:GetNumLocalProfiles() > 0
-			-- and if both players have joined and neither is using a memorycard
-			and #GAMESTATE:GetHumanPlayers() > 1 and not GAMESTATE:IsAnyHumanPlayerUsingMemoryCard()
-			-- and if a player is trying to select a profile the other has already selected
-			and readyPlayers[ToEnumShortString(other_player)] == true
-			and scrollers[PLAYER_1]:get_info_at_focus_pos().index == scrollers[PLAYER_2]:get_info_at_focus_pos().index
-			-- and that profile they are both trying to choose isn't [GUEST]
-			and scrollers[PLAYER_1]:get_info_at_focus_pos().index ~= 0 then
+		if BothOnSameProfile() and readyPlayers[ToEnumShortString(event.PlayerNumber == PLAYER_1 and PLAYER_2 or PLAYER_1)] then
 			-- broadcast an InvalidChoice message to play the "Common invalid" sound
-			-- and "shake" the playerframe for the player that just pressed start
+			-- and "shake" the frame for the player that just pressed start
 			MESSAGEMAN:Broadcast("InvalidChoice", {PlayerNumber=event.PlayerNumber})
 			return
 		end
+
 		readyPlayers[ToEnumShortString(event.PlayerNumber)] = true
+		Selection.SetReady(event.PlayerNumber, true)
 		MESSAGEMAN:Broadcast("SelectedProfile", {PlayerNumber=event.PlayerNumber})
 
 		if readyPlayers["P1"] and readyPlayers["P2"] then
 			-- Set finished to true so that we don't process any more input
-			finished = true	
+			finished = true
 			-- if we're here, both players have selected a profile
 			-- play the StartButton sound
 			MESSAGEMAN:Broadcast("StartButton")
@@ -123,50 +105,30 @@ Handle.Start = function(event)
 end
 Handle.Center = Handle.Start
 
+-- ----------------------------------------------------------------------------
+-- Moving along the strip.  The strip is a row with one player and a column with
+-- two, so both axes move the cursor and the layout decides what that looks like.
 
-Handle.MenuLeft = function(event)
-	-- Nothing to do if the player has already selected a profile
+local function Move(event, delta)
 	if readyPlayers[ToEnumShortString(event.PlayerNumber)] then return end
+	if not GAMESTATE:IsHumanPlayer(event.PlayerNumber) then return end
+	if MEMCARDMAN:GetCardState(event.PlayerNumber) ~= 'MemoryCardState_none' then return end
 
-	if GAMESTATE:IsHumanPlayer(event.PlayerNumber) and MEMCARDMAN:GetCardState(event.PlayerNumber) == 'MemoryCardState_none' then
-		local info = scrollers[event.PlayerNumber]:get_info_at_focus_pos()
-		local index = type(info)=="table" and info.index or 0
-
-		if index - 1 >= 0 then
-			MESSAGEMAN:Broadcast("DirectionButton")
-			scrollers[event.PlayerNumber]:scroll_by_amount(-1)
-
-			local data = profile_data[index+index_padding-1]
-			local frame = af:GetChild(ToEnumShortString(event.PlayerNumber) .. 'Frame')
-			frame:GetChild("SelectedProfileText"):settext(data and data.displayname or "")
-			frame:playcommand("Set", data)
-		end
+	if Selection.Move(event.PlayerNumber, delta) then
+		MESSAGEMAN:Broadcast("DirectionButton")
+		MESSAGEMAN:Broadcast("VOLT26ProfileCursor", {PlayerNumber=event.PlayerNumber})
 	end
 end
-Handle.MenuUp = Handle.MenuLeft
-Handle.DownLeft = Handle.MenuLeft
 
-Handle.MenuRight = function(event)
-	-- Nothing to do if the player has already selected a profile
-	if readyPlayers[ToEnumShortString(event.PlayerNumber)] then return end
+Handle.MenuLeft  = function(event) Move(event, -1) end
+Handle.MenuUp    = Handle.MenuLeft
+Handle.DownLeft  = Handle.MenuLeft
 
-	if GAMESTATE:IsHumanPlayer(event.PlayerNumber) and MEMCARDMAN:GetCardState(event.PlayerNumber) == 'MemoryCardState_none' then
-		local info = scrollers[event.PlayerNumber]:get_info_at_focus_pos()
-		local index = type(info)=="table" and info.index or 0
-
-		if index+1 <= PROFILEMAN:GetNumLocalProfiles() then
-			MESSAGEMAN:Broadcast("DirectionButton")
-			scrollers[event.PlayerNumber]:scroll_by_amount(1)
-
-			local data = profile_data[index+index_padding+1]
-			local frame = af:GetChild(ToEnumShortString(event.PlayerNumber) .. 'Frame')
-			frame:GetChild("SelectedProfileText"):settext(data and data.displayname or "")
-			frame:playcommand("Set", data)
-		end
-	end
-end
-Handle.MenuDown = Handle.MenuRight
+Handle.MenuRight = function(event) Move(event, 1) end
+Handle.MenuDown  = Handle.MenuRight
 Handle.DownRight = Handle.MenuRight
+
+-- ----------------------------------------------------------------------------
 
 Handle.Back = function(event)
 	if GAMESTATE:GetNumPlayersEnabled()==0 then
@@ -183,15 +145,16 @@ Handle.Back = function(event)
 		end
 	else
 		-- If the player is joined, has selected a profile but then pressed back, we
-		-- need to unset the readyPlayers flag and go back to the profile scoller.
-		if GAMESTATE:IsHumanPlayer(event.PlayerNumber) and 
+		-- need to unset the readyPlayers flag and go back to the strip.
+		if GAMESTATE:IsHumanPlayer(event.PlayerNumber) and
 				readyPlayers[ToEnumShortString(event.PlayerNumber)] then
 			readyPlayers[ToEnumShortString(event.PlayerNumber)] = false
+			Selection.SetReady(event.PlayerNumber, false)
 			MESSAGEMAN:Broadcast("BackButton", {PlayerNumber=event.PlayerNumber})
 			MESSAGEMAN:Broadcast("UnselectedProfile", {PlayerNumber=event.PlayerNumber})
 			return
 		end
-		
+
 		-- Otherwise they are unjoining.
 		MESSAGEMAN:Broadcast("BackButton", {PlayerNumber=event.PlayerNumber})
 
@@ -206,7 +169,7 @@ Handle.Back = function(event)
 			-- 3. We are in coin mode
 			-- 4. EITHER each side needs its own credits
 			--    OR we are about to have 0 players joined, thus refunding the original credit.
-			
+
 			-- We originally consumed the credit when the player joined, so we
 			-- should refund them if they unjoin.
 
@@ -217,10 +180,11 @@ Handle.Back = function(event)
 			local coins = PREFSMAN:GetPreference("CoinsPerCredit")
 			GAMESTATE:InsertCoin(coins)
 		end
-		
+
 		-- set the readyPlayers flag for this player since they no longer
 		-- need to make a selection
 		readyPlayers[ToEnumShortString(event.PlayerNumber)] = true
+		Selection.SetReady(event.PlayerNumber, false)
 
 		-- ScreenSelectProfile:SetProfileIndex() will interpret -2 as
 		-- "Unjoin this player and unmount their USB stick if there is one"

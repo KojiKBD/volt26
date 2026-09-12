@@ -1,67 +1,84 @@
+-- ScreenSelectProfile.
+--
+-- Who is playing, asked as a strip of cards: [ GUEST ] first, then every local
+-- profile, with a panel beside it describing whichever card the cursor is on.
+-- The engine still owns joining, unjoining, memory cards and the profile
+-- assignment itself; this screen owns the cursor and the presentation, and
+-- hands the engine an index when it finishes.
+--
+-- The pieces:
+--   Selection.lua          the cursor, the window, and who has committed
+--   PlayerFrame.lua        one player's strip and panel
+--   Input.lua              buttons
+--   PlayerProfileData.lua  what is known about each local profile
+--   _volt26 select chrome  the frame this screen shares with the play-mode screen
+
+local Chrome = LoadActor(THEME:GetPathB("", "_volt26 select chrome"))
+
 -- PreferredStyle is a VOLT26 preference that can allow players to always
 -- automatically have one of [single, double, versus] chosen for them.
 -- If PreferredStyle is either "single" or "double", we don't want to load
--- SelectProfileFrames for both PLAYER_1 and PLAYER_2, but only the MasterPlayerNumber
+-- frames for both PLAYER_1 and PLAYER_2, but only the MasterPlayerNumber
 local PreferredStyle = VOLT26.Profile.GetPreferredStyle()
 
--- retrieve the MasterPlayerNumber now, at initialization, so that if PreferredStyle is set
--- to "single" or "double" and that singular player unjoins, we still have a handle on
--- which PlayerNumber they're supposed to be...
-local mpn = GAMESTATE:GetMasterPlayerNumber()
-
--- a table of profile data (highscore name, most recent song, mods, etc.)
--- indexed by "ProfileIndex" (provided by engine)
+-- a table of profile data (display name, songs played, mods, etc.)
 local profile_data = LoadActor("./PlayerProfileData.lua")
 
-local scrollers = {}
-scrollers[PLAYER_1] = setmetatable({disable_wrapping=true}, sick_wheel_mt)
-scrollers[PLAYER_2] = setmetatable({disable_wrapping=true}, sick_wheel_mt)
+local Selection = LoadActor("./Selection.lua", {ProfileData=profile_data})
 
--- Updated as profiles are selected/de-selected
-local readyPlayers = {
-	["P1"] = false,
-	["P2"] = false,
-}
--- ----------------------------------------------------
+-- Whether the screen is showing one player across the full width or two
+-- players either side of the centre line.
+local single = (PreferredStyle=="single" or PreferredStyle=="double") and #GAMESTATE:GetHumanPlayers() <= 1
+local players = single and { GAMESTATE:GetMasterPlayerNumber() } or { PLAYER_1, PLAYER_2 }
+
+-- ----------------------------------------------------------------------------
+-- Which of the three states each side is in.  A side is either waiting to be
+-- joined, browsing the strip, or locked to a memory card.
 
 local HandleStateChange = function(self, Player)
 	local frame = self:GetChild(ToEnumShortString(Player) .. 'Frame')
-	local joinframe = frame:GetChild('JoinFrame')
+	if not frame then return end
 
-	local scrollerframe = frame:GetChild('ScrollerFrame')
-	local dataframe = scrollerframe:GetChild('DataFrame')
-	local scroller = scrollerframe:GetChild('Scroller')
+	if not GAMESTATE:IsHumanPlayer(Player) then
+		frame:playcommand("SetState", {State="join"})
+		return
+	end
 
-	local seltext = frame:GetChild('SelectedProfileText')
-	local usbsprite = frame:GetChild('USBIcon')
+	if MEMCARDMAN:GetCardState(Player) ~= 'MemoryCardState_none' then
+		frame:playcommand("SetState", {State="card"})
+		SCREENMAN:GetTopScreen():SetProfileIndex(Player, 0)
+		return
+	end
 
-	if GAMESTATE:IsHumanPlayer(Player) then
-		local selected = readyPlayers[ToEnumShortString(Player)]
-		joinframe:visible(selected)
-		scrollerframe:visible(not selected)
-		seltext:visible(selected)
+	frame:playcommand("SetState", {State="browse"})
+end
 
-		if MEMCARDMAN:GetCardState(Player) == 'MemoryCardState_none' then
-			-- using local profile
-			usbsprite:visible(false)
-		else
-			-- using memorycard profile
-			joinframe:visible(false)
-			scrollerframe:visible(false)
-			seltext:settext(MEMCARDMAN:GetName(Player))
-			usbsprite:visible(true)
+-- ----------------------------------------------------------------------------
+-- Opening position: a player starts on the profile they are already using
+-- (fast switch) or on their default profile, and otherwise on [ GUEST ].
 
-			SCREENMAN:GetTopScreen():SetProfileIndex(Player, 0)
+local function FocusInitialProfile(player)
+	if VOLT26.Profile.IsFastSwitchInProgress() and PROFILEMAN:IsPersistentProfile(player) then
+		local current = PROFILEMAN:GetProfile(player)
+		if current then
+			for profile in ivalues(profile_data) do
+				if profile.guid == current:GetGUID() then
+					Selection.FocusEngineIndex(player, profile.index)
+					return
+				end
+			end
 		end
-	else
-		joinframe:visible(true)
-		scrollerframe:visible(false)
-		seltext:visible(false)
-		usbsprite:visible(false)
+	end
+
+	local default_id = PREFSMAN:GetPreference("DefaultLocalProfileID"..ToEnumShortString(player))
+	if default_id and default_id ~= "" then
+		Selection.FocusProfileDir(player, PROFILEMAN:LocalProfileIDToDir(default_id))
 	end
 end
 
--- ----------------------------------------------------
+for player in ivalues(players) do FocusInitialProfile(player) end
+
+-- ----------------------------------------------------------------------------
 
 local invalid_count = 0
 
@@ -71,7 +88,7 @@ local t = Def.ActorFrame {
 	StallCommand=function(self)
 		-- FIXME: Stall for 0.5 seconds so that the Lua InputCallback doesn't get immediately added to the screen.
 		-- It's otherwise possible to enter the screen with MenuLeft/MenuRight already held and firing off events,
-		-- which causes the sick_wheel of profile names to not display.  I don't have time to debug it right now.
+		-- which causes the list of profile names to not display.  I don't have time to debug it right now.
 		self:sleep(0.5):queuecommand("InitInput")
 
 		-- FIXME: I need to find time to look at how the engine actually handles MenuTimers because
@@ -81,7 +98,9 @@ local t = Def.ActorFrame {
 			self:queuecommand("CheckMenuTimer")
 		end
 	end,
-	InitInputCommand=function(self) SCREENMAN:GetTopScreen():AddInputCallback( LoadActor("./Input.lua", {af=self, Scrollers=scrollers, ProfileData=profile_data}) ) end,
+	InitInputCommand=function(self)
+		SCREENMAN:GetTopScreen():AddInputCallback( LoadActor("./Input.lua", {af=self, Selection=Selection}) )
+	end,
 
 	CheckMenuTimerCommand=function(self)
 		-- if the MenuTimer has reached 0, it's time to queue the OffCommand and force a transition to the next screen
@@ -93,15 +112,12 @@ local t = Def.ActorFrame {
 			-- or oversight, and I've yet to meet anyone who has requested such a feature.
 			-- So, if the MenuTimer reaches 0 and both players are on the same non-GUEST profile
 			-- we'll set them both to GUEST before transitioning.
-
-			-- if both players have joined
-			if  #GAMESTATE:GetHumanPlayers() > 1
-			-- and both players are trying to choose the same profile
-			and scrollers[PLAYER_1]:get_info_at_focus_pos().index == scrollers[PLAYER_2]:get_info_at_focus_pos().index
-			-- and that profile they are both trying to choose isn't [GUEST]
-			and scrollers[PLAYER_1]:get_info_at_focus_pos().index ~= 0 then
-				scrollers[PLAYER_1]:scroll_by_amount( -scrollers[PLAYER_1]:get_info_at_focus_pos().index )
-				scrollers[PLAYER_2]:scroll_by_amount( -scrollers[PLAYER_2]:get_info_at_focus_pos().index )
+			if #GAMESTATE:GetHumanPlayers() > 1
+			and Selection.Get(PLAYER_1).index == Selection.Get(PLAYER_2).index
+			and Selection.Get(PLAYER_1).index ~= 0 then
+				Selection.SetCursor(PLAYER_1, 1)
+				Selection.SetCursor(PLAYER_2, 1)
+				self:playcommand("Redraw")
 				self:sleep(0.3)
 			end
 
@@ -112,7 +128,7 @@ local t = Def.ActorFrame {
 	end,
 
 	-- the OffCommand will have been queued, when it is appropriate, from ./Input.lua
-	-- sleep for 0.5 seconds to give the PlayerFrames time to tween out
+	-- sleep for 0.5 seconds to give the frames time to tween out
 	-- and queue a call to Finish() so that the engine can wrap things up
 	OffCommand=function(self)
 		-- Update the lobby state in case we're online. This won't do anything
@@ -127,11 +143,9 @@ local t = Def.ActorFrame {
 		for player in ivalues( PlayerNumber ) do
 			-- check if this player is joined in
 			if GAMESTATE:IsHumanPlayer(player) then
-				-- this player was joined in, so get the index of their profile scroller as it is now
-				local info = scrollers[player]:get_info_at_focus_pos()
-				-- if there were no local profiles, there won't be any info
-				-- set index to 0 if so to indicate that "[Guest]" was chosen (because it was the only choice)
-				local index = type(info)=="table" and info.index or 0
+				-- the item this player's cursor is on; [ GUEST ] carries index 0
+				local item = Selection.Get(player)
+				local index = type(item)=="table" and item.index or 0
 
 				-- the engine's SetProfileIndex() method expects local profiles to use index values that are > 0
 				-- it also uses the following hardcoded values:
@@ -148,14 +162,11 @@ local t = Def.ActorFrame {
 				elseif index > 0 then
 					SCREENMAN:GetTopScreen():SetProfileIndex(player, index)
 
-				-- 0 here is my own stupid hardcoded number, defined over in PlayerFrame.lua for use with the "[Guest]" choice
-				-- In this case, 0 is the index of the choice in the scroller.  It should not be confused the 0 passed to
-				-- SetProfileIndex() to use a USB memorycard which is a different stupid hardcoded number defined by the engine. D:
+				-- [ GUEST ]: the engine's own Finish() hardcodes DefaultProfileIDs, which would
+				-- interfere with VOLT26's notion of NOT requiring all players to use profiles.
+				-- If the player went out of their way to enable ScreenSelectProfile, they presumably
+				-- want to be able to pick, and picking means having an option for not-using-a-profile.
 				elseif index == 0 then
-					-- ScreenSelectProfile's Finish() method is hardcoded to assign DefaultProfileIDs
-					-- which will interfere with SL's notion of NOT requiring all players to use profiles.
-					-- If the player went out of their way to enable ScreenSelectProfile, they presumably want
-					-- to be able to pick, and picking (to me) means having an option for not-using-a-profile.
 					PREFSMAN:SetPreference("DefaultLocalProfileIDP1", "")
 					PREFSMAN:SetPreference("DefaultLocalProfileIDP2", "")
 
@@ -176,8 +187,6 @@ local t = Def.ActorFrame {
 		end
 		SCREENMAN:GetTopScreen():Finish()
 	end,
-	WhatMessageCommand=function(self) self:runcommandsonleaves(function(subself) if subself.distort then subself:distort(0.5) end end):sleep(4):queuecommand("Undistort") end,
-	UndistortCommand=function(self) self:runcommandsonleaves(function(subself) if subself.distort then subself:distort(0) end end) end,
 
 	CodeMessageCommand=function(self, params)
 
@@ -191,14 +200,8 @@ local t = Def.ActorFrame {
 		if params.Name == "Select" then
 			if GAMESTATE:GetNumPlayersEnabled()==0 then
 				if VOLT26.Profile.IsFastSwitchInProgress() then
-					-- Going back to the song wheel without any players connected doesn't
-					-- make much sense; disallow dismissing the ScreenSelectProfile
-					-- top screen until at least one player has joined in
 					MESSAGEMAN:Broadcast("PreventEscape")
 				else
-					-- On the other hand, dismissing the regular ScreenSelectProfile
-					-- (not in fast switch mode) is perfectly fine since we can just go
-					-- back to the previous screen
 					SCREENMAN:GetTopScreen():Cancel()
 				end
 			else
@@ -218,12 +221,10 @@ local t = Def.ActorFrame {
 	PlayerJoinedMessageCommand=function(self, params) self:playcommand('Update', {player=params.Player}) end,
 	PlayerUnjoinedMessageCommand=function(self, params) self:playcommand('Update', {player=params.Player}) end,
 	SelectedProfileMessageCommand=function(self, params)
-		readyPlayers[ToEnumShortString(params.PlayerNumber)] = true
-		HandleStateChange(self, params.PlayerNumber)
+		MESSAGEMAN:Broadcast("VOLT26ProfileReady", {PlayerNumber=params.PlayerNumber})
 	end,
 	UnselectedProfileMessageCommand=function(self, params)
-		readyPlayers[ToEnumShortString(params.PlayerNumber)] = false
-		HandleStateChange(self, params.PlayerNumber)
+		MESSAGEMAN:Broadcast("VOLT26ProfileReady", {PlayerNumber=params.PlayerNumber})
 	end,
 
 	-- there are several ways to get here, but if we're here, we'll just
@@ -234,11 +235,11 @@ local t = Def.ActorFrame {
 			return
 		end
 
-		if not (PreferredStyle=="single" or PreferredStyle=="double") or #GAMESTATE:GetHumanPlayers() > 1 then
+		if single then
+			HandleStateChange(self, GAMESTATE:GetMasterPlayerNumber())
+		else
 			HandleStateChange(self, PLAYER_1)
 			HandleStateChange(self, PLAYER_2)
-		else
-			HandleStateChange(self, GAMESTATE:GetMasterPlayerNumber())
 		end
 	end,
 
@@ -273,7 +274,9 @@ local t = Def.ActorFrame {
 	}
 }
 
+-- ----------------------------------------------------------------------------
 -- get table of player avatar paths
+
 local avatars = {}
 for profile in ivalues(profile_data) do
 	if profile.dir and profile.displayname then
@@ -290,16 +293,44 @@ if VOLT26.Profile.IsFastSwitchInProgress() then
 	}
 end
 
--- load PlayerFrames for both
-if not (PreferredStyle=="single" or PreferredStyle=="double")  or #GAMESTATE:GetHumanPlayers() > 1 then
-	t[#t+1] = LoadActor("PlayerFrame.lua", {Player=PLAYER_1, Scroller=scrollers[PLAYER_1], ProfileData=profile_data, Avatars=avatars})
-	t[#t+1] = LoadActor("PlayerFrame.lua", {Player=PLAYER_2, Scroller=scrollers[PLAYER_2], ProfileData=profile_data, Avatars=avatars})
--- load only for the MasterPlayerNumber
-else
-	t[#t+1] = LoadActor("PlayerFrame.lua", {Player=GAMESTATE:GetMasterPlayerNumber(), Scroller=scrollers[GAMESTATE:GetMasterPlayerNumber()], ProfileData=profile_data, Avatars=avatars})
-end
+-- ----------------------------------------------------------------------------
+-- chrome
 
-LoadActor("./JudgmentGraphicPreviews.lua", {af=t, profile_data=profile_data})
-LoadActor("./NoteSkinPreviews.lua", {af=t, profile_data=profile_data})
+t[#t+1] = Chrome.TitleBlock{
+	title = THEME:GetString("ScreenSelectProfile", "TitleProfile"),
+	tabs = { "Profile", "Mode" },
+	active = "Profile",
+}
+
+t[#t+1] = Chrome.SectionLabel( THEME:GetString("ScreenSelectProfile", "SectionWhoIsPlaying") )
+
+t[#t+1] = Chrome.Hints{
+	button = THEME:GetString("ScreenSelectProfile", "HintButton"),
+	action = THEME:GetString("ScreenSelectProfile", "HintConfirm"),
+	center = PREFSMAN:GetPreference("EventMode")
+		and THEME:GetString("ScreenSelectProfile", "EventMode")
+		or nil,
+}
+
+-- a quiet note under the strip: the choice lasts the whole session
+t[#t+1] = Chrome.Label{
+	text = THEME:GetString("ScreenSelectProfile", "SessionNote"), px=9,
+	x = Chrome.Metrics.Margin, y = single and 324 or 284,
+	color = Chrome.Color.Faint,
+}
+
+-- ----------------------------------------------------------------------------
+-- player frames
+
+for player in ivalues(players) do
+	t[#t+1] = LoadActor("PlayerFrame.lua", {
+		Player = player,
+		Selection = Selection,
+		ProfileData = profile_data,
+		Avatars = avatars,
+		Chrome = Chrome,
+		Layout = single and "full" or "split",
+	})
+end
 
 return t

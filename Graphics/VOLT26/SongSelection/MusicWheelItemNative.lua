@@ -95,16 +95,28 @@ end
 -- source file.  The song background is deliberately not a fallback: it is the
 -- largest image in the folder, it is not cached, and the wheel would upload it
 -- in full for every row that scrolls into view.
+-- A still always wins: it costs one cached upload and can be shown on every row
+-- at once.  A movie is answered only when it is the only artwork the song has,
+-- and the caller decodes it for the focused row alone -- one decoder instead of
+-- one per visible row, which is what made video artwork unaffordable here.
 local function artwork(song)
 	if not song then return nil end
+	local movie, movieDir
 	if song:HasJacket() then
 		local path = song:GetJacketPath()
-		if path and path ~= "" and not isMovie(path) then return path, "Jacket" end
+		if path and path ~= "" then
+			if not isMovie(path) then return path, "Jacket", false end
+			movie, movieDir = path, "Jacket"
+		end
 	end
 	if song:HasBanner() then
 		local path = song:GetBannerPath()
-		if path and path ~= "" and not isMovie(path) then return path, "Banner" end
+		if path and path ~= "" then
+			if not isMovie(path) then return path, "Banner", false end
+			if not movie then movie, movieDir = path, "Banner" end
+		end
 	end
+	if movie then return movie, movieDir, true end
 	return nil
 end
 
@@ -148,7 +160,33 @@ local af = Def.ActorFrame{
 		self.focusPollElapsed = 0
 		self:SetUpdateFunction(function(frame, delta)
 			if not frame:GetVisible() then return end
-			frame.focusPollElapsed = frame.focusPollElapsed + (delta or 0)
+			delta = delta or 0
+
+			-- Video artwork waits for the row to settle before its decoder is
+			-- opened, so holding a direction scrolls through a pack without
+			-- starting one for every row it crosses.
+			if frame.movieDelay then
+				frame.movieDelay = frame.movieDelay - delta
+				if frame.movieDelay <= 0 then
+					frame.movieDelay = nil
+					frame:playcommand("StartMovieArt")
+				end
+			end
+
+			-- A movie has no size until its first frame is decoded, so the crop
+			-- is retried until it does and then given up on.
+			if frame.movieFit then
+				frame.movieFit = frame.movieFit - delta
+				local art = frame:GetChild("SongRow"):GetChild("Jacket")
+				if art:GetWidth() > 1 and art:GetHeight() > 1 then
+					centerCrop(art, jacketX, -jacketSize/2, jacketSize, jacketSize)
+					frame.movieFit = nil
+				elseif frame.movieFit <= 0 then
+					frame.movieFit = nil
+				end
+			end
+
+			frame.focusPollElapsed = frame.focusPollElapsed + delta
 			local interval = VOLT26.Performance.IsEnabled() and (1/30) or 0
 			if frame.focusPollElapsed < interval then return end
 			frame.focusPollElapsed = 0
@@ -167,6 +205,7 @@ local af = Def.ActorFrame{
 		if not matches then return end
 
 		self.song, self.course = params.Song, params.Course
+		self.movieDelay, self.movieFit = nil, nil
 		self.section = (not params.Song and not params.Course) and (params.Text or params.Label) or nil
 		if self.section == "" then self.section = params.Label end
 
@@ -176,7 +215,7 @@ local af = Def.ActorFrame{
 
 		if isSong then
 			local row = self:GetChild("SongRow")
-			self.artPath, self.artCacheDir = artwork(self.song)
+			self.artPath, self.artCacheDir, self.artIsMovie = artwork(self.song)
 			VOLT26.Type.SetLabel(row:GetChild("Artist"),
 				(self.song and self.song:GetDisplayArtist() or ""):upper(), 13, textWidth)
 			VOLT26.Type.SetDisplay(row:GetChild("Title"), label(params), 26, textWidth)
@@ -215,21 +254,42 @@ local af = Def.ActorFrame{
 			local art = row:GetChild("Jacket")
 			local fallback = row:GetChild("JacketFallback")
 			local loaded = false
-			if self.artPath then
+			if self.artPath and not self.artIsMovie then
+				self.movieDelay, self.movieFit = nil, nil
 				loaded = pcall(function()
 					if self.loadedArtPath ~= self.artPath then
 						-- The cached copy is a small 16-bit texture; the source
 						-- file is a multi-megabyte RGBA8 upload that the wheel
 						-- would repeat for every row scrolling into view.
 						art:LoadFromCached(self.artCacheDir, self.artPath)
-						-- Wheel artwork is deliberately a still frame: recycled
-						-- rows sharing one multi-frame texture advance it once
-						-- per actor and visibly accelerate playback.
+						-- A still frame: recycled rows sharing one multi-frame
+						-- texture advance it once per actor and visibly
+						-- accelerate playback.
 						art:animate(false)
 						self.loadedArtPath = self.artPath
 					end
 				end)
 				if not loaded then self.loadedArtPath = nil end
+			elseif self.artPath and self.artIsMovie then
+				-- The only artwork this song has is a movie, so it plays on the
+				-- focused row and nowhere else.  Every other row keeps the plain
+				-- block it had back when movies were skipped outright.
+				if on then
+					if self.loadedArtPath == self.artPath then
+						loaded = true
+					else
+						self.movieDelay = self.movieDelay or 0.30
+					end
+				else
+					self.movieDelay, self.movieFit = nil, nil
+					if self.loadedArtPath then
+						pcall(function()
+							if art.SetDecodeMovie then art:SetDecodeMovie(false) end
+							art:animate(false)
+						end)
+						self.loadedArtPath = nil
+					end
+				end
 			end
 			art:visible(loaded)
 			fallback:visible(not loaded)
@@ -239,6 +299,20 @@ local af = Def.ActorFrame{
 			row:GetChild("Name"):diffuse(on and accent or ink)
 			row:GetChild("Count"):diffuse(on and accent or dim)
 		end
+	end,
+	StartMovieArtCommand=function(self)
+		if not (self.artPath and self.artIsMovie and self.wasFocus) then return end
+		local row = self:GetChild("SongRow")
+		local art = row:GetChild("Jacket")
+		local ok = pcall(function()
+			art:Load(self.artPath)
+			if art.SetDecodeMovie then art:SetDecodeMovie(true) end
+			art:animate(true)
+		end)
+		self.loadedArtPath = ok and self.artPath or nil
+		art:visible(ok)
+		row:GetChild("JacketFallback"):visible(not ok)
+		self.movieFit = ok and 1.0 or nil
 	end,
 }
 

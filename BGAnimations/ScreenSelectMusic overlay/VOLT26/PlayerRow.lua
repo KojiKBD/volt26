@@ -20,15 +20,43 @@ local contentPadX = 18
 local contentPadY = 14
 local blockGap = 12
 local countersPadY = 8
+local dividerGap = 14
 
 local rowX = H.RowsX
 local rowW = H.RowsW
 local cardX = rowX + difficultyW + gap
 local cardW = rowW - difficultyW - previewW - 2*gap
-local previewX = rowX + rowW - previewW
+
+-- P1's row is mirrored: the preview strip takes the inner column next to the
+-- card's left and the difficulty list moves out to the screen edge, so the two
+-- players read their own preview on opposite sides.  The card keeps the same X
+-- and width on both rows, so the side columns swap contents rather than sizes:
+-- the inner slot stays difficultyW wide, the outer previewW.  Neither component
+-- needs its own design width -- the preview's lane width is already capped well
+-- below what the narrower slot allows, and the difficulty list lays itself out
+-- from whatever column width it is handed.
+local mirrored = (player == PLAYER_1)
+local innerColX, innerColW = rowX, difficultyW
+local outerColX, outerColW = rowX + rowW - previewW, previewW
+
+local difficultyX, difficultyColW, previewX, previewColW
+if mirrored then
+	previewX, previewColW = innerColX, innerColW
+	difficultyX, difficultyColW = outerColX, outerColW
+else
+	difficultyX, difficultyColW = innerColX, innerColW
+	previewX, previewColW = outerColX, outerColW
+end
+
 local contentW = cardW - radarW - 1
 local contentX = cardX + contentPadX
 local contentInnerW = contentW - contentPadX*2
+
+-- Solo geometry.  With one player the row is tall enough that the density graph
+-- does not need all of it, so the radar moves out of the card's right column and
+-- into the space the shortened graph leaves underneath, with a rule between the
+-- two.  The column that frees goes to the two leaderboards.
+local radarColumnX = cardX + contentW + 1
 
 local difficulties = {
 	{"Difficulty_Beginner",  "NOVICE"},
@@ -73,8 +101,16 @@ local transparent = color("0,0,0,0")
 local radarLabelDistance = 1.28
 local radarLabelWidth = 66
 local radarEdgeMargin = 8
-local radarMaxRadius = math.floor(
-	(radarW/2 - radarLabelWidth - radarEdgeMargin) / (math.cos(math.rad(30)) * radarLabelDistance))
+-- The widest the hexagon may grow inside a column of the given width: a label
+-- sits at radarLabelDistance radii, the two side axes stand at cos(30) of that,
+-- and the label itself is allowed radarLabelWidth beyond that point.
+local function radarRadiusForWidth(width)
+	return math.floor(
+		(width/2 - radarLabelWidth - radarEdgeMargin) / (math.cos(math.rad(30)) * radarLabelDistance))
+end
+
+local radarMaxRadius = radarRadiusForWidth(radarW)
+local radarMaxRadiusSolo = radarRadiusForWidth(contentInnerW)
 
 local radarAxisCount = VOLT26.ChartRadar.GetAxisCount()
 local radarAngles = {}
@@ -196,21 +232,62 @@ local function setGradeIcon(frame, grade)
 	end
 end
 
+-- The card body's vertical plan, worked out in one place because the body and
+-- the radar both have to agree on where the graph stops.
+local function bodyMetrics(bodyTop, bodyHeight, solo)
+	local inner = bodyHeight - contentPadY*2
+	-- The score row is a 9 unit label sitting on a 40 unit number, both
+	-- anchored on the same baseline.
+	local scoreH = 66
+	local countersH = 13 + 26 + countersPadY*2 + 6
+	local available = inner - scoreH - countersH - blockGap*2
+	local top = bodyTop + contentPadY
+	local countersTop = top + scoreH + blockGap
+	local graphTop = countersTop + countersH + blockGap
+
+	-- Solo: the graph keeps a little under half the band it would otherwise
+	-- fill, a rule closes it off the way the counters are closed off above, and
+	-- the radar takes the rest.
+	local graphH, dividerY, radarTop, radarH = available, nil, nil, nil
+	if solo then
+		graphH = math.floor(available*0.40)
+		dividerY = graphTop + graphH + dividerGap
+		radarTop = dividerY + dividerGap
+		radarH = available - graphH - dividerGap*2
+	end
+
+	return {
+		ScoreBaseline = top + scoreH,
+		CountersTop = countersTop,
+		CountersHeight = countersH,
+		GraphTop = graphTop,
+		PlotTop = graphTop + 14,
+		PlotHeight = math.max(20, graphH - 14),
+		DividerY = dividerY,
+		RadarTop = radarTop,
+		RadarHeight = radarH,
+	}
+end
+
 local af = Def.ActorFrame{
 	Name=pn.."Row",
 	RefreshCommand=function(self)
-		local joined = GAMESTATE:IsHumanPlayer(player)
+		local joined = GAMESTATE:IsHumanPlayer(player) and H.Item() ~= nil
 		self:visible(joined)
 		if not joined then return end
 
+		local solo = H.IsSolo()
 		local rowTop, rowH = H.RowGeometry(player)
 		local bodyTop = rowTop + headerH
 		local bodyH = rowH - headerH
 		local chart = H.Chart(player)
 		local data = H.ChartData(player)
+		local metrics = bodyMetrics(bodyTop, bodyH, solo)
 
-		self:playcommand("LayOut", {RowTop=rowTop, RowHeight=rowH, BodyTop=bodyTop, BodyHeight=bodyH})
-		self:playcommand("Fill", {Chart=chart, Data=data, BodyTop=bodyTop, BodyHeight=bodyH, RowTop=rowTop})
+		self:playcommand("LayOut", {RowTop=rowTop, RowHeight=rowH, BodyTop=bodyTop, BodyHeight=bodyH,
+			Solo=solo, Metrics=metrics})
+		self:playcommand("Fill", {Chart=chart, Data=data, BodyTop=bodyTop, BodyHeight=bodyH, RowTop=rowTop,
+			Solo=solo, Metrics=metrics})
 	end,
 }
 
@@ -223,22 +300,22 @@ local difficultyColumn = Def.ActorFrame{
 		-- tall read as the loudest thing on the row, which they are not.  They
 		-- take the height they need and leave the rest of the column empty.
 		local slotH = math.min(slotMaxHeight, (p.BodyHeight - slotGap*(#difficulties-1))/#difficulties)
-		self:GetChild("Badge"):xy(rowX, p.RowTop + headerH/2)
+		self:GetChild("Badge"):xy(difficultyX, p.RowTop + headerH/2)
 		local badgeLabel = self:GetChild("BadgeLabel")
 		H.SetLabel(badgeLabel, pn, 11)
 		local badgeWidth = badgeLabel:GetZoomedWidth() + 16
 		self:GetChild("Badge"):zoomto(badgeWidth, 18)
-		badgeLabel:xy(rowX + badgeWidth/2, p.RowTop + headerH/2)
+		badgeLabel:xy(difficultyX + badgeWidth/2, p.RowTop + headerH/2)
 		local caption = self:GetChild("Caption")
-		H.SetLabel(caption, H.String("Difficulty"), 11, difficultyW - badgeWidth - 10)
-		caption:xy(rowX + badgeWidth + 10, p.RowTop + headerH/2)
+		H.SetLabel(caption, H.String("Difficulty"), 11, difficultyColW - badgeWidth - 10)
+		caption:xy(difficultyX + badgeWidth + 10, p.RowTop + headerH/2)
 
 		for i=1, #difficulties do
 			local top = p.BodyTop + (i-1)*(slotH + slotGap)
-			self:GetChild("Slot"..i):xy(rowX, top):zoomto(difficultyW, slotH)
-			self:GetChild("Bar"..i):xy(rowX, top):zoomto(3, slotH)
-			self:GetChild("Name"..i):xy(rowX+15, top + slotH/2)
-			self:GetChild("Meter"..i):xy(rowX+difficultyW-12, top + slotH/2)
+			self:GetChild("Slot"..i):xy(difficultyX, top):zoomto(difficultyColW, slotH)
+			self:GetChild("Bar"..i):xy(difficultyX, top):zoomto(3, slotH)
+			self:GetChild("Name"..i):xy(difficultyX+15, top + slotH/2)
+			self:GetChild("Meter"..i):xy(difficultyX+difficultyColW-12, top + slotH/2)
 		end
 	end,
 	FillCommand=function(self, p)
@@ -251,7 +328,7 @@ local difficultyColumn = Def.ActorFrame{
 			self:GetChild("Slot"..i):visible(selected)
 			self:GetChild("Bar"..i):visible(selected)
 			local tint = selected and H.Ink or (steps and H.Mute or H.Dim)
-			H.SetLabel(self:GetChild("Name"..i), entry[2], 12, difficultyW-74)
+			H.SetLabel(self:GetChild("Name"..i), entry[2], 12, difficultyColW-74)
 			self:GetChild("Name"..i):diffuse(tint)
 			H.SetDisplay(self:GetChild("Meter"..i), steps and steps:GetMeter() or "", 30)
 			self:GetChild("Meter"..i):diffuse(selected and accent or tint)
@@ -286,11 +363,24 @@ af[#af+1] = difficultyColumn
 local card = Def.ActorFrame{
 	Name="Card",
 	LayOutCommand=function(self, p)
-		self:GetChild("Border"):xy(cardX-1, p.RowTop-1):zoomto(cardW+2, p.RowHeight+2)
+		-- One container for the whole row: the readings, the graph, the radar and
+		-- the two leaderboards all live inside it, separated by rules rather than
+		-- by boxes of their own.  It stands on the shared scrim, header and body
+		-- alike, so the screen's backdrop reads through it the way it does behind
+		-- the songwheel.  That rules out the usual box -- a filled line-coloured
+		-- quad behind a filled panel-coloured one -- because the quad behind would
+		-- show straight through the scrim and seal it again; the edge is drawn as
+		-- three rules instead, with the accent line closing the top.
 		self:GetChild("Background"):xy(cardX, p.RowTop):zoomto(cardW, p.RowHeight)
+		self:GetChild("EdgeL"):xy(cardX-1, p.RowTop-1):zoomto(1, p.RowHeight+2)
+		self:GetChild("EdgeR"):xy(cardX+cardW, p.RowTop-1):zoomto(1, p.RowHeight+2)
+		self:GetChild("EdgeB"):xy(cardX-1, p.RowTop+p.RowHeight):zoomto(cardW+2, 1)
 		self:GetChild("Accent"):xy(cardX, p.RowTop):zoomto(cardW, 2)
 		self:GetChild("HeaderRule"):xy(cardX, p.BodyTop):zoomto(cardW, 1)
-		self:GetChild("RadarRule"):xy(cardX + contentW, p.BodyTop):zoomto(1, p.BodyHeight)
+		-- Solo: the same rule that divides content from radar divides content from
+		-- the leaderboards that take the radar's column.
+		self:GetChild("RadarRule"):visible(true)
+			:xy(cardX + contentW, p.BodyTop):zoomto(1, p.BodyHeight)
 
 		local headerMiddle = p.RowTop + headerH/2 + 1
 		self:GetChild("Badge"):xy(cardX + contentPadX, headerMiddle)
@@ -334,8 +424,10 @@ local card = Def.ActorFrame{
 		chartLine:x(right)
 	end,
 }
-card[#card+1] = H.Rule{Name="Border"}
-card[#card+1] = H.Rule{Name="Background", Tint=H.Panel}
+card[#card+1] = H.Rule{Name="Background", Tint=H.Panel, Alpha=H.ScrimAlpha}
+card[#card+1] = H.Rule{Name="EdgeL"}
+card[#card+1] = H.Rule{Name="EdgeR"}
+card[#card+1] = H.Rule{Name="EdgeB"}
 card[#card+1] = H.Rule{Name="Accent", Tint=accent}
 card[#card+1] = H.Rule{Name="HeaderRule"}
 card[#card+1] = H.Rule{Name="RadarRule"}
@@ -352,20 +444,14 @@ af[#af+1] = card
 local body = Def.ActorFrame{
 	Name="Body",
 	LayOutCommand=function(self, p)
-		local inner = p.BodyHeight - contentPadY*2
-		-- The score row is a 9 unit label sitting on a 40 unit number, both
-		-- anchored on the same baseline.
-		local scoreH = 66
-		local countersH = 13 + 26 + countersPadY*2 + 6
-		local graphH = inner - scoreH - countersH - blockGap*2
-		local top = p.BodyTop + contentPadY
-
-		local countersTop = top + scoreH + blockGap
-		local graphTop = countersTop + countersH + blockGap
-		local plotTop = graphTop + 14
+		local m = p.Metrics
+		local countersTop = m.CountersTop
+		local countersH = m.CountersHeight
+		local graphTop = m.GraphTop
+		local plotTop = m.PlotTop
 		-- Only what FillCommand needs later is kept on the frame.
-		self.scoreBaseline = top + scoreH
-		self.plotHeight = math.max(20, graphH - 14)
+		self.scoreBaseline = m.ScoreBaseline
+		self.plotHeight = m.PlotHeight
 
 		self:GetChild("CountersTopRule"):xy(contentX, countersTop):zoomto(contentInnerW, 1)
 		self:GetChild("CountersBottomRule")
@@ -388,6 +474,12 @@ local body = Def.ActorFrame{
 				:xy(contentX + i*contentInnerW/16, plotTop):zoomto(0.6, plotHeight)
 		end
 		self:GetChild("Density"):xy(contentX, plotTop + plotHeight)
+
+		-- Solo only: the rule that closes the graph off from the radar below it,
+		-- drawn like the ones that bracket the counters.
+		local divider = self:GetChild("GraphRadarRule")
+		divider:visible(m.DividerY ~= nil)
+		if m.DividerY then divider:xy(contentX, m.DividerY):zoomto(contentInnerW, 1) end
 	end,
 	FillCommand=function(self, p)
 		local data = p.Data
@@ -481,6 +573,7 @@ body[#body+1] = H.Rule{Name="Plot", Tint=H.Panel2}
 for i=1, 15 do
 	body[#body+1] = H.Rule{Name="PlotGrid"..i}
 end
+body[#body+1] = H.Rule{Name="GraphRadarRule"}
 body[#body+1] = Def.ActorMultiVertex{
 	Name="Density",
 	InitCommand=function(self) self:SetDrawState({Mode="DrawMode_QuadStrip"}) end,
@@ -492,12 +585,24 @@ af[#af+1] = body
 local radarColumn = Def.ActorFrame{
 	Name="RadarColumn",
 	LayOutCommand=function(self, p)
-		local columnX = cardX + contentW + 1
+		if p.Solo then
+			-- Solo: the radar sits in the content column, under the shortened
+			-- density graph, and is free to grow to that column's width.  The
+			-- height cap counts the label ring, not just the hexagon, so the top
+			-- and bottom axis names cannot ride over the rule above or the card
+			-- edge below.
+			local top = p.Metrics.RadarTop
+			local available = p.Metrics.RadarHeight - 18
+			local radius = math.min(radarMaxRadiusSolo, (available/2 - 10)/radarLabelDistance)
+			self.radarRadius = radius
+			self:GetChild("Caption"):xy(contentX, top + 4)
+			self:GetChild("Radar"):xy(contentX + contentInnerW/2, top + 18 + available/2)
+			return
+		end
+
+		local columnX = radarColumnX
 		self:GetChild("Caption"):xy(columnX + 18, p.BodyTop + 16)
-		-- The hexagon is centred in whatever the caption leaves.  The cap is what
-		-- keeps the widest axis label inside the column: a label sits at 1.28
-		-- radii, the two side axes stand at cos(30) of that, and the label
-		-- itself is allowed radarLabelWidth beyond that point.
+		-- The hexagon is centred in whatever the caption leaves.
 		local available = p.BodyHeight - 34
 		local radius = math.min(radarMaxRadius, available/2 - 16)
 		self.radarRadius = radius
@@ -567,11 +672,20 @@ for i=1, radarAxisCount do
 end
 af[#af+1] = radarColumn
 
+-- ----------------------------------------------------------- leaderboards
+
+-- Solo only: the column the radar leaves is where this player's two
+-- leaderboards go, local above and GrooveStats below.
+af[#af+1] = LoadActor(
+	THEME:GetPathB("ScreenSelectMusic", "overlay/VOLT26/Leaderboards.lua"),
+	{H=H, Player=player, X=radarColumnX, Width=cardX + cardW - radarColumnX}
+)
+
 -- ------------------------------------------------------------------ preview
 
 af[#af+1] = LoadActor(
 	THEME:GetPathB("ScreenSelectMusic", "overlay/VOLT26/ChartStrip.lua"),
-	{H=H, Player=player, X=previewX, Width=previewW}
+	{H=H, Player=player, X=previewX, Width=previewColW}
 )
 
 H.AddSettledRefresh(af, 0.30, 18, 0)

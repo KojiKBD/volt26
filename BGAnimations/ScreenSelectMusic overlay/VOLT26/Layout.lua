@@ -25,6 +25,12 @@ H.P2     = color("#2f7de0")
 -- The songwheel rail: a red desaturated far enough to read as structure rather
 -- than as a second accent.
 H.Rail   = color("#3a2020")
+-- Everything standing off the card's solid body -- the two leaderboards, the
+-- preview strip, the card's own header band -- shares one ground: the panel
+-- colour held back from full strength, so the screen's backdrop still reads
+-- through it the way it does behind the songwheel.  Enough to carry text,
+-- not enough to close the screen off again.
+H.ScrimAlpha = 0.65
 
 -- Typography.  The design calls for Oswald and Space Mono; the theme ships
 -- neither, so VOLT26.Type fills the two roles with the closest faces it does
@@ -59,6 +65,54 @@ H.DisplayText = textActor(H.Display, H.DisplayZoom, H.Ink)
 
 function H.String(key)
 	return THEME:GetString("ScreenSelectMusic", key)
+end
+
+-- Video artwork.  Songs and packs may ship their banner as a movie, and such a
+-- file cannot go through the image cache -- the cache holds stills only, so
+-- LoadFromCached quietly fails and the art never appears.  A movie has to be
+-- loaded from its own path and have its decoder switched on, and it reports no
+-- size at all until its first frame lands, which is why nothing may be fitted
+-- into a box before H.ArtReady says so.
+H.MovieExtensions = {
+	avi=true, f4v=true, flv=true, mkv=true, mp4=true, mpeg=true,
+	mpg=true, mov=true, ogv=true, ogg=true, webm=true, wmv=true,
+}
+
+function H.IsMovie(path)
+	return type(path) == "string"
+		and H.MovieExtensions[(path:match("%.([^.]+)$") or ""):lower()] == true
+end
+
+-- Answers whether the artwork loaded, so the caller can fall back.
+function H.LoadArt(sprite, path, cacheDir)
+	if type(path) ~= "string" or path == "" then return false end
+	if H.IsMovie(path) then
+		return pcall(function()
+			sprite:Load(path)
+			if sprite.SetDecodeMovie then sprite:SetDecodeMovie(true) end
+			sprite:animate(true)
+		end)
+	end
+	return pcall(function()
+		sprite:LoadFromCached(cacheDir, path)
+		sprite:animate(false)
+	end)
+end
+
+function H.ArtReady(sprite)
+	local ok, ready = pcall(function()
+		return sprite:GetWidth() > 1 and sprite:GetHeight() > 1
+	end)
+	return ok and ready or false
+end
+
+-- Releases a movie's decoder.  A still needs none of this, and calling it on
+-- one is harmless.
+function H.StopArt(sprite)
+	pcall(function()
+		if sprite.SetDecodeMovie then sprite:SetDecodeMovie(false) end
+		sprite:animate(false)
+	end)
 end
 
 function H.Rule(t)
@@ -117,6 +171,18 @@ function H.SelectedSection()
 	return wheel and wheel:GetSelectedSection() or nil
 end
 
+function H.SelectedPack()
+	if GAMESTATE:IsCourseMode() then return nil end
+	local selected = H.SelectedType()
+	local sort = GAMESTATE:GetSortOrder()
+	if (sort == "SortOrder_Group" or sort == "SortOrder_Series") and
+		(selected == "WheelItemDataType_Section" or selected == "WheelItemDataType_ParentSection") then
+		local group = H.SelectedSection()
+		return group and group ~= "" and group or nil
+	end
+	return nil
+end
+
 function H.Item()
 	local selected = H.SelectedType()
 	if GAMESTATE:IsCourseMode() then
@@ -154,6 +220,8 @@ end
 -- The top bar, the song header and the songwheel's sticky heading all read the
 -- same answer, so they cannot disagree.
 function H.Pack()
+	local selectedPack = H.SelectedPack()
+	if selectedPack then return selectedPack end
 	local song = not GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentSong() or nil
 	local group = song and song.GetGroupName and song:GetGroupName() or nil
 	if group and group ~= "" then return group end
@@ -303,12 +371,17 @@ function H.PreviewSource()
 	return player, H.Chart(player)
 end
 
+-- One joined player gets the whole band to itself, and that changes the row's
+-- shape rather than just its height: see PlayerRow's solo layout.
+function H.IsSolo()
+	return #GAMESTATE:GetHumanPlayers() <= 1
+end
+
 -- Each player owns one row.  A lone player's row takes the whole band, which is
 -- what gives its density graph and preview their extra height.
 function H.RowGeometry(player)
-	local humans = GAMESTATE:GetHumanPlayers()
 	local band = H.InnerBottom - H.InnerTop
-	if #humans <= 1 then return H.InnerTop, band end
+	if H.IsSolo() then return H.InnerTop, band end
 	local height = (band - H.RowGap)/2
 	if player == PLAYER_1 then return H.InnerTop, height end
 	return H.InnerTop + height + H.RowGap, height
@@ -420,6 +493,7 @@ local rowLayer = Def.ActorFrame{
 }
 rowLayer[#rowLayer+1] = LoadActor(componentPath("PlayerRow.lua"), {H=H, Player=PLAYER_1})
 rowLayer[#rowLayer+1] = LoadActor(componentPath("PlayerRow.lua"), {H=H, Player=PLAYER_2})
+rowLayer[#rowLayer+1] = LoadActor(componentPath("GroupPreview.lua"), H)
 af[#af+1] = rowLayer
 
 af[#af+1] = LoadActor(componentPath("Footer.lua"), H)

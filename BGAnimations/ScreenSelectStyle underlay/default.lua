@@ -4,28 +4,32 @@ local af
 local current_game = GAMESTATE:GetCurrentGame():GetName()
 ------------------------------------------------------------------------------------
 
+-- Pads are tinted with the fixed theme accents: P1 red, P2 violet.
+local P1Color = PlayerColor(PLAYER_1, true)
+local P2Color = PlayerColor(PLAYER_2, true)
+
 local choices = {
 	{
 		name="single",
 		x=_screen.cx-SL_WideScale(160, 214),
 		pads = {
-			{color=GetHexColor(SL.Global.ActiveColorIndex, true), offset=0}
+			{color=P1Color, offset=0}
 		}
 	},
 	{
 		name="versus",
 		x=_screen.cx,
 		pads = {
-			{color=GetHexColor(SL.Global.ActiveColorIndex-1, true), offset=-SL_WideScale(42,51)},
-			{color=GetHexColor(SL.Global.ActiveColorIndex+2, true), offset= SL_WideScale(42,51)}
+			{color=P1Color, offset=-SL_WideScale(42,51)},
+			{color=P2Color, offset= SL_WideScale(42,51)}
 		}
 	},
 	{
 		name="double",
 		x=_screen.cx+SL_WideScale(160, 214),
 		pads = {
-			{color=GetHexColor(SL.Global.ActiveColorIndex+1, true), offset=-SL_WideScale(42,51)},
-			{color=GetHexColor(SL.Global.ActiveColorIndex+1, true), offset= SL_WideScale(42,51)}
+			{color=P1Color, offset=-SL_WideScale(42,51)},
+			{color=P1Color, offset= SL_WideScale(42,51)}
 		}
 	},
 }
@@ -34,7 +38,7 @@ if current_game=="dance" and ThemePrefs.Get("AllowDanceSolo") then
 	choices[1].x = _screen.cx - SL_WideScale(210,245)
 	choices[2].x = _screen.cx - SL_WideScale(75,90)
 	choices[3].x = _screen.cx + SL_WideScale(75,90)
-	choices[4] = { name="solo", pads={ {color=GetHexColor(SL.Global.ActiveColorIndex, true), offset=0}}, x=_screen.cx + SL_WideScale(210,245) }
+	choices[4] = { name="solo", pads={ {color=P1Color, offset=0}}, x=_screen.cx + SL_WideScale(210,245) }
 
 -- double is not a valid style in kb7 and para
 elseif current_game=="kb7" or current_game=="para" then

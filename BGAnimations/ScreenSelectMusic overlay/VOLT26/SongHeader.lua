@@ -66,17 +66,15 @@ local af = Def.ActorFrame{
 		local banner = self:GetChild("Banner")
 		local path = item and bannerPath() or nil
 		if path and self.loadedPath ~= path then
-			local ok = pcall(function()
-				banner:Load(path)
-				banner:animate(true)
-				if banner.SetDecodeMovie then banner:SetDecodeMovie(true) end
-			end)
-			self.loadedPath = ok and path or nil
+			H.StopArt(banner)
+			self.loadedPath = H.LoadArt(banner, path, "Banner") and path or nil
 		elseif not path then
+			H.StopArt(banner)
 			self.loadedPath = nil
 		end
 		banner:visible(self.loadedPath ~= nil)
-		if self.loadedPath then fitBanner(banner) end
+		self.fitTries = 0
+		if self.loadedPath then self:playcommand("FitBanner") end
 
 		local eyebrow = self:GetChild("Eyebrow")
 		H.SetLabel(eyebrow, H.String("NowSelected").." - "..H.String("SharedInfo"), 11, 620)
@@ -98,10 +96,29 @@ local af = Def.ActorFrame{
 			x = x + math.max(label:GetZoomedWidth(), value:GetZoomedWidth()) + metaGap
 		end
 	end,
+	-- A movie banner has no size until its first frame is decoded, and fitting
+	-- one before then measures nothing and blows it up to fill the screen.  The
+	-- fit is retried for a second or so and then given up on, so a file the
+	-- decoder cannot open does not leave this running for the life of the screen.
+	FitBannerCommand=function(self)
+		if not self.loadedPath then return end
+		local banner = self:GetChild("Banner")
+		if H.ArtReady(banner) then
+			fitBanner(banner)
+			return
+		end
+		self.fitTries = (self.fitTries or 0) + 1
+		if self.fitTries > 40 then
+			banner:visible(false)
+			return
+		end
+		banner:stoptweening():sleep(0.03):queuecommand("RetryFit")
+	end,
 }
 
 af[#af+1] = Def.Sprite{
 	Name="Banner",
+	RetryFitCommand=function(self) self:GetParent():playcommand("FitBanner") end,
 	InitCommand=function(self)
 		self:visible(false)
 		-- The fade is the sprite's own vertex alpha rather than a mask: the

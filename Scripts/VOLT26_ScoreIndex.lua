@@ -142,6 +142,17 @@ local function mergeEntry(entry, score)
 		entry.ExDateTime = score.DateTime
 	end
 
+	-- ScreenSelectProfile reports a profile's best combo, and the combo of the
+	-- best-scoring run is not necessarily the best combo the profile has ever
+	-- held, so it is tracked independently of both comparisons above.  Indexes
+	-- written before this field existed are not invalidated for it: a rebuild
+	-- costs a full snapshot walk, and the value fills itself in as scores are
+	-- recorded.
+	local combo = tonumber(score.MaxCombo)
+	if combo and (entry.MaxCombo == nil or combo > entry.MaxCombo) then
+		entry.MaxCombo = combo
+	end
+
 	return entry
 end
 

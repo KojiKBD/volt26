@@ -24,25 +24,36 @@ function GetHexColor( n, decorative )
 	return Color.White
 end
 
--- convenience function to return the current color from SL.Colors
+-- The theme accent is fixed.  ScreenSelectColor was removed, so there is no
+-- runtime colour choice any more: everything shared uses the brand accent
+-- (Phantom Red) and Player 2 is differentiated with Metaverse Violet.
+local function AccentIndex( pn )
+	local brand = SL.VOLT26
+	if not brand then return 1 end
+	if pn ~= nil and brand.PlayerAccentColorIndex then
+		local index = brand.PlayerAccentColorIndex[pn]
+		if index then return index end
+	end
+	return brand.AccentColorIndex or 1
+end
+
+-- convenience function to return the theme accent
 function GetCurrentColor( decorative )
-	return GetHexColor( SL.Global.ActiveColorIndex, decorative )
+	return GetHexColor( AccentIndex(nil), decorative )
 end
 
 function PlayerColor( pn, decorative )
-	if pn == PLAYER_1 then return GetHexColor(SL.Global.ActiveColorIndex, decorative) end
-	if pn == PLAYER_2 then return GetHexColor(SL.Global.ActiveColorIndex-2, decorative) end
-	return Color.White
+	if pn ~= PLAYER_1 and pn ~= PLAYER_2 then return Color.White end
+	return GetHexColor( AccentIndex(pn), decorative )
 end
 
 function DifficultyColor( difficulty, decorative )
-	if (difficulty == nil or difficulty == "Difficulty_Edit") then return color("#B4B7BA") end
-
-	-- use the reverse lookup functionality available to all SM enums
-	-- to map a difficulty string to a number
-	-- SM's enums are 0 indexed, so Beginner is 0, Challenge is 4, and Edit is 5
-	local clr = SL.Global.ActiveColorIndex + (Difficulty:Reverse()[difficulty] - 4)
-	return GetHexColor(clr, decorative)
+	-- Difficulty colours are independent of the accent; they come from the
+	-- fixed per-difficulty palette owned by VOLT26.ChartData.
+	if VOLT26 and VOLT26.ChartData and VOLT26.ChartData.GetDifficultyColor then
+		return VOLT26.ChartData.GetDifficultyColor(difficulty)
+	end
+	return color("#B4B7BA")
 end
 
 function LightenColor(c)
