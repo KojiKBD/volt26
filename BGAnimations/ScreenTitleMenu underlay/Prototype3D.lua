@@ -350,23 +350,23 @@ local function CreateOpeningCredits()
         card[#card+1] = LoadFont("Helvetica Bold")..{
             Text=credit.heading,
             InitCommand=function(self)
-                self:y(-22):zoom(0.68):maxwidth(_screen.w * 1.25)
-                    :diffuse(Color.White):shadowlength(2)
+                self:y(-18):zoom(0.52):maxwidth(_screen.w * 1.25)
+                    :diffuse(Color.White):shadowlength(0)
             end,
         }
         card[#card+1] = LoadFont("Helvetica Normal")..{
             Text=credit.name,
             InitCommand=function(self)
-                self:y(12):zoom(0.82):maxwidth(_screen.w * 1.05)
-                    :diffuse(Color.White):shadowlength(2)
+                self:y(9):zoom(0.62):maxwidth(_screen.w * 1.05)
+                    :diffuse(Color.White):shadowlength(0)
             end,
         }
         if credit.sub then
             card[#card+1] = LoadFont("Helvetica Normal")..{
                 Text=credit.sub,
                 InitCommand=function(self)
-                    self:y(43):zoom(0.58):maxwidth(_screen.w * 1.4)
-                        :diffuse(Color.White):shadowlength(2)
+                    self:y(34):zoom(0.44):maxwidth(_screen.w * 1.4)
+                        :diffuse(Color.White):shadowlength(0)
                 end,
             }
         end
@@ -378,8 +378,8 @@ local function CreateOpeningCredits()
         Text="THIS IS AN UNOFFICIAL, NON-PROFIT FAN-MADE THEME CREATED STRICTLY FOR PERSONAL ENJOYMENT. ALL MUSIC, LOGOS, ART DIRECTION, AND REFERENCES TO THE PERSONA SERIES\nBELONG ENTIRELY TO ATLUS / SEGA. THIS PROJECT IS NOT AFFILIATED WITH, ENDORSED BY, OR MONETIZED IN ANY WAY BY ATLUS. ALL RIGHTS RESERVED TO THEIR RESPECTIVE OWNERS.",
         InitCommand=function(self)
             self:y(_screen.h/2 - 24):valign(1):horizalign(center)
-                :zoom(0.34):wrapwidthpixels((_screen.w * 0.94) / 0.34)
-                :diffuse(Color.White):shadowlength(2)
+                :zoom(0.26):wrapwidthpixels((_screen.w * 0.94) / 0.26)
+                :diffuse(Color.White):shadowlength(0)
         end,
         OnCommand=function(self)
             if not introActive then self:visible(false) return end

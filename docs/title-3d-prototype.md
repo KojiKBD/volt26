@@ -16,9 +16,10 @@ Back/Escape deliberately clears that guard and reloads `ScreenTitleMenu`, restar
 the complete cinematic without exposing the intermediate VOLT26 logo screen. The
 usual selected-banner dive is skipped for this replay transition.
 
-All credit and disclaimer text uses uppercase white Helvetica. The four cards now
-carry the owner-approved concept/design, visual/art, development, and special-thanks
-attributions for Koji, Dando, Chriyl, and the VOLT Team.
+All credit and disclaimer text uses compact uppercase white Helvetica without text
+shadows. The four cards carry the owner-approved concept/design, visual/art,
+development, and special-thanks attributions for Koji, Dando, Chriyl, and the
+VOLT Team.
 
 Verification: static review pending an in-engine framing, timing, and input test.
 

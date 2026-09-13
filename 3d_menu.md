@@ -12,9 +12,10 @@ for a total camera sequence of 10.6 seconds. Native title navigation is redirect
 during the cinematic and restored on landing or early screen exit. Subsequent
 returns to ScreenTitleMenu still begin directly at Gameplay.
 
-The four credit cards and unchanged legal disclaimer render in uppercase white
-Helvetica. Their current attribution copy credits Koji, Dando, Chriyl, and the
-VOLT Team across concept/design, visual/art, development, and special thanks.
+The four credit cards and unchanged legal disclaimer render in compact uppercase
+white Helvetica without text shadows. Their current attribution copy credits Koji,
+Dando, Chriyl, and the VOLT Team across concept/design, visual/art, development,
+and special thanks.
 
 Back/Escape is the explicit replay control: `ScreenTitleMenu` now reloads itself
 instead of returning through `ScreenInit`, clears the once-per-runtime guard and
