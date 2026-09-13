@@ -310,10 +310,10 @@ end
 
 local function CreateOpeningCredits()
     local credits = {
-        { heading="CONCEPT & DESIGN", name="VOLT Team" },
-        { heading="VISUALS & ART", name="Koji" },
-        { heading="PROGRAMMING", name="Koji, Mrs GLM 5.2, Sir GPT" },
-        { heading="SPECIAL THANKS", name="Dando and the VOLT Team", sub="for testing, ideation, and QA" },
+        { heading="CONCEPT E DESIGN", name="KOJI & DANDO" },
+        { heading="VISUAL & ART", name="KOJI" },
+        { heading="DEVELOPMENT", name="KOJI, DANDO, CHRIYL" },
+        { heading="SPECIAL THANKS TO:", name="DANDO, CHRIYL, THE VOLT TEAM", sub="FOR TESTING, IDEATION AND QA" },
     }
     local creditStart, creditStep = 0.35, 1.45
     local logoHit, logoFade = 6.45, 8.05
@@ -347,14 +347,14 @@ local function CreateOpeningCredits()
                     :accelerate(0.22):y(-18):diffusealpha(0)
             end,
         }
-        card[#card+1] = LoadFont("Common Normal")..{
+        card[#card+1] = LoadFont("Helvetica Bold")..{
             Text=credit.heading,
             InitCommand=function(self)
                 self:y(-22):zoom(0.68):maxwidth(_screen.w * 1.25)
-                    :diffuse(color("#FF3030")):shadowlength(2)
+                    :diffuse(Color.White):shadowlength(2)
             end,
         }
-        card[#card+1] = LoadFont("Common Normal")..{
+        card[#card+1] = LoadFont("Helvetica Normal")..{
             Text=credit.name,
             InitCommand=function(self)
                 self:y(12):zoom(0.82):maxwidth(_screen.w * 1.05)
@@ -362,24 +362,24 @@ local function CreateOpeningCredits()
             end,
         }
         if credit.sub then
-            card[#card+1] = LoadFont("Common Normal")..{
+            card[#card+1] = LoadFont("Helvetica Normal")..{
                 Text=credit.sub,
                 InitCommand=function(self)
                     self:y(43):zoom(0.58):maxwidth(_screen.w * 1.4)
-                        :diffuse(color("#D0D0D0")):shadowlength(2)
+                        :diffuse(Color.White):shadowlength(2)
                 end,
             }
         end
         overlay[#overlay+1] = card
     end
 
-    overlay[#overlay+1] = LoadFont("Common Normal")..{
+    overlay[#overlay+1] = LoadFont("Helvetica Normal")..{
         Name="VOLT26Disclaimer",
-        Text="This is an unofficial, non-profit fan-made theme created strictly for personal enjoyment. All music, logos, art direction, and references to the Persona series\nbelong entirely to ATLUS / SEGA. This project is not affiliated with, endorsed by, or monetized in any way by ATLUS. All rights reserved to their respective owners.",
+        Text="THIS IS AN UNOFFICIAL, NON-PROFIT FAN-MADE THEME CREATED STRICTLY FOR PERSONAL ENJOYMENT. ALL MUSIC, LOGOS, ART DIRECTION, AND REFERENCES TO THE PERSONA SERIES\nBELONG ENTIRELY TO ATLUS / SEGA. THIS PROJECT IS NOT AFFILIATED WITH, ENDORSED BY, OR MONETIZED IN ANY WAY BY ATLUS. ALL RIGHTS RESERVED TO THEIR RESPECTIVE OWNERS.",
         InitCommand=function(self)
             self:y(_screen.h/2 - 24):valign(1):horizalign(center)
                 :zoom(0.34):wrapwidthpixels((_screen.w * 0.94) / 0.34)
-                :diffuse(color("#D0D0D0")):shadowlength(2)
+                :diffuse(Color.White):shadowlength(2)
         end,
         OnCommand=function(self)
             if not introActive then self:visible(false) return end
