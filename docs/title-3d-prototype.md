@@ -3,13 +3,11 @@
 ## Event countdown billboard (2026-09-13)
 
 Branch: `codex/restore-3d-countdown`. The existing Re:Spark day counter and
-player-message tagline are restored inside `Prototype3D.lua` as a perspective
-surface on the street-facing facade of `SKYLINE_02_00`. Its placement follows
-the owner's marked upper-facade area in the 1920x1080 opening view. Because the
-actor is a child of the city room, it follows camera travel, sway, roll, and
-perspective instead of floating at a fixed screen coordinate. The surface sits
-0.03 m in front of the facade to avoid z-fighting and retains the minute-based
-day refresh and marquee behavior.
+player-message tagline are restored inside `Prototype3D.lua`. Its normalized
+screen placement follows the owner's marked upper-facade area in the 1920x1080
+opening view and scales down for smaller viewports. The actor renders after the
+perspective pass so the city depth buffer cannot hide it on affected hardware.
+It retains the minute-based day refresh and marquee behavior.
 
 Verification: static review and `git diff --check` passed. An in-engine visual
 check is still pending.
