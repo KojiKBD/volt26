@@ -1,7 +1,9 @@
 -- Title banner artwork drawn straight onto a 3D banner surface: concentric red
--- stars expanding behind the entry's caption. Returns the canvas size and its
--- layers back to front; the caller places every layer on the surface. Canvas
--- coordinates are centered pixels of the 1408x512 banner movies this replaced.
+-- shapes expanding behind the entry's caption. Gameplay keeps the original star;
+-- Edit, Options and Exit use a circle, triangle and hexagon respectively. Returns
+-- the canvas size and its layers back to front; the caller places every layer on
+-- the surface. Canvas coordinates are centered pixels of the 1408x512 movies this
+-- replaced.
 local caption = ...
 
 local Width, Height = 1408, 512
@@ -18,6 +20,12 @@ local CaptionX, CaptionY, CaptionZoom = 713 - Width/2, 361 - Height/2, 1.45
 -- Opaque bounds shared by every 1920x1080 caption PNG, so the quad carries no
 -- transparent margin.
 local CaptionCrop = {left = 680/1920, right = 1 - 1230/1920, top = 350/1080, bottom = 1 - 586/1080}
+local ShapeByCaption = {
+	gameplay = "star",
+	edit = "circle",
+	options = "triangle",
+	exit = "hexagon",
+}
 
 local halfWidth, halfHeight = Width/2, Height/2
 local halfDiagonal = math.sqrt(halfWidth^2 + halfHeight^2)
@@ -55,7 +63,7 @@ end
 -- Inside each center/tip/inner-corner triangle the distance to the nearest edge
 -- line grows linearly, so interpolated texture coordinates trace exact concentric
 -- stars from a wrapping stripe texture.
-local function StripeVertices()
+local function StarStripeVertices()
 	local tipRadius = halfDiagonal / InnerRadiusRatio * 1.05
 	local rimU = tipRadius * EdgeDistanceRatio / PairWidth
 	local corners = {}
@@ -75,6 +83,39 @@ local function StripeVertices()
 		end
 	end
 	return vertices
+end
+
+-- A fan whose outer vertices share one texture coordinate produces exact scaled
+-- copies of a convex polygon at every interpolated coordinate. With enough sides
+-- the same construction becomes the circular rings from the owner's reference.
+local function ConvexStripeVertices(points, rotation)
+	local inradiusRatio = math.cos(math.pi / points)
+	local radius = halfDiagonal / inradiusRatio * 1.05
+	local rimU = radius * inradiusRatio / PairWidth
+	local corners = {}
+	for i = 0, points do
+		local angle = math.rad(rotation + i * 360 / points)
+		corners[i] = {radius * math.cos(angle), radius * math.sin(angle), rimU}
+	end
+
+	local vertices = {}
+	for i = 0, points - 1 do
+		local polygon = ClipToCanvas({{0, 0, 0}, corners[i], corners[i+1]})
+		for k = 2, #polygon - 1 do
+			for _, point in ipairs({polygon[1], polygon[k], polygon[k+1]}) do
+				vertices[#vertices+1] = {{point[1], point[2], 0}, Color.White, {point[3], 0.5}}
+			end
+		end
+	end
+	return vertices
+end
+
+local function StripeVertices()
+	local shape = ShapeByCaption[caption] or "star"
+	if shape == "circle" then return ConvexStripeVertices(96, -90) end
+	if shape == "triangle" then return ConvexStripeVertices(3, -90) end
+	if shape == "hexagon" then return ConvexStripeVertices(6, 0) end
+	return StarStripeVertices()
 end
 
 local function GradientVertices()

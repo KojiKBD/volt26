@@ -16,7 +16,7 @@ billboard retains the minute-based day refresh and marquee behavior.
 Verification: static review and `git diff --check` passed. An in-engine visual
 check is still pending.
 
-## Live star banners replace the movies (2026-09-13)
+## Live geometric banners replace the movies (updated 2026-09-14)
 
 Branch: `codex/title-star-banners`. The AVI sprites are gone.
 `ScreenTitleMenu underlay/StarBanner.lua` returns three layers in a centered
@@ -25,11 +25,13 @@ each layer on its banner surface one further 0.02 m lift toward the street, so
 coplanar layers cannot z-fight:
 
 1. a radial dark-red gradient on an 8x4 vertex-colored grid;
-2. the stripes: ten center/tip/inner-corner star triangles, clipped to the canvas
-   once at load and textured with the wrapping `TitleTravelCity/star_stripes.png`
-   (64x4, red and transparent halves). Texture coordinates are the distance to the
-   star's edge lines, which is linear inside each triangle, so translating the
-   texture every frame expands exact concentric stars;
+2. the stripes, clipped to the canvas once at load and textured with the wrapping
+   `TitleTravelCity/star_stripes.png` (64x4, red and transparent halves). Gameplay
+   retains its ten center/tip/inner-corner star triangles. On
+   `codex/banner-shape-animations`, Edit uses a 96-sided circle fan, Options an
+   upright triangle fan, and Exit a flat-top hexagon fan, following the owner's
+   supplied symbols. Equal texture coordinates on each convex outer edge make
+   every translated stripe an exact scaled copy of that polygon;
 3. the caption PNG, cropped to the opaque bounds shared by all four captions.
 
 Cost follows the banners' on-screen pixels, and nothing is drawn off screen. An
