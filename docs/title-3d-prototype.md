@@ -3,11 +3,13 @@
 ## Event countdown billboard (2026-09-13)
 
 Branch: `codex/restore-3d-countdown`. The existing Re:Spark day counter and
-player-message tagline are restored inside `Prototype3D.lua`. Its normalized
-screen placement follows the owner's marked upper-facade area in the 1920x1080
-opening view and scales down for smaller viewports. The actor renders after the
-perspective pass so the city depth buffer cannot hide it on affected hardware.
-It retains the minute-based day refresh and marquee behavior.
+player-message tagline are restored inside `Prototype3D.lua` as a fifth,
+navigation-only title-menu choice. Moving right from Exit flies the camera to a
+perspective surface on the street-facing facade of the tall central
+`END_BLOCK_01` building; moving left returns to Exit. The fifth `GameCommand`
+contains text but no screen action, so Start broadcasts the engine's normal
+empty-choice message and stays on the title menu. The billboard retains the
+minute-based day refresh and marquee behavior.
 
 Verification: static review and `git diff --check` passed. An in-engine visual
 check is still pending.

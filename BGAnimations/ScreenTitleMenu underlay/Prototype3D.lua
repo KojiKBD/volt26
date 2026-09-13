@@ -42,6 +42,8 @@ local banners = {
     {x = 10.953, y = 19.342, z = 13.896, nx =  0, ny = -1, nz = 0, tx = 1, ty =  0, side = -1, roll =  3},
     {x = -0.012, y = 48.000, z =  0.405, nx =  0, ny =  0, nz = 1, tx = 0, ty =  1, side = -1, roll = -3},
     {x =  6.615, y = 72.000, z = 21.157, nx = -1, ny =  0, nz = 0, tx = 0, ty = -1, side =  1, roll =  3},
+    -- Navigation-only countdown on the central building at the end of the street.
+    {x =  0.000, y = 91.875, z = 20.000, nx =  0, ny = -1, nz = 0, tx = 1, ty =  0, side = -1, roll = -3},
 }
 
 local positions, dives = {}, {}
@@ -106,12 +108,12 @@ local bannerSurfaces = {
      nx = -1, ny = 0, nz = 0},
 }
 
--- Keep the event countdown in front of the 3D pass.  Its normalized offset
--- matches the marked upper facade in the 1920x1080 opening view while remaining
--- stable at other aspect ratios.  Rendering it inside Room allowed the city
--- depth pass to hide the bitmap on some hardware.
-local countdownPlacement = {
-    x = 0.289, y = -0.120, zoom = 0.46,
+-- Navigation stop five mounts the countdown on the street-facing facade of the
+-- tall central END_BLOCK_01 building.  OBJ coordinates are X across the street,
+-- Y up and Z along it; the small positive Z lift clears the facade skin.
+local countdownSurface = {
+    x = 0.0, y = 20.0, z = -91.875,
+    width = 7.5, lift = 0.03,
 }
 
 local function CivilDay(year, month, day)
@@ -147,9 +149,10 @@ local function CreateCountdownBillboard()
     local countdown = Def.ActorFrame{
         Name = "VOLT26_CountdownBillboard",
         InitCommand=function(self)
-            local referenceScale = math.min(SCREEN_WIDTH / 1920, SCREEN_HEIGHT / 1080)
-            self:xy(SCREEN_WIDTH * countdownPlacement.x, SCREEN_HEIGHT * countdownPlacement.y)
-                :zoom(countdownPlacement.zoom * referenceScale)
+            local zoom = countdownSurface.width * modelUnits / designWidth
+            self:xy(countdownSurface.x * modelUnits, -countdownSurface.y * modelUnits)
+                :z((countdownSurface.z + countdownSurface.lift) * modelUnits)
+                :zoom(zoom)
         end,
         OnCommand=function(self)
             if VOLT26.PlayerMessages then VOLT26.PlayerMessages.Load() end
@@ -274,6 +277,7 @@ for part=0,modelParts-1 do
         InitCommand=function(self) self:cullmode("CullMode_None"):zbuffer(true) end,
     }
 end
+room[#room+1] = CreateCountdownBillboard()
 local starBannerPath = THEME:GetPathB("ScreenTitleMenu", "underlay/StarBanner.lua")
 for _, banner in ipairs(bannerSurfaces) do
     local artwork = LoadActor(starBannerPath, banner.caption)
@@ -302,7 +306,7 @@ return Def.ActorFrame{
     VOLT26_HoverMessageCommand=function(self, params)
         local idx = params and params.idx
         if diving then return end
-        if type(idx) ~= "number" or idx%1 ~= 0 or idx < 0 or idx > 3 or idx == selected then return end
+        if type(idx) ~= "number" or idx%1 ~= 0 or idx < 0 or idx > 4 or idx == selected then return end
         bankDirection = idx > selected and 1 or -1
         selected = idx
         start, target, elapsed = current, positions[idx+1], 0
@@ -390,5 +394,4 @@ return Def.ActorFrame{
             },
         },
     },
-    CreateCountdownBillboard(),
 }
