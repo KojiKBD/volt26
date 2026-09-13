@@ -289,53 +289,13 @@ local function BlendPose(from, to, amount)
     return pose
 end
 
-local function AddEllipse(vertices, cx, cy, rx, ry, segments)
-    for i = 0, segments - 1 do
-        local a = math.pi * 2 * i / segments
-        local b = math.pi * 2 * (i + 1) / segments
-        vertices[#vertices+1] = {{cx, cy, 0}, Color.White}
-        vertices[#vertices+1] = {{cx + math.cos(a)*rx, cy + math.sin(a)*ry, 0}, Color.White}
-        vertices[#vertices+1] = {{cx + math.cos(b)*rx, cy + math.sin(b)*ry, 0}, Color.White}
-    end
-end
-
-local function AddRectangle(vertices, left, top, right, bottom)
-    local points = {
-        {left, top, 0}, {right, top, 0}, {right, bottom, 0},
-        {left, top, 0}, {right, bottom, 0}, {left, bottom, 0},
-    }
-    for _, point in ipairs(points) do vertices[#vertices+1] = {point, Color.White} end
-end
-
--- Screen-space illustrated clouds pass upward while the camera falls. The larger
--- black copy supplies the heavy Persona-style contour; the warm-white inset keeps
--- them readable against the solid red sky without looking photographic.
-local function CloudVertices()
-    local vertices = {}
-    AddEllipse(vertices, -70,  2, 54, 34, 18)
-    AddEllipse(vertices, -20, -18, 70, 52, 20)
-    AddEllipse(vertices,  43, -4, 60, 40, 18)
-    AddEllipse(vertices,  85,  8, 42, 29, 16)
-    AddRectangle(vertices, -112, 0, 118, 35)
-    return vertices
-end
-
-local cloudVertices = CloudVertices()
-
-local function CloudMesh(name, tint, zoom, y)
-    return Def.ActorMultiVertex{
-        Name=name,
-        InitCommand=function(self)
-            self:y(y):zoom(zoom):diffuse(tint)
-                :SetDrawState({Mode="DrawMode_Triangles"})
-                :SetNumVertices(#cloudVertices):SetVertices(cloudVertices)
-        end,
-    }
-end
-
+-- Screen-space illustrated clouds, extracted from the owner's supplied artwork,
+-- pass upward while the camera falls. Each source crop retains its original white
+-- body, pale-blue shadows and highlight strokes on a transparent background.
 local function CreateCloud(index, config)
-    return Def.ActorFrame{
+    return Def.Sprite{
         Name="SkyCloud"..index,
+        Texture=THEME:GetPathG("", "VOLT26/TitleTravelCity/clouds/"..config.asset..".png"),
         InitCommand=function(self)
             self:xy(config.x, config.y):zoom(config.scale):diffusealpha(0)
         end,
@@ -345,9 +305,6 @@ local function CreateCloud(index, config)
                 :linear(config.travel):addy(-_screen.h * 1.42):addx(config.drift)
                 :linear(0.18):diffusealpha(0)
         end,
-        CloudMesh("Outline", color("#111116"), 1.10, 3),
-        CloudMesh("Fill", color("#F1F0E9"), 1.00, 0),
-        CloudMesh("Shade", color("#A8A9AD"), 0.82, 12),
     }
 end
 
@@ -366,10 +323,12 @@ local function CreateOpeningCredits()
     }
 
     local clouds = {
-        {x=-_screen.w*0.34, y=_screen.h*0.62, scale=0.78, delay=0.10, travel=4.55, drift= 75},
-        {x= _screen.w*0.30, y=_screen.h*0.66, scale=1.08, delay=0.85, travel=4.90, drift=-95},
-        {x=-_screen.w*0.08, y=_screen.h*0.61, scale=0.58, delay=2.05, travel=4.10, drift= 55},
-        {x= _screen.w*0.40, y=_screen.h*0.58, scale=0.70, delay=3.10, travel=3.35, drift=-45},
+        {asset="cloud_01", x=-_screen.w*0.36, y=_screen.h*0.62, scale=1.05, delay=0.05, travel=4.35, drift= 70},
+        {asset="cloud_02", x= _screen.w*0.27, y=_screen.h*0.66, scale=0.90, delay=0.70, travel=4.75, drift=-90},
+        {asset="cloud_03", x=-_screen.w*0.05, y=_screen.h*0.60, scale=0.92, delay=1.40, travel=4.10, drift= 45},
+        {asset="cloud_04", x= _screen.w*0.40, y=_screen.h*0.63, scale=1.00, delay=2.10, travel=3.95, drift=-50},
+        {asset="cloud_05", x=-_screen.w*0.28, y=_screen.h*0.65, scale=0.86, delay=2.75, travel=3.65, drift= 65},
+        {asset="cloud_06", x= _screen.w*0.16, y=_screen.h*0.67, scale=0.78, delay=3.35, travel=3.20, drift=-60},
     }
     for i, config in ipairs(clouds) do
         overlay[#overlay+1] = CreateCloud(i, config)

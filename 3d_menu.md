@@ -4,8 +4,8 @@
 
 On `codex/title-sky-opening-credits`, the once-per-runtime title opening begins
 125 m above the approach road with a shallow 12-degree pitch. During an
-8.35-second, almost vertical descent against the red sky, four procedurally drawn,
-outlined clouds pass upward while the existing credit cards and disclaimer appear
+8.35-second, almost vertical descent against the red sky, six transparent cloud
+sprites extracted from the owner-supplied artwork pass upward while the existing credit cards and disclaimer appear
 in sequence, followed by the VOLT26 logo and knife impact. The logo fades before
 a final 2.25-second flight from the overview to Gameplay,
 for a total camera sequence of 10.6 seconds. Native title navigation is redirected

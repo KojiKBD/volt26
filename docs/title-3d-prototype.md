@@ -5,8 +5,8 @@
 Branch: `codex/title-sky-opening-credits`. The first title visit now starts with
 the camera 125 m above the approach road. Its first leg drops almost vertically
 with a shallow pitch so the four opening-credit cards and disclaimer remain against
-the red sky. Four procedurally drawn, outlined clouds travel upward across that
-screen-space composition during the fall. The VOLT26 logo follows the cards, fades
+the red sky. Six transparent cloud sprites extracted from the owner-supplied artwork
+travel upward across that screen-space composition during the fall. The VOLT26 logo follows the cards, fades
 out, and the camera then takes 2.25 seconds
 to settle on Gameplay. Input is redirected for the full 10.6-second cinematic and
 released on landing or early exit. `ScreenInit` retains its compatibility check
