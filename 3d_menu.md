@@ -12,6 +12,11 @@ for a total camera sequence of 10.6 seconds. Native title navigation is redirect
 during the cinematic and restored on landing or early screen exit. Subsequent
 returns to ScreenTitleMenu still begin directly at Gameplay.
 
+Back/Escape is the explicit replay control: `ScreenTitleMenu` now reloads itself
+instead of returning through `ScreenInit`, clears the once-per-runtime guard and
+the old handoff flag, and starts the complete sky sequence again from frame zero.
+The normal banner-dive exit is suppressed for this self-reload.
+
 The presentation moved out of `ScreenInit`; that screen now retains only the
 compatibility check and a 0.35-second black handoff. The old full-screen star-frame
 intro is not loaded. In-engine timing, sky framing, and input restoration remain

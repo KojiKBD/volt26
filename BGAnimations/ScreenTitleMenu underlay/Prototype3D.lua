@@ -265,6 +265,7 @@ local selected = 0
 local bankDirection = 1
 local clock = 0
 local diving = false
+local restartingIntro = false
 
 local function InteractWithCountdown()
     if selected == 4 and not diving then
@@ -519,6 +520,22 @@ return Def.ActorFrame{
     MenuStartP2MessageCommand=InteractWithCountdown,
     OnCommand=function(self)
         _G.Volt26CityIntroPlayed = true
+        local screen = SCREENMAN:GetTopScreen()
+        if screen then
+            screen:AddInputCallback(function(event)
+                if event and event.type == "InputEventType_FirstPress"
+                and event.GameButton == "Back" then
+                    restartingIntro = true
+                    _G.Volt26CityIntroPlayed = nil
+                    _G.Volt26InitHandoff = false
+                    RedirectIntroInput(false)
+                    Trace("[VOLT26 3D] Back requested; restarting sky opening")
+                    screen:SetPrevScreenName("ScreenTitleMenu"):begin_backing_out()
+                    return true
+                end
+                return false
+            end)
+        end
         if introActive then
             RedirectIntroInput(true)
             Trace("[VOLT26 3D] Sky opening with credits started")
@@ -572,6 +589,10 @@ return Def.ActorFrame{
     -- screen is alive until its wipe finishes, and the dive has to play under it.
     OffCommand=function(self)
         if introActive then RedirectIntroInput(false) end
+        if restartingIntro then
+            self:SetUpdateFunction(nil)
+            return
+        end
         if diving then return end
         diving, introActive = true, false
         start, target, elapsed = current, positions[selected+1].dive, 0

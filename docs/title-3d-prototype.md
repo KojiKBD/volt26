@@ -12,6 +12,9 @@ to settle on Gameplay. Input is redirected for the full 10.6-second cinematic an
 released on landing or early exit. `ScreenInit` retains its compatibility check
 but is reduced to a 0.35-second black handoff. The existing once-per-runtime guard
 still prevents the cinematic from replaying on ordinary title-menu returns.
+Back/Escape deliberately clears that guard and reloads `ScreenTitleMenu`, restarting
+the complete cinematic without exposing the intermediate VOLT26 logo screen. The
+usual selected-banner dive is skipped for this replay transition.
 
 Verification: static review pending an in-engine framing, timing, and input test.
 
