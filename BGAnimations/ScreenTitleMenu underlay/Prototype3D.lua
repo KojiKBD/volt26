@@ -4,7 +4,7 @@ local modelParts = 4  -- must match `model_parts` in import-info.json
 local fov = 65
 local duration = 1.1
 local introDuration = 10.6
-local introLandingStart = 8.25
+local introLandingStart = 8.35
 
 -- RageDisplay::LoadMenuPerspective builds GetFrustumMatrix(..., 1, eyeDistance+1000)
 -- and puts the eye at world z = eyeDistance, so the far plane always lands on world
@@ -250,11 +250,12 @@ local function CreateCountdownBillboard()
 end
 
 local introActive = not _G.Volt26CityIntroPlayed
--- The room stores the inverse eye position. Begin 70 m above the approach road,
--- looking down at the city; pause at an elevated overview after the logo, then
--- make the final descent to Gameplay.
-local skyPose = {0, 70*modelUnits, -30*modelUnits, 0, -2, 58}
-local overviewPose = {0, 18*modelUnits, -25*modelUnits, 10, -6, 18}
+-- The room stores the inverse eye position. Begin well above the skyline and keep
+-- almost the same street coordinate for the first leg: the camera now drops nearly
+-- vertically through the red sky instead of advancing diagonally over the roofs.
+-- A shallow pitch keeps the city below the credit cards until the logo has played.
+local skyPose = {0, 125*modelUnits, -30*modelUnits, 0, 0, 12}
+local overviewPose = {0, 28*modelUnits, -30*modelUnits, 3, -2, 10}
 local current = introActive and skyPose or positions[1]
 local start, target = current, positions[1]
 local activeDuration = introActive and introDuration or duration
@@ -287,6 +288,68 @@ local function BlendPose(from, to, amount)
     return pose
 end
 
+local function AddEllipse(vertices, cx, cy, rx, ry, segments)
+    for i = 0, segments - 1 do
+        local a = math.pi * 2 * i / segments
+        local b = math.pi * 2 * (i + 1) / segments
+        vertices[#vertices+1] = {{cx, cy, 0}, Color.White}
+        vertices[#vertices+1] = {{cx + math.cos(a)*rx, cy + math.sin(a)*ry, 0}, Color.White}
+        vertices[#vertices+1] = {{cx + math.cos(b)*rx, cy + math.sin(b)*ry, 0}, Color.White}
+    end
+end
+
+local function AddRectangle(vertices, left, top, right, bottom)
+    local points = {
+        {left, top, 0}, {right, top, 0}, {right, bottom, 0},
+        {left, top, 0}, {right, bottom, 0}, {left, bottom, 0},
+    }
+    for _, point in ipairs(points) do vertices[#vertices+1] = {point, Color.White} end
+end
+
+-- Screen-space illustrated clouds pass upward while the camera falls. The larger
+-- black copy supplies the heavy Persona-style contour; the warm-white inset keeps
+-- them readable against the solid red sky without looking photographic.
+local function CloudVertices()
+    local vertices = {}
+    AddEllipse(vertices, -70,  2, 54, 34, 18)
+    AddEllipse(vertices, -20, -18, 70, 52, 20)
+    AddEllipse(vertices,  43, -4, 60, 40, 18)
+    AddEllipse(vertices,  85,  8, 42, 29, 16)
+    AddRectangle(vertices, -112, 0, 118, 35)
+    return vertices
+end
+
+local cloudVertices = CloudVertices()
+
+local function CloudMesh(name, tint, zoom, y)
+    return Def.ActorMultiVertex{
+        Name=name,
+        InitCommand=function(self)
+            self:y(y):zoom(zoom):diffuse(tint)
+                :SetDrawState({Mode="DrawMode_Triangles"})
+                :SetNumVertices(#cloudVertices):SetVertices(cloudVertices)
+        end,
+    }
+end
+
+local function CreateCloud(index, config)
+    return Def.ActorFrame{
+        Name="SkyCloud"..index,
+        InitCommand=function(self)
+            self:xy(config.x, config.y):zoom(config.scale):diffusealpha(0)
+        end,
+        OnCommand=function(self)
+            if not introActive then self:visible(false) return end
+            self:sleep(config.delay):linear(0.16):diffusealpha(0.94)
+                :linear(config.travel):addy(-_screen.h * 1.42):addx(config.drift)
+                :linear(0.18):diffusealpha(0)
+        end,
+        CloudMesh("Outline", color("#111116"), 1.10, 3),
+        CloudMesh("Fill", color("#F1F0E9"), 1.00, 0),
+        CloudMesh("Shade", color("#A8A9AD"), 0.82, 12),
+    }
+end
+
 local function CreateOpeningCredits()
     local credits = {
         { heading="CONCEPT & DESIGN", name="VOLT Team" },
@@ -300,6 +363,16 @@ local function CreateOpeningCredits()
         Name="VOLT26_OpeningCredits",
         InitCommand=function(self) self:visible(introActive) end,
     }
+
+    local clouds = {
+        {x=-_screen.w*0.34, y=_screen.h*0.62, scale=0.78, delay=0.10, travel=4.55, drift= 75},
+        {x= _screen.w*0.30, y=_screen.h*0.66, scale=1.08, delay=0.85, travel=4.90, drift=-95},
+        {x=-_screen.w*0.08, y=_screen.h*0.61, scale=0.58, delay=2.05, travel=4.10, drift= 55},
+        {x= _screen.w*0.40, y=_screen.h*0.58, scale=0.70, delay=3.10, travel=3.35, drift=-45},
+    }
+    for i, config in ipairs(clouds) do
+        overlay[#overlay+1] = CreateCloud(i, config)
+    end
 
     for i, credit in ipairs(credits) do
         local startTime = creditStart + (i - 1) * creditStep

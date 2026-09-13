@@ -3,10 +3,11 @@
 ## Sky descent with opening credits (2026-09-14)
 
 On `codex/title-sky-opening-credits`, the once-per-runtime title opening begins
-70 m above the approach road with a 58-degree downward pitch. During an
-8.25-second descent to an elevated city overview, the four existing credit cards
-and disclaimer appear in sequence, followed by the VOLT26 logo and knife impact.
-The logo fades before a final 2.35-second flight from the overview to Gameplay,
+125 m above the approach road with a shallow 12-degree pitch. During an
+8.35-second, almost vertical descent against the red sky, four procedurally drawn,
+outlined clouds pass upward while the existing credit cards and disclaimer appear
+in sequence, followed by the VOLT26 logo and knife impact. The logo fades before
+a final 2.25-second flight from the overview to Gameplay,
 for a total camera sequence of 10.6 seconds. Native title navigation is redirected
 during the cinematic and restored on landing or early screen exit. Subsequent
 returns to ScreenTitleMenu still begin directly at Gameplay.

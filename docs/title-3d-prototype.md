@@ -3,10 +3,11 @@
 ## Sky descent opening sequence (2026-09-14)
 
 Branch: `codex/title-sky-opening-credits`. The first title visit now starts with
-the camera 70 m above the approach road, pitched down over the city. The four
-opening-credit cards and disclaimer moved from `ScreenInit` into the 3D title
-composition and play during an 8.25-second descent to an elevated overview. The
-VOLT26 logo follows the cards, fades out, and the camera then takes 2.35 seconds
+the camera 125 m above the approach road. Its first leg drops almost vertically
+with a shallow pitch so the four opening-credit cards and disclaimer remain against
+the red sky. Four procedurally drawn, outlined clouds travel upward across that
+screen-space composition during the fall. The VOLT26 logo follows the cards, fades
+out, and the camera then takes 2.25 seconds
 to settle on Gameplay. Input is redirected for the full 10.6-second cinematic and
 released on landing or early exit. `ScreenInit` retains its compatibility check
 but is reduced to a 0.35-second black handoff. The existing once-per-runtime guard
