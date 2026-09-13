@@ -13,7 +13,9 @@
 -- screens own all of that.
 --
 -- Geometry is written in the theme's own 854x480 coordinate space, top-left
--- anchored, so a caller positions a box by the corner it can see.
+-- anchored, so a caller positions a box by the corner it can see.  Widths were
+-- drawn for 16:9 and shrink through Chrome.WidthScale on narrower screens;
+-- heights and type sizes do not.
 
 local Chrome = {}
 
@@ -54,6 +56,42 @@ Chrome.Metrics = {
 
 function Chrome.Right()
 	return _screen.w - Chrome.Metrics.Margin
+end
+
+function Chrome.ContentWidth()
+	return _screen.w - Chrome.Metrics.Margin * 2
+end
+
+-- 814 is the width between the margins at 16:9, the width the layouts were drawn at.
+function Chrome.WidthScale()
+	return math.min(1, Chrome.ContentWidth() / 814)
+end
+
+function Chrome.Round(value)
+	return math.floor(value + 0.5)
+end
+
+-- What the cabinet is running on, worded as the system layer words it.  These
+-- screens hide the system layer's footer, which would sit on their key hints,
+-- and say it in the hints instead.
+function Chrome.CabinetText()
+	if PREFSMAN:GetPreference("EventMode") then
+		return THEME:GetString("ScreenSystemLayer", "EventMode")
+	end
+
+	local mode = GAMESTATE:GetCoinMode()
+	if mode == "CoinMode_Pay" then
+		local credits = GetCredits()
+		local text = ("%s %d"):format(THEME:GetString("ScreenSystemLayer", "CreditsCredits"), credits.Credits)
+		if credits.CoinsPerCredit > 1 then
+			text = text .. (" %d/%d"):format(credits.Remainder, credits.CoinsPerCredit)
+		end
+		return text
+	end
+	if mode == "CoinMode_Free" then
+		return THEME:GetString("ScreenSystemLayer", "FreePlay")
+	end
+	return ""
 end
 
 -- ----------------------------------------------------------------------------
@@ -165,18 +203,18 @@ local function Tab(params)
 	return Def.ActorFrame{
 		Name = "Tab"..params.name,
 		InitCommand=function(self)
-			self:xy(params.x, params.y)
+			self:y(params.y)
 
 			local label = self:GetChild("Label")
 			local width = label:GetZoomedWidth() + 20
 			local height = 16
 
 			-- The label is centred in the pill, and the pill is laid out from
-			-- its right edge so that a row of tabs can be packed right-to-left
-			-- without measuring twice.
+			-- its right edge so that a row of tabs can be packed right-to-left.
 			self:GetChild("Border"):zoomto(width, height)
 			self:GetChild("Fill"):zoomto(width-2, height-2)
 			label:xy(-width/2 + 10, 0)
+			self.width = width
 		end,
 
 		Def.Quad{
@@ -192,10 +230,12 @@ local function Tab(params)
 					:diffusealpha(active and 0.12 or Chrome.SurfaceAlpha)
 			end,
 		},
+		-- The accent border shows through the translucent fill, so the active
+		-- pill reads as solid accent and its word takes the text colour.
 		Chrome.Label{
 			name="Label", text=params.name, px=9,
 			halign=1, valign=0.5,
-			color=active and accent or Chrome.Color.Dim,
+			color=active and Chrome.Color.Text or Chrome.Color.Dim,
 		},
 	}
 end
@@ -208,6 +248,15 @@ function Chrome.TitleBlock(params)
 
 	local af = Def.ActorFrame{
 		Name="TitleBlock",
+		-- Tabs are packed from the right edge inwards once each has measured itself.
+		InitCommand=function(self)
+			local x = Chrome.Right()
+			for i = #params.tabs, 1, -1 do
+				local tab = self:GetChild("Tab"..params.tabs[i])
+				tab:x(x)
+				x = x - tab.width - 6
+			end
+		end,
 		OnCommand=function(self) self:diffusealpha(0):linear(0.15):diffusealpha(1) end,
 		OffCommand=function(self) self:linear(0.12):diffusealpha(0) end,
 
@@ -224,18 +273,11 @@ function Chrome.TitleBlock(params)
 		},
 	}
 
-	-- Tabs are packed from the right edge inwards, each one measuring itself.
-	local x = Chrome.Right()
-	for i = #params.tabs, 1, -1 do
-		local name = params.tabs[i]
+	for _, name in ipairs(params.tabs) do
 		af[#af+1] = Tab{
-			name=name, x=x, y=m.HeaderTop+13,
+			name=name, y=m.HeaderTop+13,
 			accent=accent, active=(name == params.active),
 		}
-		-- Pill widths are text-derived, so the next slot is stepped by a
-		-- generous constant rather than a measurement that is not available
-		-- until the child has initialised.
-		x = x - (#name * 5.5 + 28)
 	end
 
 	return af
@@ -265,6 +307,11 @@ function Chrome.Hints(params)
 
 	local af = Def.ActorFrame{
 		Name="Hints",
+		-- The action follows the button word at whatever length a language gives it.
+		InitCommand=function(self)
+			local button = self:GetChild("Button")
+			self:GetChild("Action"):x(m.Margin + button:GetZoomedWidth() + 6)
+		end,
 		OnCommand=function(self) self:diffusealpha(0):sleep(0.1):linear(0.15):diffusealpha(1) end,
 		OffCommand=function(self) self:linear(0.12):diffusealpha(0) end,
 
@@ -275,14 +322,21 @@ function Chrome.Hints(params)
 			end,
 		},
 		Chrome.Label{ name="Button", text=params.button or "Start", px=9, x=m.Margin, y=m.HintsY, color=accent },
-		Chrome.Label{ name="Action", text=params.action or "", px=9, x=m.Margin+38, y=m.HintsY, color=Chrome.Color.Dim },
+		Chrome.Label{ name="Action", text=params.action or "", px=9, y=m.HintsY, color=Chrome.Color.Dim },
 	}
 
+	-- `params.center` is a function, re-read whenever credits change.
 	if params.center then
-		af[#af+1] = Chrome.Label{
-			name="Center", text=params.center, px=9,
+		local center = Chrome.Label{
+			name="Center", text=params.center(), px=9,
 			x=_screen.cx, y=m.HintsY, halign=0.5, color=Chrome.Color.Faint,
 		}
+		local function Refresh(self)
+			VOLT26.Type.SetLabel(self, params.center():upper(), 9)
+		end
+		center.CoinsChangedMessageCommand = Refresh
+		center.CoinModeChangedMessageCommand = Refresh
+		af[#af+1] = center
 	end
 
 	if params.right then

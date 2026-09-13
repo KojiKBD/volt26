@@ -18,11 +18,10 @@ local function input(event)
 		MESSAGEMAN:Broadcast("LeaderboardInputEvent", event)
 	end
 
-	-- Pressing Start or Back (typically Esc on a keyboard) will queue "DirectInputToEngine"
-	-- but only if the event.type is not a Release.
-	-- As soon as the Leaderboard is activated via the SortMenu, the player is likely still holding Start
-	-- and will soon release it to start testing their input, which would inadvertently close the Leaderboard.
-	if (event.GameButton == "Start" or event.GameButton == "Back") and event.type ~= "InputEventType_Release" then
+	-- Pressing Start or Back (typically Esc on a keyboard) will queue "DirectInputToEngine",
+	-- but only on a first press: the Start that opened the Leaderboard from the SortMenu is
+	-- usually still held, and its repeats or release would close it straight away.
+	if (event.GameButton == "Start" or event.GameButton == "Back") and event.type == "InputEventType_FirstPress" then
 		overlay:queuecommand("DirectInputToEngine")
 	end
 

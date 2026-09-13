@@ -19,6 +19,22 @@ local readyPlayers = {
 
 local PreferredStyle = VOLT26.Profile.GetPreferredStyle()
 
+-- Only a press this screen saw begin counts.  Start or Select can still be held
+-- from the Song Select menu that opened the screen, and their repeats would
+-- otherwise confirm, unready or unjoin a player before any new press.
+local pressed = {}
+
+local function IsOwnPress(event)
+	local key = tostring(event.PlayerNumber) .. event.button
+	if event.type == "InputEventType_FirstPress" then
+		pressed[key] = true
+	elseif event.type == "InputEventType_Release" then
+		pressed[key] = nil
+		return false
+	end
+	return pressed[key] == true
+end
+
 local Handle = {}
 
 -- ----------------------------------------------------------------------------
@@ -214,8 +230,8 @@ local InputHandler = function(event)
 	if not event or not event.button then return false end
 	if (((PreferredStyle=="single" or PreferredStyle=="double") and #GAMESTATE:GetHumanPlayers() == 1) and event.PlayerNumber ~= GAMESTATE:GetMasterPlayerNumber()) then return false	end
 
-	if event.type ~= "InputEventType_Release" then
-		if Handle[event.GameButton] then Handle[event.GameButton](event) end
+	if IsOwnPress(event) and Handle[event.GameButton] then
+		Handle[event.GameButton](event)
 	end
 end
 
