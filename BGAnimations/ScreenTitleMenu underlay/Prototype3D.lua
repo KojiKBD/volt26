@@ -106,6 +106,137 @@ local bannerSurfaces = {
      nx = -1, ny = 0, nz = 0},
 }
 
+-- The event countdown is mounted on the street-facing facade of SKYLINE_02_00.
+-- OBJ coordinates are X across the street, Y up and Z along the street.  The
+-- small positive Z lift keeps the artwork just in front of the building skin.
+local countdownSurface = {
+    x = 19.0, y = 12.0, z = 21.546227,
+    width = 5.8, lift = 0.03,
+}
+
+local function CivilDay(year, month, day)
+    if month <= 2 then year = year - 1 end
+    local era = math.floor(year / 400)
+    local yearOfEra = year - era * 400
+    local adjustedMonth = month + (month > 2 and -3 or 9)
+    local dayOfYear = math.floor((153 * adjustedMonth + 2) / 5) + day - 1
+    return era * 146097 + yearOfEra * 365
+        + math.floor(yearOfEra / 4) - math.floor(yearOfEra / 100) + dayOfYear
+end
+
+local function DaysUntilRespark()
+    local target = CivilDay(2026, 12, 5)
+    local today = CivilDay(Year(), MonthOfYear() + 1, DayOfMonth())
+    return math.max(0, target - today)
+end
+
+local function FitCountdownText(actor, text, start, width)
+    local last = start - 1
+    for i = start, #text do
+        actor:settext(text:sub(start, i))
+        if actor:GetWidth() > width then break end
+        last = i
+    end
+    return text:sub(start, math.max(start, last))
+end
+
+local function CreateCountdownBillboard()
+    local designWidth, designHeight = 456, 136
+    local phraseWidth = 405
+    local refreshElapsed = 60
+    local countdown = Def.ActorFrame{
+        Name = "VOLT26_CountdownBillboard",
+        InitCommand=function(self)
+            local zoom = countdownSurface.width * modelUnits / designWidth
+            self:xy(countdownSurface.x * modelUnits, -countdownSurface.y * modelUnits)
+                :z((countdownSurface.z + countdownSurface.lift) * modelUnits)
+                :zoom(zoom)
+        end,
+        OnCommand=function(self)
+            if VOLT26.PlayerMessages then VOLT26.PlayerMessages.Load() end
+            self:SetUpdateFunction(function(frame, delta)
+                refreshElapsed = refreshElapsed + (delta or 0)
+                if refreshElapsed >= 60 then
+                    refreshElapsed = 0
+                    MESSAGEMAN:Broadcast("VOLT26_CountdownRefresh")
+                end
+
+                local phrase = frame:GetChild("EventPhrase")
+                if not phrase or not phrase.VOLT26_MarqueeMaxStart then return end
+                phrase.VOLT26_MarqueeTimer = phrase.VOLT26_MarqueeTimer + (delta or 0)
+                if phrase.VOLT26_MarqueeTimer < phrase.VOLT26_MarqueeStepTime then return end
+                phrase.VOLT26_MarqueeTimer = 0
+
+                phrase.VOLT26_MarqueeStart = phrase.VOLT26_MarqueeStart
+                    + phrase.VOLT26_MarqueeDirection
+                if phrase.VOLT26_MarqueeStart >= phrase.VOLT26_MarqueeMaxStart then
+                    phrase.VOLT26_MarqueeStart = phrase.VOLT26_MarqueeMaxStart
+                    phrase.VOLT26_MarqueeDirection = -1
+                    phrase.VOLT26_MarqueeTimer = -phrase.VOLT26_MarqueeHoldTime
+                elseif phrase.VOLT26_MarqueeStart <= 1 then
+                    phrase.VOLT26_MarqueeStart = 1
+                    phrase.VOLT26_MarqueeDirection = 1
+                    phrase.VOLT26_MarqueeTimer = -phrase.VOLT26_MarqueeHoldTime
+                end
+                phrase:settext(FitCountdownText(phrase, phrase.VOLT26_MarqueeText,
+                    phrase.VOLT26_MarqueeStart, phraseWidth))
+            end)
+        end,
+        OffCommand=function(self) self:SetUpdateFunction(nil) end,
+    }
+
+    countdown[#countdown+1] = LoadActor(THEME:GetPathG("", "VOLT26/daysuntil.png"))..{
+        InitCommand=function(self)
+            self:halign(0.5):valign(0.5):zoomto(designWidth, designHeight)
+        end,
+    }
+
+    for slot = 1, 3 do
+        countdown[#countdown+1] = LoadFont("_Combo Fonts/VOLT26/VOLT26")..{
+            Name="DaysRemaining"..slot,
+            InitCommand=function(self)
+                self:y(-15):zoom(1.18):diffuse(0, 0, 0, 1):shadowlength(0)
+            end,
+            OnCommand=function(self) self:queuecommand("Refresh") end,
+            VOLT26_CountdownRefreshMessageCommand=function(self) self:playcommand("Refresh") end,
+            RefreshCommand=function(self)
+                local value = string.format("%03d", DaysUntilRespark())
+                self:settext(value:sub(slot, slot)):x(151 + (slot - 2) * 34)
+            end,
+        }
+    end
+
+    countdown[#countdown+1] = LoadFont("Persona")..{
+        Name="EventPhrase",
+        Text=VOLT26.Brand.RandomTagline(),
+        InitCommand=function(self)
+            local fullText = self:GetText()
+            self:xy(-7, 34):zoom(0.82):diffuse(0, 0, 0, 1):shadowlength(0)
+            if self:GetWidth() <= phraseWidth or #fullText == 0 then
+                self:maxwidth(phraseWidth)
+                return
+            end
+
+            local maxStart = #fullText
+            for start = #fullText, 1, -1 do
+                self:settext(fullText:sub(start))
+                if self:GetWidth() > phraseWidth then break end
+                maxStart = start
+            end
+            self.VOLT26_MarqueeText = fullText
+            self.VOLT26_MarqueeMaxStart = maxStart
+            self.VOLT26_MarqueeStart = 1
+            self.VOLT26_MarqueeDirection = 1
+            self.VOLT26_MarqueeTimer = -1.6
+            self.VOLT26_MarqueeHoldTime = 1.6
+            self.VOLT26_MarqueeStepTime = 0.12
+            self:settext(FitCountdownText(self, fullText, 1, phraseWidth))
+        end,
+    }
+
+    return countdown
+end
+
 local introActive = not _G.Volt26CityIntroPlayed
 local openingPose = {0, 9.5*modelUnits, -25*modelUnits, 10, -6, 0}
 local current = introActive and openingPose or positions[1]
@@ -144,6 +275,7 @@ for part=0,modelParts-1 do
         InitCommand=function(self) self:cullmode("CullMode_None"):zbuffer(true) end,
     }
 end
+room[#room+1] = CreateCountdownBillboard()
 local starBannerPath = THEME:GetPathB("ScreenTitleMenu", "underlay/StarBanner.lua")
 for _, banner in ipairs(bannerSurfaces) do
     local artwork = LoadActor(starBannerPath, banner.caption)
