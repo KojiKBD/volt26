@@ -88,11 +88,18 @@ function PM.Load()
 end
 
 -- Returns "NAME: message", or nil if we have no player messages (yet),
--- in which case the caller should fall back to the built-in taglines.
-function PM.RandomLine()
+-- in which case the caller should fall back to the built-in taglines.  When an
+-- excluded line is supplied, walk the randomized list until another line is
+-- found so interactive consumers do not immediately repeat themselves.
+function PM.RandomLine(excluded)
 	if #PM.List == 0 then return nil end
-	local entry = PM.List[math.random(#PM.List)]
-	return entry.name .. ": " .. entry.message
+	local first = math.random(#PM.List)
+	for offset = 0, #PM.List - 1 do
+		local index = ((first + offset - 1) % #PM.List) + 1
+		local entry = PM.List[index]
+		local line = entry.name .. ": " .. entry.message
+		if line ~= excluded or #PM.List == 1 then return line end
+	end
 end
 
 do

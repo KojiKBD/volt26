@@ -38,13 +38,13 @@ VOLT26.Brand = {
 	GetLogo = function()
 		return "logo_main (doubleres).png"
 	end,
-	RandomTagline = function()
+    RandomTagline = function(excluded)
 		-- Prefer live player messages pulled from the Google Sheet (see
 		-- Scripts/VOLT26_PlayerMessages.lua). The lines below are only an
 		-- emergency fallback for when no sheet data has ever been loaded
 		-- (e.g. first launch with no network yet).
-		local sheetLine = VOLT26.PlayerMessages and VOLT26.PlayerMessages.RandomLine()
-		if sheetLine then return sheetLine end
+		local sheetLine = VOLT26.PlayerMessages and VOLT26.PlayerMessages.RandomLine(excluded)
+		if sheetLine and sheetLine ~= excluded then return sheetLine end
 
 		local lines = {
 			"TAKE YOUR HEART",
@@ -53,7 +53,12 @@ VOLT26.Brand = {
 			"WELCOME TO VOLT26"
 		}
 
-		return lines[math.random(#lines)]
+		local first = math.random(#lines)
+		for offset = 0, #lines - 1 do
+			local line = lines[((first + offset - 1) % #lines) + 1]
+			if line ~= excluded then return line end
+		end
+		return lines[first]
 	end,
 	Activate = function(self)
 		-- The accent is a constant, so activation only has to make sure the

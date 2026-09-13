@@ -146,6 +146,29 @@ local function CreateCountdownBillboard()
     local designWidth, designHeight = 456, 136
     local phraseWidth = 405
     local refreshElapsed = 60
+    local function SetPhrase(actor, fullText)
+        actor.VOLT26_FullText = fullText
+        actor.VOLT26_MarqueeMaxStart = nil
+        actor.VOLT26_MarqueeText = nil
+        actor:settext(fullText)
+        if actor:GetWidth() <= phraseWidth or #fullText == 0 then return end
+
+        local maxStart = #fullText
+        for start = #fullText, 1, -1 do
+            actor:settext(fullText:sub(start))
+            if actor:GetWidth() > phraseWidth then break end
+            maxStart = start
+        end
+        actor.VOLT26_MarqueeText = fullText
+        actor.VOLT26_MarqueeMaxStart = maxStart
+        actor.VOLT26_MarqueeStart = 1
+        actor.VOLT26_MarqueeDirection = 1
+        actor.VOLT26_MarqueeTimer = -1.6
+        actor.VOLT26_MarqueeHoldTime = 1.6
+        actor.VOLT26_MarqueeStepTime = 0.12
+        actor:settext(FitCountdownText(actor, fullText, 1, phraseWidth))
+    end
+
     local countdown = Def.ActorFrame{
         Name = "VOLT26_CountdownBillboard",
         InitCommand=function(self)
@@ -212,27 +235,13 @@ local function CreateCountdownBillboard()
         Name="EventPhrase",
         Text=VOLT26.Brand.RandomTagline(),
         InitCommand=function(self)
-            local fullText = self:GetText()
             self:xy(-7, 34):zoom(0.82):diffuse(0, 0, 0, 1):shadowlength(0)
-            if self:GetWidth() <= phraseWidth or #fullText == 0 then
-                self:maxwidth(phraseWidth)
-                return
-            end
-
-            local maxStart = #fullText
-            for start = #fullText, 1, -1 do
-                self:settext(fullText:sub(start))
-                if self:GetWidth() > phraseWidth then break end
-                maxStart = start
-            end
-            self.VOLT26_MarqueeText = fullText
-            self.VOLT26_MarqueeMaxStart = maxStart
-            self.VOLT26_MarqueeStart = 1
-            self.VOLT26_MarqueeDirection = 1
-            self.VOLT26_MarqueeTimer = -1.6
-            self.VOLT26_MarqueeHoldTime = 1.6
-            self.VOLT26_MarqueeStepTime = 0.12
-            self:settext(FitCountdownText(self, fullText, 1, phraseWidth))
+            SetPhrase(self, self:GetText())
+        end,
+        VOLT26_CountdownNextPhraseMessageCommand=function(self)
+            local nextText = VOLT26.Brand.RandomTagline(self.VOLT26_FullText)
+            SetPhrase(self, nextText)
+            self:stoptweening():diffusealpha(0):linear(0.12):diffusealpha(1)
         end,
     }
 
@@ -250,6 +259,12 @@ local selected = 0
 local bankDirection = 1
 local clock = 0
 local diving = false
+
+local function InteractWithCountdown()
+    if selected == 4 and not diving then
+        MESSAGEMAN:Broadcast("VOLT26_CountdownNextPhrase")
+    end
+end
 
 -- Handheld idle motion. Pairs of incommensurate sines never settle into a visible
 -- repeat within a title session, so the parked shot keeps breathing. Amplitudes are
@@ -313,6 +328,8 @@ return Def.ActorFrame{
         activeDuration, arrivalDelay = duration, 0
         introActive = false
     end,
+    MenuStartP1MessageCommand=InteractWithCountdown,
+    MenuStartP2MessageCommand=InteractWithCountdown,
     OnCommand=function(self)
         _G.Volt26CityIntroPlayed = true
         if introActive then Trace("[VOLT26 3D] Opening camera flight started") end

@@ -8,8 +8,10 @@ navigation-only title-menu choice. Moving right from Exit flies the camera to a
 perspective surface on the street-facing facade of the tall central
 `END_BLOCK_01` building; moving left returns to Exit. The fifth `GameCommand`
 contains text but no screen action, so Start broadcasts the engine's normal
-empty-choice message and stays on the title menu. The billboard retains the
-minute-based day refresh and marquee behavior.
+empty-choice message and stays on the title menu. Each Start interaction chooses
+a new player message, resets its marquee, and fades the replacement text in;
+consecutive repeats are avoided whenever another message is available. The
+billboard retains the minute-based day refresh and marquee behavior.
 
 Verification: static review and `git diff --check` passed. An in-engine visual
 check is still pending.
