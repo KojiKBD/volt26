@@ -1,5 +1,21 @@
 # VOLT26 3D menu handoff
 
+## Sky descent with opening credits (2026-09-14)
+
+On `codex/title-sky-opening-credits`, the once-per-runtime title opening begins
+70 m above the approach road with a 58-degree downward pitch. During an
+8.25-second descent to an elevated city overview, the four existing credit cards
+and disclaimer appear in sequence, followed by the VOLT26 logo and knife impact.
+The logo fades before a final 2.35-second flight from the overview to Gameplay,
+for a total camera sequence of 10.6 seconds. Native title navigation is redirected
+during the cinematic and restored on landing or early screen exit. Subsequent
+returns to ScreenTitleMenu still begin directly at Gameplay.
+
+The presentation moved out of `ScreenInit`; that screen now retains only the
+compatibility check and a 0.35-second black handoff. The old full-screen star-frame
+intro is not loaded. In-engine timing, sky framing, and input restoration remain
+pending owner verification.
+
 ## Live geometric banners (updated 2026-09-14)
 
 On `codex/title-star-banners`, the four banners no longer play AVI movies.
@@ -226,15 +242,16 @@ Current settings in the main camera Lua:
   +59/-59 degrees, or 31 degrees away from a frontal view of the facade.
 - Settled roll alternates -3/+3 degrees. Navigation adds a temporary 7-degree bank
   and interpolates from the current pose when interrupted. Travel duration: 1.1 s.
-- Opening pose: street center X=0, Blender Y=-25 m, height=9.5 m, yaw=10 degrees,
-  roll=-6 degrees. Opening duration: 2.8 s, toward Play; extra travel bank 3 degrees.
+- Opening begins at street center X=0, Blender Y=-30 m, height=70 m, yaw=0,
+  roll=-2 degrees, pitch=58 degrees. It descends to an elevated overview over
+  8.25 seconds while credits and logo play, then reaches Gameplay over 2.35 seconds.
 - `_G.Volt26CityIntroPlayed` guards the opening once per Lua runtime. Returning to
   the title does not replay it. A fresh game launch resets this flag. A theme reload
   that retains Lua globals may retain the flag too.
-- If `_G.Volt26InitHandoff` is true, opening motion waits 0.9 s for the existing
-  ScreenInit overlay. Changing to another menu choice interrupts the opening and
-  uses a normal 1.1-second transition; Start is still handled by the native screen.
-- Red background remains `#FF0000`; no prototype text or letterbox quads returned.
+- ScreenInit performs only a 0.35-second black handoff. Title input is redirected
+  throughout the 10.6-second opening and restored when the camera lands.
+- Red background remains `#FF0000`; opening credits and the logo are screen-space
+  children over the full-screen 3D viewport.
 
 Verified on the latest direct-title startup: log records intro start at 00:01.702
 and completion at 00:04.502 (exactly 2.8 seconds), with no Lua errors or missing
@@ -242,10 +259,11 @@ assets. A settled oblique banner view with visibly wider surrounding buildings,
 red background, and full-screen coverage was inspected at 1920x1080. `git diff
 --check` passed. The game was left open for owner review.
 
-Not yet verified end-to-end: normal ScreenInit handoff timing, all four final
-framing positions, return-to-title intro suppression, input interruptions during
-the opening, rapid navigation, Start during motion, other aspect ratios, sustained
-performance. Those are explicit validation limits, not known failures.
+The newer sky descent has not yet been verified end-to-end. Pending checks include
+normal ScreenInit handoff timing, sky and overview framing, credit/logo readability,
+input restoration, all final framing positions, return-to-title intro suppression,
+rapid navigation, other aspect ratios, and sustained performance. Those are
+explicit validation limits, not known failures.
 
 Engine: `D:/SimplyLoveVanilla/Program/ITGmania.exe`. Launch from its install root with
 `--theme=VOLT26` and `--metric=Common::InitialScreen=\"ScreenTitleMenu\"` for a direct

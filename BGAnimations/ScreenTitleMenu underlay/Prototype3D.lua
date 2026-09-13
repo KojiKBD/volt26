@@ -3,7 +3,8 @@ local modelUnits = 35 -- baked into the meshes by tools/import-title-obj.py
 local modelParts = 4  -- must match `model_parts` in import-info.json
 local fov = 65
 local duration = 1.1
-local introDuration = 2.8
+local introDuration = 10.6
+local introLandingStart = 8.25
 
 -- RageDisplay::LoadMenuPerspective builds GetFrustumMatrix(..., 1, eyeDistance+1000)
 -- and puts the eye at world z = eyeDistance, so the far plane always lands on world
@@ -249,12 +250,16 @@ local function CreateCountdownBillboard()
 end
 
 local introActive = not _G.Volt26CityIntroPlayed
-local openingPose = {0, 9.5*modelUnits, -25*modelUnits, 10, -6, 0}
-local current = introActive and openingPose or positions[1]
+-- The room stores the inverse eye position. Begin 70 m above the approach road,
+-- looking down at the city; pause at an elevated overview after the logo, then
+-- make the final descent to Gameplay.
+local skyPose = {0, 70*modelUnits, -30*modelUnits, 0, -2, 58}
+local overviewPose = {0, 18*modelUnits, -25*modelUnits, 10, -6, 18}
+local current = introActive and skyPose or positions[1]
 local start, target = current, positions[1]
 local activeDuration = introActive and introDuration or duration
 local elapsed = introActive and 0 or activeDuration
-local arrivalDelay = introActive and _G.Volt26InitHandoff == true and 0.9 or 0
+local arrivalDelay = 0
 local selected = 0
 local bankDirection = 1
 local clock = 0
@@ -264,6 +269,115 @@ local function InteractWithCountdown()
     if selected == 4 and not diving then
         MESSAGEMAN:Broadcast("VOLT26_CountdownNextPhrase")
     end
+end
+
+local function RedirectIntroInput(redirected)
+    for player in ivalues(PlayerNumber) do
+        SCREENMAN:set_input_redirected(player, redirected)
+    end
+end
+
+local function SmootherStep(t)
+    return t*t*t*(t*(t*6 - 15) + 10)
+end
+
+local function BlendPose(from, to, amount)
+    local pose = {}
+    for i = 1, 6 do pose[i] = from[i] + (to[i] - from[i]) * amount end
+    return pose
+end
+
+local function CreateOpeningCredits()
+    local credits = {
+        { heading="CONCEPT & DESIGN", name="VOLT Team" },
+        { heading="VISUALS & ART", name="Koji" },
+        { heading="PROGRAMMING", name="Koji, Mrs GLM 5.2, Sir GPT" },
+        { heading="SPECIAL THANKS", name="Dando and the VOLT Team", sub="for testing, ideation, and QA" },
+    }
+    local creditStart, creditStep = 0.35, 1.45
+    local logoHit, logoFade = 6.45, 8.05
+    local overlay = Def.ActorFrame{
+        Name="VOLT26_OpeningCredits",
+        InitCommand=function(self) self:visible(introActive) end,
+    }
+
+    for i, credit in ipairs(credits) do
+        local startTime = creditStart + (i - 1) * creditStep
+        local card = Def.ActorFrame{
+            Name="Credit"..i,
+            InitCommand=function(self) self:y(14):diffusealpha(0) end,
+            OnCommand=function(self)
+                if not introActive then return end
+                self:sleep(startTime)
+                    :decelerate(0.20):y(0):diffusealpha(1)
+                    :sleep(0.78)
+                    :accelerate(0.22):y(-18):diffusealpha(0)
+            end,
+        }
+        card[#card+1] = LoadFont("Common Normal")..{
+            Text=credit.heading,
+            InitCommand=function(self)
+                self:y(-22):zoom(0.68):maxwidth(_screen.w * 1.25)
+                    :diffuse(color("#FF3030")):shadowlength(2)
+            end,
+        }
+        card[#card+1] = LoadFont("Common Normal")..{
+            Text=credit.name,
+            InitCommand=function(self)
+                self:y(12):zoom(0.82):maxwidth(_screen.w * 1.05)
+                    :diffuse(Color.White):shadowlength(2)
+            end,
+        }
+        if credit.sub then
+            card[#card+1] = LoadFont("Common Normal")..{
+                Text=credit.sub,
+                InitCommand=function(self)
+                    self:y(43):zoom(0.58):maxwidth(_screen.w * 1.4)
+                        :diffuse(color("#D0D0D0")):shadowlength(2)
+                end,
+            }
+        end
+        overlay[#overlay+1] = card
+    end
+
+    overlay[#overlay+1] = LoadFont("Common Normal")..{
+        Name="VOLT26Disclaimer",
+        Text="This is an unofficial, non-profit fan-made theme created strictly for personal enjoyment. All music, logos, art direction, and references to the Persona series\nbelong entirely to ATLUS / SEGA. This project is not affiliated with, endorsed by, or monetized in any way by ATLUS. All rights reserved to their respective owners.",
+        InitCommand=function(self)
+            self:y(_screen.h/2 - 24):valign(1):horizalign(center)
+                :zoom(0.34):wrapwidthpixels((_screen.w * 0.94) / 0.34)
+                :diffuse(color("#D0D0D0")):shadowlength(2)
+        end,
+        OnCommand=function(self)
+            if not introActive then self:visible(false) return end
+            self:sleep(logoHit - 0.20):linear(0.20):diffusealpha(0)
+        end,
+    }
+
+    overlay[#overlay+1] = Def.Sprite{
+        Name="VOLT26IntroLogo",
+        Texture=THEME:GetPathG("", "VOLT26/logo_main (doubleres).png"),
+        InitCommand=function(self) self:zoom(2.2):diffusealpha(0) end,
+        OnCommand=function(self)
+            if not introActive then self:visible(false) return end
+            self:sleep(logoHit - 0.62)
+                :diffusealpha(1):accelerate(0.42):zoom(0.26)
+                :decelerate(0.20):zoom(0.30)
+                :glow(1, 1, 1, 0.65):linear(0.18):glow(1, 1, 1, 0)
+                :sleep(logoFade - logoHit - 0.18):linear(0.20):diffusealpha(0)
+        end,
+    }
+
+    overlay[#overlay+1] = Def.Sound{
+        Name="VOLT26IntroKnifeSound",
+        File=THEME:GetPathG("", "VOLT26/knife.ogg"),
+        OnCommand=function(self)
+            if introActive then self:sleep(logoHit):queuecommand("PlayImpact") end
+        end,
+        PlayImpactCommand=function(self) self:play() end,
+    }
+
+    return overlay
 end
 
 -- Handheld idle motion. Pairs of incommensurate sines never settle into a visible
@@ -332,7 +446,10 @@ return Def.ActorFrame{
     MenuStartP2MessageCommand=InteractWithCountdown,
     OnCommand=function(self)
         _G.Volt26CityIntroPlayed = true
-        if introActive then Trace("[VOLT26 3D] Opening camera flight started") end
+        if introActive then
+            RedirectIntroInput(true)
+            Trace("[VOLT26 3D] Sky opening with credits started")
+        end
         local roll = self:GetChild("Perspective"):GetChild("CameraRoll")
         local pitch = roll:GetChild("CameraEye"):GetChild("CameraPitch")
         local yaw = pitch:GetChild("CameraYaw")
@@ -346,14 +463,23 @@ return Def.ActorFrame{
             UpdateSway(clock)
             elapsed = math.min(activeDuration, elapsed + dt)
             local t = elapsed / activeDuration
-            -- Travel eases in and out; the dive only accelerates, so it reads as a rush.
-            local smooth = diving and t*t or t*t*t*(t*(t*6-15)+10)
-            local blended = {}
-            for i=1,4 do blended[i] = start[i] + (target[i]-start[i])*smooth end
-            blended[6] = start[6] + (target[6]-start[6])*smooth
-            -- Preserve the settled Dutch angle and blend interrupted roll continuously.
-            blended[5] = start[5] + (target[5]-start[5])*smooth
-                + (diving and 0 or bankDirection*(introActive and 3 or 7))*math.sin(math.pi*t)^2
+            local smooth = diving and t*t or SmootherStep(t)
+            local blended
+            if introActive then
+                if elapsed < introLandingStart then
+                    local introT = SmootherStep(elapsed / introLandingStart)
+                    blended = BlendPose(skyPose, overviewPose, introT)
+                else
+                    local landingT = SmootherStep((elapsed - introLandingStart)
+                        / (introDuration - introLandingStart))
+                    blended = BlendPose(overviewPose, positions[1], landingT)
+                end
+            else
+                blended = BlendPose(start, target, smooth)
+                -- Preserve the settled Dutch angle and blend interrupted roll continuously.
+                blended[5] = blended[5]
+                    + (diving and 0 or bankDirection*7)*math.sin(math.pi*t)^2
+            end
             current = blended
             -- Idle motion rides on top of the pose so it never fights the transition.
             roll:rotationz(blended[5] + sway.roll)
@@ -363,7 +489,8 @@ return Def.ActorFrame{
                  :z(blended[3] + sway.z*modelUnits)
             if introActive and elapsed >= activeDuration then
                 introActive = false
-                Trace("[VOLT26 3D] Opening camera flight completed")
+                RedirectIntroInput(false)
+                Trace("[VOLT26 3D] Sky opening with credits completed")
             end
         end)
     end,
@@ -371,6 +498,7 @@ return Def.ActorFrame{
     -- this is where choosing an entry lands. The update function keeps running: the
     -- screen is alive until its wipe finishes, and the dive has to play under it.
     OffCommand=function(self)
+        if introActive then RedirectIntroInput(false) end
         if diving then return end
         diving, introActive = true, false
         start, target, elapsed = current, positions[selected+1].dive, 0
@@ -411,4 +539,5 @@ return Def.ActorFrame{
             },
         },
     },
+    CreateOpeningCredits(),
 }
