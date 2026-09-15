@@ -1,5 +1,58 @@
 # VOLT26 3D menu handoff
 
+## Options road arrows (2026-09-15)
+
+`CreateRoadArrows()` in `Prototype3D.lua` mounts `Graphics/VOLT26/arrow3d.png`
+twice on the road around the Options banner, at the two boxes the owner marked on
+an Options-stop screenshot. Their positions were recovered by fitting the camera
+to the banner frame corners in that screenshot and casting the marks onto the road
+plane: up arrow at Blender (2.60, 51.95), 2.4 m wide; down arrow at (-2.75, 44.90),
+1.6 m wide, rotated 180 degrees in the road plane. Owner confirmed the placement in
+engine and asked for the arrows flat on the road, so the earlier extruded stack was
+replaced by a single sprite 0.08 m above the tarmac (just over the road paint).
+Tune `roadArrows` / `arrowLift` if needed.
+
+## Opening vow cinematic (updated 2026-09-15)
+
+On `codex/red-graffiti-menu`, the once-per-runtime title opening uses
+the approved 18.093-second sky descent, overview, and final landing on
+Gameplay. A full-screen black quad at 92% opacity heavily dims that moving scene.
+Three centered Optima Nova paragraphs accumulate in one composition: paragraph 1
+appears first, paragraph 2 is added below it, then paragraph 3 is added below both.
+A few key words use `#ED1C24`; the remaining text is white. The retained legal
+disclaimer uses the same font at the bottom edge.
+
+Native title navigation remains redirected during the cinematic and is restored
+when the overlay clears or the screen exits early. The completion broadcast still
+arms the AFK timer only after the opening. Subsequent returns to ScreenTitleMenu
+begin directly at Gameplay without replaying the vow.
+
+Back/Escape is the explicit replay control: `ScreenTitleMenu` now reloads itself
+instead of returning through `ScreenInit`, clears the once-per-runtime guard and
+the old handoff flag, and starts the complete sky sequence again from frame zero.
+The normal banner-dive exit is suppressed for this self-reload.
+
+The presentation moved out of `ScreenInit`; that screen now retains only the
+compatibility check and a 0.35-second black handoff. `ScreenTitleMenu in.lua` owns
+the top-layer dim and text so native credit, Event Mode, and GrooveStats labels do
+not draw over the cinematic. The former red star/logo handoff is no longer loaded.
+In-engine timing, sky framing, and input restoration remain pending owner
+verification.
+
+## Live geometric banners (updated 2026-09-14)
+
+On `codex/title-star-banners`, the four banners no longer play AVI movies.
+The `codex/banner-shape-animations` follow-up maps the owner's supplied symbols to
+the non-Gameplay banners: circle for Edit, upright triangle for Options, and
+flat-top hexagon for Exit. Gameplay retains the five-point star. The shared
+`BGAnimations/ScreenTitleMenu underlay/StarBanner.lua` builds the gradient,
+expanding concentric-shape, and caption layers (`Graphics/VOLT26/<caption>_text.png`,
+placed where the movies showed it) that `Prototype3D.lua` draws directly on each
+banner surface, one 0.02 m lift apart. Banner bounds, speed, colors, captions, and
+camera are unchanged. No render targets are used. The geometric variants are not
+yet verified in ITGmania. The AVI files and `tools/build-title-banner-movies.py`
+are no longer referenced.
+
 ## All four animated banners (2026-09-12, Codex follow-up)
 
 On `codex/title-3d-remaining-banners`, the Play movie-sprite approach now also
@@ -176,9 +229,26 @@ The `gameplay` material has no image path in the supplied MTL, so the Play banne
 is white. Other banners are solid red. Image sequence assets were discussed but
 have not been connected; do not report animated textures as implemented.
 
-The prototype bypasses the old title underlay's audio/AFK presentation. Native
-selection and routes remain intact. Existing engine status/credit overlays such
-as GrooveStats, Press Start, and Event Mode are not prototype labels.
+The prototype loads `Media.lua` for the looping `menuost.ogg` title music and the
+idle `afk.mp4` presentation. The train audio is intentionally excluded. The AFK
+timer starts after the sky intro has landed, and any dismissal input is consumed
+before native title navigation resumes. Native selection and routes remain intact.
+Existing engine status/credit overlays such as GrooveStats, Press Start, and Event
+Mode are not prototype labels.
+
+## Hidden road thanks (2026-09-15)
+
+The title menu has a sixth, navigation-only `Special Thanks` entry after the event
+countdown. `Serious_Thanks.png` is mounted as a world-space plane on the final
+stretch of road at Blender Y=82.5 m, 0.08 m above the surface. It is deliberately
+too distant and foreshortened to read from the earlier menu stops. Selecting the
+entry moves the camera to a 21 m overhead pose that frames the portrait artwork.
+Each press of Start while parked there toggles between `Serious_Thanks.png` and
+`Thanks_Meme.png`; it does not leave `ScreenTitleMenu` or trigger a banner dive.
+The transparent PNGs render over an asphalt-coloured backing plane. This three-layer
+road decal is drawn after the city without depth testing, preventing the crosswalk
+from cutting through the text. Its 7.4 m width and earlier road position also keep
+the taller meme artwork in front of the terminal building.
 
 ## Coordinates and projection
 
@@ -212,15 +282,16 @@ Current settings in the main camera Lua:
   +59/-59 degrees, or 31 degrees away from a frontal view of the facade.
 - Settled roll alternates -3/+3 degrees. Navigation adds a temporary 7-degree bank
   and interpolates from the current pose when interrupted. Travel duration: 1.1 s.
-- Opening pose: street center X=0, Blender Y=-25 m, height=9.5 m, yaw=10 degrees,
-  roll=-6 degrees. Opening duration: 2.8 s, toward Play; extra travel bank 3 degrees.
+- Opening begins at street center X=0, Blender Y=-30 m, height=125 m, yaw=0,
+  roll=0 degrees, and pitch=12 degrees. It descends to an elevated overview over
+  8.35 seconds, then reaches Gameplay over the final 2.25 seconds.
 - `_G.Volt26CityIntroPlayed` guards the opening once per Lua runtime. Returning to
   the title does not replay it. A fresh game launch resets this flag. A theme reload
   that retains Lua globals may retain the flag too.
-- If `_G.Volt26InitHandoff` is true, opening motion waits 0.9 s for the existing
-  ScreenInit overlay. Changing to another menu choice interrupts the opening and
-  uses a normal 1.1-second transition; Start is still handled by the native screen.
-- Red background remains `#FF0000`; no prototype text or letterbox quads returned.
+- ScreenInit performs only a 0.35-second black handoff. Title input is redirected
+  throughout the opening and restored when the vow ends.
+- The cinematic uses a 92%-opaque black dim, white text, and `#ED1C24` keyword
+  accents; all text is rendered through the Optima Nova-backed `Persona` redirect.
 
 Verified on the latest direct-title startup: log records intro start at 00:01.702
 and completion at 00:04.502 (exactly 2.8 seconds), with no Lua errors or missing
@@ -228,10 +299,11 @@ assets. A settled oblique banner view with visibly wider surrounding buildings,
 red background, and full-screen coverage was inspected at 1920x1080. `git diff
 --check` passed. The game was left open for owner review.
 
-Not yet verified end-to-end: normal ScreenInit handoff timing, all four final
-framing positions, return-to-title intro suppression, input interruptions during
-the opening, rapid navigation, Start during motion, other aspect ratios, sustained
-performance. Those are explicit validation limits, not known failures.
+The opening vow requires end-to-end visual approval. Pending checks include normal
+ScreenInit handoff timing, paragraph readability and red emphasis over the moving
+city, input restoration, return-to-title intro suppression, replay through
+Back/Escape, other aspect ratios, and sustained performance. Those are explicit
+validation limits, not known failures.
 
 Engine: `D:/SimplyLoveVanilla/Program/ITGmania.exe`. Launch from its install root with
 `--theme=VOLT26` and `--metric=Common::InitialScreen=\"ScreenTitleMenu\"` for a direct

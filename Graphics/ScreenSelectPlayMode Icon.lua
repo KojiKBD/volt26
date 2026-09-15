@@ -10,7 +10,7 @@ local Chrome = LoadActor(THEME:GetPathB("", "_volt26 select chrome"))
 local gc = Var("GameCommand")
 local name = gc:GetName()
 
-local card = { w = 400, h = 56 }
+local card = { w = Chrome.Round(400 * Chrome.WidthScale()), h = 56 }
 
 -- Choice names are shared by both play-mode screens, so both read their strings
 -- out of the one section rather than relying on the screens' metric fallback.

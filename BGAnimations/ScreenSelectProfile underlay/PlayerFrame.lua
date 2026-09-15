@@ -23,26 +23,46 @@ local pn = ToEnumShortString(player)
 
 -- ----------------------------------------------------------------------------
 -- Geometry
+--
+-- Widths were drawn for 16:9 (a 400-wide side when split) and shrink with the
+-- screen; heights do not.
+
+local margin = Chrome.Metrics.Margin
+local splitGap = 14
+local sideWidth = (Chrome.ContentWidth() - splitGap) / 2
+local scale = split and math.min(1, sideWidth / 400) or Chrome.WidthScale()
+local function Width(value) return Chrome.Round(value * scale) end
 
 local L = split and {
-	origin  = (player == PLAYER_1) and Chrome.Metrics.Margin or (_screen.cx + 7),
-	region  = { w = 400, h = 194 },
-	card    = { w = 170, h = 44, gap = 6, visible = 4, vertical = true },
-	panel   = { dx = 180, w = 220, h = 194 },
-	tile    = { w = 95, h = 38, x = 12, y = 56, gapx = 6, gapy = 6 },
+	origin  = (player == PLAYER_1) and margin or Chrome.Round(margin + sideWidth + splitGap),
+	region  = { w = Width(400), h = 194 },
+	card    = { w = Width(170), h = 44, gap = 6, visible = 4, vertical = true,
+	            avatar = 30, avatarOffset = 7, nameY = 10, captionY = 26 },
+	panel   = { dx = Width(180), w = Width(220), h = 194 },
+	tile    = { h = 38, x = 12, y = 56, gapx = 6, gapy = 6 },
 	name    = { px = 18, x = 11, y = 22 },
-	mods    = { x = 12, y = 142, wrap = 196, px = 10 },
+	mods    = { x = 12, y = 142, px = 10 },
 	pad     = 12,
 } or {
-	origin  = Chrome.Metrics.Margin,
-	region  = { w = _screen.w - Chrome.Metrics.Margin*2, h = 234 },
-	card    = { w = 118, h = 150, gap = 10, visible = 4, vertical = false },
-	panel   = { dx = 520, w = 294, h = 234 },
-	tile    = { w = 127, h = 40, x = 16, y = 66, gapx = 8, gapy = 8 },
+	origin  = margin,
+	region  = { w = Chrome.ContentWidth(), h = 234 },
+	card    = { w = Width(118), gap = Width(10), visible = 4, vertical = false, avatarOffset = 8 },
+	panel   = { dx = Width(520), w = Width(294), h = 234 },
+	tile    = { h = 40, x = 16, y = 66, gapx = 8, gapy = 8 },
 	name    = { px = 24, x = 15, y = 26 },
-	mods    = { x = 16, y = 166, wrap = 262, px = 11 },
+	mods    = { x = 16, y = 166, px = 11 },
 	pad     = 16,
 }
+
+if not split then
+	-- A portrait card is its avatar with the name and caption stacked beneath.
+	L.card.avatar = math.min(102, L.card.w - 16)
+	L.card.nameY = L.card.avatarOffset + L.card.avatar + 6
+	L.card.captionY = L.card.nameY + 18
+	L.card.h = L.card.captionY + 16
+end
+L.tile.w = (L.panel.w - L.tile.x*2 - L.tile.gapx) / 2
+L.mods.wrap = L.panel.w - L.mods.x*2
 
 local top = Chrome.Metrics.BodyY
 
@@ -88,8 +108,7 @@ local function SetCard(card, item, focused)
 	local path = item.index and avatars[item.index] or nil
 	if path then
 		avatar:visible(true):Load(path)
-		local size = split and 30 or 102
-		avatar:scaletoclipped(size, size)
+		avatar:scaletoclipped(L.card.avatar, L.card.avatar)
 	else
 		avatar:visible(false)
 	end
@@ -175,30 +194,28 @@ for slot = 1, L.card.visible do
 	local x, y = CardPosition(slot)
 	local card = Chrome.Box{ name="Card"..slot, x=x, y=y, w=L.card.w, h=L.card.h }
 
-	local avatarSize = split and 30 or 102
-	local avatarX = split and 7 or 8
-	local avatarY = split and 7 or 8
+	local avatarSize, avatarOffset = L.card.avatar, L.card.avatarOffset
 
 	card[#card+1] = Def.Quad{
 		Name="AvatarPlate",
 		InitCommand=function(self)
-			self:align(0,0):xy(avatarX, avatarY):zoomto(avatarSize, avatarSize)
+			self:align(0,0):xy(avatarOffset, avatarOffset):zoomto(avatarSize, avatarSize)
 				:diffuse(Chrome.Color.LineFaint)
 		end,
 	}
 	card[#card+1] = Def.Sprite{
 		Name="Avatar",
-		InitCommand=function(self) self:align(0,0):xy(avatarX, avatarY):visible(false) end,
+		InitCommand=function(self) self:align(0,0):xy(avatarOffset, avatarOffset):visible(false) end,
 	}
 	card[#card+1] = Chrome.Display{
 		name="Name", text="", px=split and 13 or 14,
 		x = split and 44 or 10,
-		y = split and 10 or 116,
+		y = L.card.nameY,
 	}
 	card[#card+1] = Chrome.Label{
 		name="Caption", text="", px=9,
 		x = split and 45 or 11,
-		y = split and 26 or 134,
+		y = L.card.captionY,
 		color = Chrome.Color.Faint,
 	}
 

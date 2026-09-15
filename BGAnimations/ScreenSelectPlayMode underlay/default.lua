@@ -19,7 +19,15 @@ local choices = {}
 
 local cursor = { index = 0 }
 
-local panel = { x = 440, y = Chrome.Metrics.BodyY, w = 394, h = 186 }
+-- The choice column (Graphics/ScreenSelectPlayMode Icon.lua) is 400 wide at
+-- 16:9, then a 20 gap, then this panel; all three shrink together.
+local columns = Chrome.WidthScale()
+local panel = {
+	x = Chrome.Metrics.Margin + Chrome.Round(420 * columns),
+	y = Chrome.Metrics.BodyY,
+	w = Chrome.Round(394 * columns),
+	h = 186,
+}
 local inner = { x = 16, w = panel.w - 32 }
 
 -- ----------------------------------------------------------------------------
@@ -224,9 +232,10 @@ t[#t+1] = detail
 t[#t+1] = Chrome.Hints{
 	button = THEME:GetString("ScreenSelectPlayMode", "HintButton"),
 	action = THEME:GetString("ScreenSelectPlayMode", "HintConfirm"),
-	center = PREFSMAN:GetPreference("EventMode")
-		and THEME:GetString("ScreenSelectPlayMode", "EventMode")
-		or VOLT26.Gameplay.GetMode(),
+	center = function()
+		local cabinet = Chrome.CabinetText()
+		return cabinet ~= "" and cabinet or VOLT26.Gameplay.GetMode()
+	end,
 }
 
 return t

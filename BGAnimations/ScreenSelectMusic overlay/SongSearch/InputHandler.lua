@@ -7,6 +7,10 @@ local input = function(event)
 
 	local overlay = SCREENMAN:GetTopScreen():GetChild("Overlay"):GetChild("SongSearch")
 
+	-- Directions repeat while held; Start, Back and Select act once per press, so the
+	-- Start that confirmed the search text cannot also pick a result.
+	local firstPress = event.type == "InputEventType_FirstPress"
+
 	if event.type ~= "InputEventType_Release" then
 		local info = candidatesScroller:get_info_at_focus_pos()
 		local index = type(info)=="table" and info.index or 0
@@ -15,14 +19,14 @@ local input = function(event)
 			candidatesScroller:scroll_by_amount(1)
 		elseif event.GameButton == "MenuLeft" or event.GameButton == "MenuUp" then
 			candidatesScroller:scroll_by_amount(-1)
-		elseif event.GameButton == "Start" then
+		elseif event.GameButton == "Start" and firstPress then
 			local focus = candidatesScroller:get_actor_item_at_focus_pos()
 			local songOrExit = focus.song_name.songOrExit
 			if type(songOrExit) ~= "string" then
 				VOLT26.SongBrowsing.SelectSearchResult(songOrExit, SCREENMAN:GetTopScreen())
 			end
 			overlay:queuecommand("DirectInputToEngine")
-		elseif event.GameButton == "Back" or event.GameButton == "Select" then
+		elseif (event.GameButton == "Back" or event.GameButton == "Select") and firstPress then
 			overlay:queuecommand("DirectInputToEngine")
 		end
 	end

@@ -17,7 +17,13 @@ local input = function(event)
 	local sortmenu = overlay:GetChild("SortMenu")
 	if SCREENMAN:GetTopScreen():GetMusicWheel():IsLocked() then
 		overlay:queuecommand("DirectInputToEngine")
+		return false
 	end
+
+	-- Directions repeat while held.  Start, Back and Select act once per press: the
+	-- Start that completes the menu code is often still held when the menu opens,
+	-- and its repeats would otherwise activate the option under the cursor.
+	local firstPress = event.type == "InputEventType_FirstPress"
 
 	if event.type ~= "InputEventType_Release" then
 		if event.GameButton == "MenuRight" then
@@ -42,7 +48,7 @@ local input = function(event)
 				menu:Move(1)
 				sortmenu:GetChild("change_sound"):play()
 			end
-		elseif event.GameButton == "Start" then
+		elseif event.GameButton == "Start" and firstPress then
 			-- An option the current state cannot offer still holds the cursor so
 			-- the player can see it exists; pressing Start on it does nothing.
 			if not menu:IsFocusEnabled() then return false end
@@ -186,7 +192,7 @@ local input = function(event)
 				end
 			end
 
-		elseif event.GameButton == "Back" or event.GameButton == "Select" then
+		elseif (event.GameButton == "Back" or event.GameButton == "Select") and firstPress then
 			-- One step at a time out of the menu: the open category first, the
 			-- menu itself once there is nothing left to close.
 			if not menu:CloseCategory() then

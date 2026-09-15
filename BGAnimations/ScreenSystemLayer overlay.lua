@@ -37,6 +37,9 @@ local function CreditsText( player )
 
 			if screen then
 				bShow = THEME:GetMetric( screen:GetName(), "ShowCreditDisplay" )
+				if screen:GetName() == "ScreenTitleMenu" and _G.Volt26TitleIntroActive then
+					bShow = false
+				end
 
 				local screenName = screen:GetName()
 				if (screen:GetName() == "ScreenEvaluationStage") or (screen:GetName() == "ScreenEvaluationNonstop") or (screen:GetName() == Branch.GameplayScreen()) then
@@ -57,7 +60,10 @@ local function CreditsText( player )
 			self:visible( bShow )
 			self:diffuse(textColor)
 			self:shadowlength(shadowLength)
-		end
+		end,
+		VOLT26_TitleIntroCompleteMessageCommand=function(self)
+			self:playcommand("UpdateVisible")
+		end,
 	}
 end
 
@@ -121,6 +127,7 @@ t[#t+1] = LoadFont("Common Footer")..{
 
 	OnCommand=function(self) self:playcommand("Refresh") end,
 	ScreenChangedMessageCommand=function(self) self:playcommand("Refresh") end,
+	VOLT26_TitleIntroCompleteMessageCommand=function(self) self:playcommand("Refresh") end,
 	CoinModeChangedMessageCommand=function(self) self:playcommand("Refresh") end,
 	CoinsChangedMessageCommand=function(self) self:playcommand("Refresh") end,
 
@@ -132,7 +139,11 @@ t[#t+1] = LoadFont("Common Footer")..{
 		-- I invented it for Simply Love and it has (understandably) confused other themers.
 		-- Sorry about this.
 		if screen then
-			self:visible( THEME:GetMetric( screen:GetName(), "ShowCreditDisplay" ) )
+			local visible = THEME:GetMetric( screen:GetName(), "ShowCreditDisplay" )
+			if screen:GetName() == "ScreenTitleMenu" and _G.Volt26TitleIntroActive then
+				visible = false
+			end
+			self:visible(visible)
 		end
 
 		if PREFSMAN:GetPreference("EventMode") then
@@ -297,12 +308,21 @@ t[#t+1] = Def.ActorFrame{
 	end,
 	ScreenChangedMessageCommand=function(self)
 		local screen = SCREENMAN:GetTopScreen()
-		if screen:GetName() == "ScreenTitleMenu" or screen:GetName() == "ScreenTitleJoin" then
+		if (screen:GetName() == "ScreenTitleMenu" and not _G.Volt26TitleIntroActive)
+		or screen:GetName() == "ScreenTitleJoin" then
 			self:queuecommand("Reset")
 			self:diffusealpha(0):sleep(0.2):linear(0.4):diffusealpha(1):visible(true)
 			self:queuecommand("SendRequest")
 		else
 			self:visible(false)
+		end
+	end,
+	VOLT26_TitleIntroCompleteMessageCommand=function(self)
+		local screen = SCREENMAN:GetTopScreen()
+		if screen and screen:GetName() == "ScreenTitleMenu" then
+			self:queuecommand("Reset")
+			self:diffusealpha(0):sleep(0.2):linear(0.4):diffusealpha(1):visible(true)
+			self:queuecommand("SendRequest")
 		end
 	end,
 

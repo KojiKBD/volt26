@@ -3,7 +3,9 @@ local modelUnits = 35 -- baked into the meshes by tools/import-title-obj.py
 local modelParts = 4  -- must match `model_parts` in import-info.json
 local fov = 65
 local duration = 1.1
-local introDuration = 2.8
+local introDuration = VOLT26.TitleMenu.GetIntroDurationSeconds()
+-- Preserve the original 2.25-second landing while the closing logo is visible.
+local introLandingStart = introDuration - 2.25
 
 -- RageDisplay::LoadMenuPerspective builds GetFrustumMatrix(..., 1, eyeDistance+1000)
 -- and puts the eye at world z = eyeDistance, so the far plane always lands on world
@@ -42,13 +44,24 @@ local banners = {
     {x = 10.953, y = 19.342, z = 13.896, nx =  0, ny = -1, nz = 0, tx = 1, ty =  0, side = -1, roll =  3},
     {x = -0.012, y = 48.000, z =  0.405, nx =  0, ny =  0, nz = 1, tx = 0, ty =  1, side = -1, roll = -3},
     {x =  6.615, y = 72.000, z = 21.157, nx = -1, ny =  0, nz = 0, tx = 0, ty = -1, side =  1, roll =  3},
+    -- Navigation-only countdown on the central building at the end of the street.
+    {x =  0.000, y = 91.875, z = 20.000, nx =  0, ny = -1, nz = 0, tx = 1, ty =  0, side = -1, roll = -3},
+    -- A final navigation-only stop reveals the credits laid flat on the road.  The
+    -- higher, tighter overhead pose is local to this stop so both portrait textures
+    -- fit in frame without changing the established banner camera language.
+    {x =  0.000, y = 82.500, z =  0.080, nx =  0, ny =  0, nz = 1, tx = 0, ty =  1,
+     side = -1, roll = 3, standOff = 21, streetOffset = 2.5},
 }
 
 local positions, dives = {}, {}
 for i, banner in ipairs(banners) do
-    local eyeX = banner.x + banner.nx*standOff + banner.tx*banner.side*streetOffset
-    local eyeY = banner.y + banner.ny*standOff + banner.ty*banner.side*streetOffset
-    local eyeZ = banner.z + banner.nz*standOff
+    local bannerStandOff = banner.standOff or standOff
+    local bannerStreetOffset = banner.streetOffset or streetOffset
+    local eyeX = banner.x + banner.nx*bannerStandOff
+        + banner.tx*banner.side*bannerStreetOffset
+    local eyeY = banner.y + banner.ny*bannerStandOff
+        + banner.ty*banner.side*bannerStreetOffset
+    local eyeZ = banner.z + banner.nz*bannerStandOff
     -- A banner on a facade can sit anywhere from head height to 21 meters up, so the
     -- eye only follows part of the way and pitch closes the gap. One lying on the road
     -- already has its height set by the stand off above it, so leave that alone.
@@ -74,11 +87,11 @@ end
 
 -- Banner_play is one quad in the OBJ, bounds X -6.615, Y 5.475 to 8.125, Z -3.64 to
 -- 3.64, with a full 0-1 UV square. Its `gameplay` material carries no map and the mesh
--- converter writes palette-only UVs, so the 90 frame loop rides on a separate actor
+-- converter writes palette-only UVs, so the animated banner rides on a separate actor
 -- pinned to those bounds. Def.Model flips Y and a Sprite does not, hence the negated
 -- centre height.
 local playBanner = {
-    name = "play", rx = 0, ry = 90, nx = 1, ny = 0, nz = 0,
+    name = "play", caption = "gameplay", rx = 0, ry = 90, nx = 1, ny = 0, nz = 0,
     x = -6.615, y = 6.8, z = 0,
     width = 7.28, height = 2.65,
     lift = 0.02, -- meters toward the street, clear of the quad behind it
@@ -90,33 +103,298 @@ local playBanner = {
     mirrored = true, -- confirmed in engine: the sprite faces the street mirrored
 }
 
--- OBJ positions are Y-up; Sprite positions negate height, preserving OBJ Z.
+-- OBJ positions are Y-up; banner layer positions negate height, preserving OBJ Z.
 -- Each surface gets its own normal offset and orientation. Width follows the
 -- camera's right vector, so Edit/Options read along +X and Exit along -Z.
-local movieBanners = {
+local bannerSurfaces = {
     playBanner,
-    {name = "edit", x = 10.9534255, y = 13.896204, z = -19.341549,
+    {name = "edit", caption = "edit", x = 10.9534255, y = 13.896204, z = -19.341549,
      width = 8.203149, height = 2.654254, rx = 0, ry = 0,
      nx = 0, ny = 0, nz = 1},
-    {name = "options", x = -0.012378, y = 0.405, z = -48,
+    {name = "options", caption = "options", x = -0.012378, y = 0.405, z = -48,
      width = 7.735, height = 2.650002, rx = -90, ry = 0,
      nx = 0, ny = -1, nz = 0},
-    {name = "exit", x = 6.615, y = 21.157425, z = -72,
+    {name = "exit", caption = "exit", x = 6.615, y = 21.157425, z = -72,
      width = 8.190002, height = 2.650002, rx = 0, ry = 90,
      nx = -1, ny = 0, nz = 0},
 }
 
+-- Navigation stop five mounts the countdown on the street-facing facade of the
+-- tall central END_BLOCK_01 building.  OBJ coordinates are X across the street,
+-- Y up and Z along it; the small positive Z lift clears the facade skin.
+local countdownSurface = {
+    x = 0.0, y = 20.0, z = -91.875,
+    width = 7.5, lift = 0.03,
+}
+
+-- These are genuine world-space sprites rather than a screen overlay.  At every
+-- earlier stop the portrait is foreshortened into the distant road; only the final
+-- overhead pose makes it legible.  Both PNGs have transparent backgrounds, so the
+-- asphalt backing hides the crosswalk underneath them.  This small group is drawn
+-- without depth testing after the city: that makes the road decal deterministic
+-- instead of depending on the four model chunks' depth precision.
+local thanksSurface = {
+    x = 0.0, y = 0.08, z = -82.5,
+    width = 7.4,
+}
+
+local function CreateThanksRoadElement()
+    local seriousWidth, seriousHeight = 1578, 2169
+    local memeWidth, memeHeight = 1578, 2607
+
+    return Def.ActorFrame{
+        Name="VOLT26_ThanksRoadElement",
+        InitCommand=function(self)
+            self:xy(thanksSurface.x * modelUnits, -thanksSurface.y * modelUnits)
+                :z(thanksSurface.z * modelUnits)
+                :rotationx(-90)
+        end,
+        Def.Quad{
+            Name="ThanksRoadBacking",
+            InitCommand=function(self)
+                local height = thanksSurface.width * memeHeight / memeWidth + 0.3
+                self:zoomto((thanksSurface.width + 0.3) * modelUnits, height * modelUnits)
+                    :diffuse(color("#484A4D")):ztest(false):zwrite(false)
+            end,
+        },
+        Def.Sprite{
+            Name="SeriousThanks",
+            Texture=THEME:GetPathG("", "VOLT26/Serious_Thanks.png"),
+            InitCommand=function(self)
+                local height = thanksSurface.width * seriousHeight / seriousWidth
+                self:zoomto(thanksSurface.width * modelUnits, height * modelUnits)
+                    :ztest(false):zwrite(false)
+            end,
+            VOLT26_ThanksTextureMessageCommand=function(self, params)
+                self:visible(not params.showMeme)
+            end,
+        },
+        Def.Sprite{
+            Name="ThanksMeme",
+            Texture=THEME:GetPathG("", "VOLT26/Thanks_Meme.png"),
+            InitCommand=function(self)
+                local height = thanksSurface.width * memeHeight / memeWidth
+                self:zoomto(thanksSurface.width * modelUnits, height * modelUnits)
+                    :visible(false):ztest(false):zwrite(false)
+            end,
+            VOLT26_ThanksTextureMessageCommand=function(self, params)
+                self:visible(params.showMeme)
+            end,
+        },
+    }
+end
+
+-- Two road arrows flank the Options banner, placed where the owner marked them on
+-- the Options stop screenshot (positions recovered by casting those marks onto the
+-- road plane from that camera pose).  Blender X/Y, so OBJ Z is -y.  The far arrow,
+-- up the street, points up the screen; the near one points down.  Both lie flat on
+-- the road like painted markings, a hair above the crosswalk paint (0.068 m).
+local roadArrows = {
+    {name = "Up",   x =  2.60, y = 51.95, width = 2.4, rotation =   0},
+    {name = "Down", x = -2.75, y = 44.90, width = 1.6, rotation = 180},
+}
+local arrowLift = 0.08
+
+local function CreateRoadArrows()
+    local texture = THEME:GetPathG("", "VOLT26/arrow3d.png")
+    local arrowWidth, arrowHeight = 359, 344
+    local frame = Def.ActorFrame{Name="VOLT26_RoadArrows"}
+    for _, arrow in ipairs(roadArrows) do
+        local w = arrow.width * modelUnits
+        local h = arrow.width * arrowHeight / arrowWidth * modelUnits
+        frame[#frame+1] = Def.ActorFrame{
+            Name="RoadArrow"..arrow.name,
+            InitCommand=function(self)
+                self:xy(arrow.x * modelUnits, -arrowLift * modelUnits)
+                    :z(-arrow.y * modelUnits)
+                    :rotationx(-90)
+            end,
+            Def.Sprite{
+                Texture=texture,
+                InitCommand=function(self)
+                    self:zoomto(w, h):rotationz(arrow.rotation):zbuffer(true)
+                end,
+            },
+        }
+    end
+    return frame
+end
+
+local function CivilDay(year, month, day)
+    if month <= 2 then year = year - 1 end
+    local era = math.floor(year / 400)
+    local yearOfEra = year - era * 400
+    local adjustedMonth = month + (month > 2 and -3 or 9)
+    local dayOfYear = math.floor((153 * adjustedMonth + 2) / 5) + day - 1
+    return era * 146097 + yearOfEra * 365
+        + math.floor(yearOfEra / 4) - math.floor(yearOfEra / 100) + dayOfYear
+end
+
+local function DaysUntilRespark()
+    local target = CivilDay(2026, 12, 5)
+    local today = CivilDay(Year(), MonthOfYear() + 1, DayOfMonth())
+    return math.max(0, target - today)
+end
+
+local function FitCountdownText(actor, text, start, width)
+    local last = start - 1
+    for i = start, #text do
+        actor:settext(text:sub(start, i))
+        if actor:GetWidth() > width then break end
+        last = i
+    end
+    return text:sub(start, math.max(start, last))
+end
+
+local function CreateCountdownBillboard()
+    local designWidth, designHeight = 456, 136
+    local phraseWidth = 405
+    local refreshElapsed = 60
+    local function SetPhrase(actor, fullText)
+        actor.VOLT26_FullText = fullText
+        actor.VOLT26_MarqueeMaxStart = nil
+        actor.VOLT26_MarqueeText = nil
+        actor:settext(fullText)
+        if actor:GetWidth() <= phraseWidth or #fullText == 0 then return end
+
+        local maxStart = #fullText
+        for start = #fullText, 1, -1 do
+            actor:settext(fullText:sub(start))
+            if actor:GetWidth() > phraseWidth then break end
+            maxStart = start
+        end
+        actor.VOLT26_MarqueeText = fullText
+        actor.VOLT26_MarqueeMaxStart = maxStart
+        actor.VOLT26_MarqueeStart = 1
+        actor.VOLT26_MarqueeDirection = 1
+        actor.VOLT26_MarqueeTimer = -1.6
+        actor.VOLT26_MarqueeHoldTime = 1.6
+        actor.VOLT26_MarqueeStepTime = 0.12
+        actor:settext(FitCountdownText(actor, fullText, 1, phraseWidth))
+    end
+
+    local countdown = Def.ActorFrame{
+        Name = "VOLT26_CountdownBillboard",
+        InitCommand=function(self)
+            local zoom = countdownSurface.width * modelUnits / designWidth
+            self:xy(countdownSurface.x * modelUnits, -countdownSurface.y * modelUnits)
+                :z((countdownSurface.z + countdownSurface.lift) * modelUnits)
+                :zoom(zoom)
+        end,
+        OnCommand=function(self)
+            if VOLT26.PlayerMessages then VOLT26.PlayerMessages.Load() end
+            self:SetUpdateFunction(function(frame, delta)
+                refreshElapsed = refreshElapsed + (delta or 0)
+                if refreshElapsed >= 60 then
+                    refreshElapsed = 0
+                    MESSAGEMAN:Broadcast("VOLT26_CountdownRefresh")
+                end
+
+                local phrase = frame:GetChild("EventPhrase")
+                if not phrase or not phrase.VOLT26_MarqueeMaxStart then return end
+                phrase.VOLT26_MarqueeTimer = phrase.VOLT26_MarqueeTimer + (delta or 0)
+                if phrase.VOLT26_MarqueeTimer < phrase.VOLT26_MarqueeStepTime then return end
+                phrase.VOLT26_MarqueeTimer = 0
+
+                phrase.VOLT26_MarqueeStart = phrase.VOLT26_MarqueeStart
+                    + phrase.VOLT26_MarqueeDirection
+                if phrase.VOLT26_MarqueeStart >= phrase.VOLT26_MarqueeMaxStart then
+                    phrase.VOLT26_MarqueeStart = phrase.VOLT26_MarqueeMaxStart
+                    phrase.VOLT26_MarqueeDirection = -1
+                    phrase.VOLT26_MarqueeTimer = -phrase.VOLT26_MarqueeHoldTime
+                elseif phrase.VOLT26_MarqueeStart <= 1 then
+                    phrase.VOLT26_MarqueeStart = 1
+                    phrase.VOLT26_MarqueeDirection = 1
+                    phrase.VOLT26_MarqueeTimer = -phrase.VOLT26_MarqueeHoldTime
+                end
+                phrase:settext(FitCountdownText(phrase, phrase.VOLT26_MarqueeText,
+                    phrase.VOLT26_MarqueeStart, phraseWidth))
+            end)
+        end,
+        OffCommand=function(self) self:SetUpdateFunction(nil) end,
+    }
+
+    countdown[#countdown+1] = LoadActor(THEME:GetPathG("", "VOLT26/daysuntil.png"))..{
+        InitCommand=function(self)
+            self:halign(0.5):valign(0.5):zoomto(designWidth, designHeight)
+        end,
+    }
+
+    for slot = 1, 3 do
+        countdown[#countdown+1] = LoadFont("_Combo Fonts/VOLT26/VOLT26")..{
+            Name="DaysRemaining"..slot,
+            InitCommand=function(self)
+                self:y(-15):zoom(1.18):diffuse(0, 0, 0, 1):shadowlength(0)
+            end,
+            OnCommand=function(self) self:queuecommand("Refresh") end,
+            VOLT26_CountdownRefreshMessageCommand=function(self) self:playcommand("Refresh") end,
+            RefreshCommand=function(self)
+                local value = string.format("%03d", DaysUntilRespark())
+                self:settext(value:sub(slot, slot)):x(151 + (slot - 2) * 34)
+            end,
+        }
+    end
+
+    countdown[#countdown+1] = LoadFont("Persona")..{
+        Name="EventPhrase",
+        Text=VOLT26.Brand.RandomTagline(),
+        InitCommand=function(self)
+            self:xy(-7, 34):zoom(0.82):diffuse(0, 0, 0, 1):shadowlength(0)
+            SetPhrase(self, self:GetText())
+        end,
+        VOLT26_CountdownNextPhraseMessageCommand=function(self)
+            local nextText = VOLT26.Brand.RandomTagline(self.VOLT26_FullText)
+            SetPhrase(self, nextText)
+            self:stoptweening():diffusealpha(0):linear(0.12):diffusealpha(1)
+        end,
+    }
+
+    return countdown
+end
+
 local introActive = not _G.Volt26CityIntroPlayed
-local openingPose = {0, 9.5*modelUnits, -25*modelUnits, 10, -6, 0}
-local current = introActive and openingPose or positions[1]
+_G.Volt26TitleIntroActive = introActive
+-- Begin above the skyline and descend almost vertically while the screen-space vow
+-- remains readable over a strong black dim. The final leg settles on Gameplay.
+local skyPose = {0, 125*modelUnits, -30*modelUnits, 0, 0, 12}
+local overviewPose = {0, 28*modelUnits, -30*modelUnits, 3, -2, 10}
+local current = introActive and skyPose or positions[1]
 local start, target = current, positions[1]
 local activeDuration = introActive and introDuration or duration
 local elapsed = introActive and 0 or activeDuration
-local arrivalDelay = introActive and _G.Volt26InitHandoff == true and 0.9 or 0
+local arrivalDelay = 0
 local selected = 0
 local bankDirection = 1
 local clock = 0
 local diving = false
+local restartingIntro = false
+local thanksMemeVisible = false
+
+local function InteractWithNavigationOnlyItem()
+    if diving then return end
+    if selected == 4 then
+        MESSAGEMAN:Broadcast("VOLT26_CountdownNextPhrase")
+    elseif selected == 5 then
+        thanksMemeVisible = not thanksMemeVisible
+        MESSAGEMAN:Broadcast("VOLT26_ThanksTexture", {showMeme=thanksMemeVisible})
+    end
+end
+
+local function RedirectIntroInput(redirected)
+    for player in ivalues(PlayerNumber) do
+        SCREENMAN:set_input_redirected(player, redirected)
+    end
+end
+
+local function SmootherStep(t)
+    return t*t*t*(t*(t*6 - 15) + 10)
+end
+
+local function BlendPose(from, to, amount)
+    local pose = {}
+    for i = 1, 6 do pose[i] = from[i] + (to[i] - from[i]) * amount end
+    return pose
+end
 
 -- Handheld idle motion. Pairs of incommensurate sines never settle into a visible
 -- repeat within a title session, so the parked shot keeps breathing. Amplitudes are
@@ -144,23 +422,87 @@ for part=0,modelParts-1 do
         InitCommand=function(self) self:cullmode("CullMode_None"):zbuffer(true) end,
     }
 end
-for _, banner in ipairs(movieBanners) do
-room[#room+1] = Def.Sprite{
-    Name="Banner_"..banner.name,
-    Texture=THEME:GetPathG("", "VOLT26/TitleTravelCity/banner_"..banner.name..".avi"),
-    InitCommand=function(self)
-        local overscan, lift = banner.overscan or 1.01, banner.lift or 0.02
-        local width = banner.width * overscan * modelUnits
-        self:zoomto(banner.mirrored and -width or width,
-                    banner.height * overscan * modelUnits)
-            :xy((banner.x+banner.nx*lift)*modelUnits, (-banner.y+banner.ny*lift)*modelUnits)
-            :z((banner.z+banner.nz*lift)*modelUnits)
-            :rotationx(banner.rx):rotationy(banner.ry)
-            :zbuffer(true) -- otherwise it draws through the facade from other stops
-        local texture = self:GetTexture()
-        if texture and texture.SetLooping then texture:SetLooping(true) end
-    end,
-}
+-- The cat stands on the upper-right edge of the Gameplay banner.  It shares the
+-- banner's facade orientation rather than living on the screen, so camera travel,
+-- perspective and depth remain consistent with the city.
+do
+    local height = 2.0
+    local width = height * 576 / 744
+    room[#room+1] = Def.Sprite{
+        Name="GameplayBannerCat",
+        Texture=THEME:GetPathG("", "VOLT26/TitleTravelCity/cat_silhouette.png"),
+        InitCommand=function(self)
+            self:xy(-6.58 * modelUnits, -9.04 * modelUnits)
+                :z(-2.60 * modelUnits)
+                :rotationy(90)
+                :zoomto(width * modelUnits, height * modelUnits)
+                :zoomx(-self:GetZoomX())
+                :zbuffer(true)
+        end,
+    }
+end
+-- The supplied high-resolution silhouette is a zero-thickness plane in the 3D
+-- scene. Its feet meet the roof ledge immediately to the right of the Edit banner;
+-- depth testing keeps it naturally behind the projecting cornice.
+do
+    local height = 3.0
+    local width = height * 628 / 1065
+    room[#room+1] = Def.Sprite{
+        Name="Silhouette02",
+        Texture=THEME:GetPathG("", "VOLT26/TitleTravelCity/silhouette_02.png"),
+        InitCommand=function(self)
+            self:xy(19.0 * modelUnits, -13.45 * modelUnits)
+                :z(-19.98 * modelUnits)
+                :zoomto(width * modelUnits, height * modelUnits)
+                :diffuse(color("#FF0000"))
+                :zbuffer(true)
+        end,
+    }
+end
+-- Second supplied silhouette, crouched on the street-side roof ledge of the Exit
+-- building (MAIN_04: facade plane X 6.38, parapet top Y 28.15-28.47). It faces the
+-- street like the Exit banner (ry 90) but is not mirrored (owner choice); the
+-- parapet hides its lowest edge through the depth buffer.
+do
+    local width = 5.4
+    local height = width * 243 / 632
+    local roofY, planeX, centreZ = 28.15, 6.9, -74.0
+    room[#room+1] = Def.Sprite{
+        Name="SilhouetteExit",
+        Texture=THEME:GetPathG("", "VOLT26/TitleTravelCity/silhouette_exit.png"),
+        InitCommand=function(self)
+            self:xy(planeX * modelUnits, -(roofY + height/2) * modelUnits)
+                :z(centreZ * modelUnits)
+                :rotationy(90)
+                :zoomto(width * modelUnits, height * modelUnits)
+                :diffuse(color("#000000"))
+                :zbuffer(true)
+        end,
+    }
+end
+room[#room+1] = CreateCountdownBillboard()
+room[#room+1] = CreateThanksRoadElement()
+room[#room+1] = CreateRoadArrows()
+local starBannerPath = THEME:GetPathB("ScreenTitleMenu", "underlay/StarBanner.lua")
+for _, banner in ipairs(bannerSurfaces) do
+    local artwork = LoadActor(starBannerPath, banner.caption)
+    local overscan = banner.overscan or 1.01
+    local zoomX = banner.width * overscan * modelUnits / artwork.Width
+    local zoomY = banner.height * overscan * modelUnits / artwork.Height
+    for layer, actor in ipairs(artwork.Layers) do
+        -- Each layer steps one more lift toward the street; coplanar layers would z-fight.
+        local lift = (banner.lift or 0.02) * layer
+        room[#room+1] = Def.ActorFrame{
+            Name="Banner_"..banner.name.."_"..layer,
+            InitCommand=function(self)
+                self:xy((banner.x+banner.nx*lift)*modelUnits, (-banner.y+banner.ny*lift)*modelUnits)
+                    :z((banner.z+banner.nz*lift)*modelUnits)
+                    :rotationx(banner.rx):rotationy(banner.ry)
+                    :zoomx(banner.mirrored and -zoomX or zoomX):zoomy(zoomY)
+            end,
+            actor,
+        }
+    end
 end
 
 return Def.ActorFrame{
@@ -169,16 +511,38 @@ return Def.ActorFrame{
     VOLT26_HoverMessageCommand=function(self, params)
         local idx = params and params.idx
         if diving then return end
-        if type(idx) ~= "number" or idx%1 ~= 0 or idx < 0 or idx > 3 or idx == selected then return end
+        if type(idx) ~= "number" or idx%1 ~= 0
+        or idx < 0 or idx >= #positions or idx == selected then return end
         bankDirection = idx > selected and 1 or -1
         selected = idx
         start, target, elapsed = current, positions[idx+1], 0
         activeDuration, arrivalDelay = duration, 0
         introActive = false
     end,
+    MenuStartP1MessageCommand=InteractWithNavigationOnlyItem,
+    MenuStartP2MessageCommand=InteractWithNavigationOnlyItem,
     OnCommand=function(self)
         _G.Volt26CityIntroPlayed = true
-        if introActive then Trace("[VOLT26 3D] Opening camera flight started") end
+        local screen = SCREENMAN:GetTopScreen()
+        if screen then
+            screen:AddInputCallback(function(event)
+                if event and event.type == "InputEventType_FirstPress"
+                and event.GameButton == "Back" then
+                    restartingIntro = true
+                    _G.Volt26CityIntroPlayed = nil
+                    _G.Volt26InitHandoff = false
+                    RedirectIntroInput(false)
+                    Trace("[VOLT26 3D] Back requested; restarting opening vow")
+                    screen:SetPrevScreenName("ScreenTitleMenu"):begin_backing_out()
+                    return true
+                end
+                return false
+            end)
+        end
+        if introActive then
+            RedirectIntroInput(true)
+            Trace("[VOLT26 3D] Opening vow started")
+        end
         local roll = self:GetChild("Perspective"):GetChild("CameraRoll")
         local pitch = roll:GetChild("CameraEye"):GetChild("CameraPitch")
         local yaw = pitch:GetChild("CameraYaw")
@@ -192,14 +556,23 @@ return Def.ActorFrame{
             UpdateSway(clock)
             elapsed = math.min(activeDuration, elapsed + dt)
             local t = elapsed / activeDuration
-            -- Travel eases in and out; the dive only accelerates, so it reads as a rush.
-            local smooth = diving and t*t or t*t*t*(t*(t*6-15)+10)
-            local blended = {}
-            for i=1,4 do blended[i] = start[i] + (target[i]-start[i])*smooth end
-            blended[6] = start[6] + (target[6]-start[6])*smooth
-            -- Preserve the settled Dutch angle and blend interrupted roll continuously.
-            blended[5] = start[5] + (target[5]-start[5])*smooth
-                + (diving and 0 or bankDirection*(introActive and 3 or 7))*math.sin(math.pi*t)^2
+            local smooth = diving and t*t or SmootherStep(t)
+            local blended
+            if introActive then
+                if elapsed < introLandingStart then
+                    local introT = SmootherStep(elapsed / introLandingStart)
+                    blended = BlendPose(skyPose, overviewPose, introT)
+                else
+                    local landingT = SmootherStep((elapsed - introLandingStart)
+                        / (introDuration - introLandingStart))
+                    blended = BlendPose(overviewPose, positions[1], landingT)
+                end
+            else
+                blended = BlendPose(start, target, smooth)
+                -- Preserve the settled Dutch angle and blend interrupted roll continuously.
+                blended[5] = blended[5]
+                    + (diving and 0 or bankDirection*7)*math.sin(math.pi*t)^2
+            end
             current = blended
             -- Idle motion rides on top of the pose so it never fights the transition.
             roll:rotationz(blended[5] + sway.roll)
@@ -209,7 +582,10 @@ return Def.ActorFrame{
                  :z(blended[3] + sway.z*modelUnits)
             if introActive and elapsed >= activeDuration then
                 introActive = false
-                Trace("[VOLT26 3D] Opening camera flight completed")
+                _G.Volt26TitleIntroActive = false
+                RedirectIntroInput(false)
+                MESSAGEMAN:Broadcast("VOLT26_TitleIntroComplete")
+                Trace("[VOLT26 3D] Opening vow completed")
             end
         end)
     end,
@@ -217,6 +593,11 @@ return Def.ActorFrame{
     -- this is where choosing an entry lands. The update function keeps running: the
     -- screen is alive until its wipe finishes, and the dive has to play under it.
     OffCommand=function(self)
+        if introActive then RedirectIntroInput(false) end
+        if restartingIntro then
+            self:SetUpdateFunction(nil)
+            return
+        end
         if diving then return end
         diving, introActive = true, false
         start, target, elapsed = current, positions[selected+1].dive, 0

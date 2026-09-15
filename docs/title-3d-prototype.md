@@ -1,5 +1,77 @@
 # Title room prototype
 
+## Sky descent opening sequence (2026-09-14)
+
+Branch: `codex/title-sky-opening-credits`. The first title visit now starts with
+the camera 125 m above the approach road. Its first leg drops almost vertically
+with a shallow pitch so the four opening-credit cards and disclaimer remain against
+the red sky. Six transparent cloud sprites extracted from the owner-supplied artwork
+travel upward across that screen-space composition during the fall. The VOLT26 logo follows the cards, fades
+out, and the camera then takes 2.25 seconds
+to settle on Gameplay. Input is redirected for the full 10.6-second cinematic and
+released on landing or early exit. `ScreenInit` retains its compatibility check
+but is reduced to a 0.35-second black handoff. The existing once-per-runtime guard
+still prevents the cinematic from replaying on ordinary title-menu returns.
+Back/Escape deliberately clears that guard and reloads `ScreenTitleMenu`, restarting
+the complete cinematic without exposing the intermediate VOLT26 logo screen. The
+usual selected-banner dive is skipped for this replay transition.
+
+All credit and disclaimer text uses compact uppercase white Helvetica without text
+shadows. The four cards carry the owner-approved concept/design, visual/art,
+development, and special-thanks attributions for Koji, Dando, Chriyl, and the
+VOLT Team.
+
+Verification: static review pending an in-engine framing, timing, and input test.
+
+## Event countdown billboard (2026-09-13)
+
+Branch: `codex/restore-3d-countdown`. The existing Re:Spark day counter and
+player-message tagline are restored inside `Prototype3D.lua` as a fifth,
+navigation-only title-menu choice. Moving right from Exit flies the camera to a
+perspective surface on the street-facing facade of the tall central
+`END_BLOCK_01` building; moving left returns to Exit. The fifth `GameCommand`
+contains text but no screen action, so Start broadcasts the engine's normal
+empty-choice message and stays on the title menu. Each Start interaction chooses
+a new player message, resets its marquee, and fades the replacement text in;
+consecutive repeats are avoided whenever another message is available. The
+billboard retains the minute-based day refresh and marquee behavior.
+
+Verification: static review and `git diff --check` passed. An in-engine visual
+check is still pending.
+
+## Live geometric banners replace the movies (updated 2026-09-14)
+
+Branch: `codex/title-star-banners`. The AVI sprites are gone.
+`ScreenTitleMenu underlay/StarBanner.lua` returns three layers in a centered
+1408x512 canvas, the size of the replaced movies, and `Prototype3D.lua` places
+each layer on its banner surface one further 0.02 m lift toward the street, so
+coplanar layers cannot z-fight:
+
+1. a radial dark-red gradient on an 8x4 vertex-colored grid;
+2. the stripes, clipped to the canvas once at load and textured with the wrapping
+   `TitleTravelCity/star_stripes.png` (64x4, red and transparent halves). Gameplay
+   retains its ten center/tip/inner-corner star triangles. On
+   `codex/banner-shape-animations`, Edit uses a 96-sided circle fan, Options an
+   upright triangle fan, and Exit a flat-top hexagon fan, following the owner's
+   supplied symbols. Equal texture coordinates on each convex outer edge make
+   every translated stripe an exact scaled copy of that polygon;
+3. the caption PNG, cropped to the opaque bounds shared by all four captions.
+
+Cost follows the banners' on-screen pixels, and nothing is drawn off screen. An
+earlier iteration drew each banner into a 1408x512 ActorFrameTexture every frame,
+about 8-9 MP of fill for four targets, which weighed on the integrated GPU. It also
+misplaced the artwork: `RageTextureRenderTarget::BeginRenderingTo` loads a pixel
+ortho projection of the target and an identity transform.
+
+Values measured from the `City_bg/gameplay` frames: one red+dark stripe pair is
+84 px, stripes move outward at 3 pairs per second, dark stripes run from `#2D0000`
+at the center to `#6E0000` at the corners. Captions are zoomed 1.45 and centered
+at (713, 361), the mean placement across the four movies (each within about 12 px).
+The star is upright and centered; the movies' exact star center was not recovered.
+
+Verification: static review only; not yet loaded in ITGmania. The AVI files and
+`tools/build-title-banner-movies.py` are no longer referenced by the theme.
+
 ## Animated Edit, Options and Exit banners (2026-09-12)
 
 Branch: `codex/title-3d-remaining-banners`. The active `Prototype3D.lua` now

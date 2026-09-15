@@ -84,12 +84,12 @@ local invalid_count = 0
 
 local t = Def.ActorFrame {
 
-	InitCommand=function(self) self:queuecommand("Stall") end,
-	StallCommand=function(self)
-		-- FIXME: Stall for 0.5 seconds so that the Lua InputCallback doesn't get immediately added to the screen.
-		-- It's otherwise possible to enter the screen with MenuLeft/MenuRight already held and firing off events,
-		-- which causes the list of profile names to not display.  I don't have time to debug it right now.
-		self:sleep(0.5):queuecommand("InitInput")
+	-- Input is taken from the first frame.  Buttons already held when the screen
+	-- opens are filtered out in Input.lua rather than by waiting them out, so a
+	-- quick Start is never dropped.
+	OnCommand=function(self)
+		SCREENMAN:GetTopScreen():AddInputCallback( LoadActor("./Input.lua", {af=self, Selection=Selection}) )
+		self:queuecommand("Update")
 
 		-- FIXME: I need to find time to look at how the engine actually handles MenuTimers because
 		-- including an Actor command that queues itself every 0.5 seconds to check the MenuTimer on custom
@@ -97,9 +97,6 @@ local t = Def.ActorFrame {
 		if VOLT26.MenuTimer.IsEnabled() then
 			self:queuecommand("CheckMenuTimer")
 		end
-	end,
-	InitInputCommand=function(self)
-		SCREENMAN:GetTopScreen():AddInputCallback( LoadActor("./Input.lua", {af=self, Selection=Selection}) )
 	end,
 
 	CheckMenuTimerCommand=function(self)
@@ -216,7 +213,6 @@ local t = Def.ActorFrame {
 	end,
 
 	-- various events can occur that require us to reassess what we're drawing
-	OnCommand=function(self) self:queuecommand('Update') end,
 	StorageDevicesChangedMessageCommand=function(self) self:queuecommand('Update') end,
 	PlayerJoinedMessageCommand=function(self, params) self:playcommand('Update', {player=params.Player}) end,
 	PlayerUnjoinedMessageCommand=function(self, params) self:playcommand('Update', {player=params.Player}) end,
@@ -307,9 +303,7 @@ t[#t+1] = Chrome.SectionLabel( THEME:GetString("ScreenSelectProfile", "SectionWh
 t[#t+1] = Chrome.Hints{
 	button = THEME:GetString("ScreenSelectProfile", "HintButton"),
 	action = THEME:GetString("ScreenSelectProfile", "HintConfirm"),
-	center = PREFSMAN:GetPreference("EventMode")
-		and THEME:GetString("ScreenSelectProfile", "EventMode")
-		or nil,
+	center = Chrome.CabinetText,
 }
 
 -- a quiet note under the strip: the choice lasts the whole session
