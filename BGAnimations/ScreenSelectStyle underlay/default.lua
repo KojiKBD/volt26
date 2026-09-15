@@ -4,7 +4,7 @@ local af
 local current_game = GAMESTATE:GetCurrentGame():GetName()
 ------------------------------------------------------------------------------------
 
--- Pads are tinted with the fixed theme accents: P1 red, P2 violet.
+-- Pads are tinted with the fixed theme accents: P1 red, P2 white.
 local P1Color = PlayerColor(PLAYER_1, true)
 local P2Color = PlayerColor(PLAYER_2, true)
 

@@ -6,14 +6,14 @@ VOLT26.Brand = {
     "#D8D8D8",  -- Weak   | Metaverse White/Grey (Standard shadows/cognitions)
 	"#00A8E8",  -- Velvet Blue
 	"#FFD400",  -- Investigation Gold
-	"#9B1BFF",  -- Metaverse Violet
+	"#FFFFFF",  -- Phantom White
 
 	},
 	TextColor = "#ffffff",
 
 	-- The theme accent is fixed: ScreenSelectColor and the per-profile colour
 	-- choice were removed.  Player 1 (and every shared/global element) uses
-	-- Phantom Red; Player 2 is differentiated with Metaverse Violet.
+	-- Phantom Red; Player 2 is differentiated with Phantom White.
 	-- Both values are indices into Colors above.
 	AccentColorIndex = 1,
 	-- Keyed by PlayerNumber enum value (PLAYER_1 == "PlayerNumber_P1").

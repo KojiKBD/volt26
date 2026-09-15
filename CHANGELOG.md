@@ -4,12 +4,19 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ## Unreleased
 
+### Added
+
+- Two red road arrows (`Graphics/VOLT26/arrow3d.png`) flank the Options banner on the 3D title street: the far one points up, the near one down. Both lie flat on the road as world-space sprites, like painted markings.
+- The 3D title menu has a hidden sixth `Special Thanks` stop at the end of the road. Its serious credits artwork becomes readable only from the selected overhead camera pose; pressing Start there toggles between the serious and meme artwork without leaving the title screen.
+- The 3D title menu plays the new 18.093-second `Sounds/intro.ogg` exclusively during the opening vow, then starts `menuost.ogg` only after the camera has landed in the interactive menu. The closing beat fades the VOLT26 logo in and back out. The `afk.mp4` idle presentation remains available outside paid play; the train audio remains excluded, the idle timer begins after the opening cinematic, and the dismissal input cannot also activate a menu action.
+
 ### Removed
 
 - `ScreenSelectColor` and the per-session colour choice it drove. The screen is gone from the screen graph (`metrics.ini`), from navigation (`Navigation.AllowScreenSelectColor` / `AfterScreenSelectColor` are folded into `Navigation.AfterSelectProfile`), and from the Theme Options menu, along with the `AllowScreenSelectColor`, `VOLT26Color` and legacy `SimplyLoveColor` preferences and their strings in every shipped language. `VOLT26/SelectColor.png` is no longer warmed up.
 
 ### Changed
 
+- The title opening now follows the measured 18.093-second duration of `intro.ogg`. Its three centered VOLT vow paragraphs accumulate with the spoken passage, fade out together, and then give way to the closing logo fade-in/fade-out during the camera landing. A 92%-opaque black layer dims the moving scene; Optima Nova renders the copy in white with restrained red keyword accents. The former clouds, red star/logo handoff, title-system labels, and discarded 3D Gameplay hover overlay no longer cover the presentation. Title input and the AFK timer retain their existing lifecycle.
 - The four 3D title banners render live concentric red stars behind their captions instead of playing AVI movies.
 - Profile and play-mode selection fit 16:10 screens: widths follow the screen, title tabs no longer overlap, the active tab's word is legible, and the key hints no longer collide with a second "Event Mode" footer or the credit names.
 - A Start or Select still held when the Sort Menu, search results, Leaderboard, or profile switch opens no longer triggers an action there, and profile selection accepts input from its first frame.

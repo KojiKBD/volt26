@@ -26,7 +26,7 @@ end
 
 -- The theme accent is fixed.  ScreenSelectColor was removed, so there is no
 -- runtime colour choice any more: everything shared uses the brand accent
--- (Phantom Red) and Player 2 is differentiated with Metaverse Violet.
+-- (Phantom Red) and Player 2 is differentiated with Phantom White.
 local function AccentIndex( pn )
 	local brand = SL.VOLT26
 	if not brand then return 1 end

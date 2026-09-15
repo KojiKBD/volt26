@@ -6,7 +6,10 @@ VOLT26.Core.ResetSession()
 local USE_3D_PROTOTYPE = true
 if USE_3D_PROTOTYPE then
     local prototype = LoadActor(THEME:GetPathB("ScreenTitleMenu", "underlay/Prototype3D.lua"))
-    return prototype
+    local media = LoadActor(THEME:GetPathB("ScreenTitleMenu", "underlay/Media.lua"))
+    -- Register the media input callback first so a key used to dismiss the AFK
+    -- video cannot also activate the title menu or restart the sky intro.
+    return Def.ActorFrame{ media, prototype }
 end
 
 -- -----------------------------------------------------------------------
@@ -705,11 +708,6 @@ do
                 File=path,
             },
         }
-    end
-
-    local train_path = THEME:GetPathG("", "VOLT26/train.ogg")
-    if FILEMAN:DoesFileExist(train_path) then
-        af[#af+1] = LoopingSound("VOLT26_TrainLoop", train_path)
     end
 
     local menuost_path = THEME:GetPathG("", "VOLT26/menuost.ogg")

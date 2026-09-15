@@ -1,5 +1,5 @@
--- Compatibility gate and short black handoff. The opening credits and logo now
--- play over the descending 3D city camera on ScreenTitleMenu.
+-- Compatibility gate and short black handoff. ScreenTitleMenu owns the complete
+-- descending-city vow and no longer replays the old red/logo handoff frame.
 local af = Def.ActorFrame{
 	InitCommand=function(self) self:Center() end,
 	OffCommand=function(self)

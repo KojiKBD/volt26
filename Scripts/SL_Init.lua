@@ -3084,7 +3084,13 @@ end
 
 VOLT26.TitleMenu = {
 	AFKTimeoutSeconds = 180,
+	-- Measured from Sounds/intro.ogg (797905 samples at 44.1 kHz).
+	IntroDurationSeconds = 18.093,
 }
+
+function VOLT26.TitleMenu.GetIntroDurationSeconds()
+	return VOLT26.TitleMenu.IntroDurationSeconds
+end
 
 function VOLT26.TitleMenu.GetAFKTimeoutSeconds()
 	return VOLT26.TitleMenu.AFKTimeoutSeconds
