@@ -3,7 +3,7 @@
 VOLT26.Core.ResetSession()
 
 -- Temporary visual prototype; set false to restore the original title underlay.
-local USE_3D_PROTOTYPE = true
+local USE_3D_PROTOTYPE = false
 if USE_3D_PROTOTYPE then
     local prototype = LoadActor(THEME:GetPathB("ScreenTitleMenu", "underlay/Prototype3D.lua"))
     local media = LoadActor(THEME:GetPathB("ScreenTitleMenu", "underlay/Media.lua"))
