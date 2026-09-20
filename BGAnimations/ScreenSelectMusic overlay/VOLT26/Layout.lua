@@ -143,9 +143,13 @@ H.WheelW     = wheel.Width
 H.WheelGuide = wheel.X + wheel.GuideOffset
 H.WheelItemX = wheel.X + wheel.ItemOffset
 H.WheelPitch = wheel.Pitch
-H.RowsX      = H.WheelX + H.WheelW + 26
-H.RowsW      = H.W - H.Pad - H.RowsX
-H.RowGap     = 26
+-- The wheel stands in the middle and each player's column beside it on that
+-- player's own side, so nothing a player reads sits on the other's half of the
+-- screen and nothing moves when the second one joins.
+H.ColumnGap  = 26
+H.ColumnW    = H.WheelX - H.ColumnGap - H.Pad
+H.LeftX      = H.Pad
+H.RightX     = H.WheelX + H.WheelW + H.ColumnGap
 
 H.Scale = math.min(_screen.w/H.W, _screen.h/H.H)
 H.Left = _screen.cx - H.W*H.Scale/2
@@ -371,20 +375,82 @@ function H.PreviewSource()
 	return player, H.Chart(player)
 end
 
--- One joined player gets the whole band to itself, and that changes the row's
--- shape rather than just its height: see PlayerRow's solo layout.
+-- A lone player keeps their own side and gives the empty one to the standings:
+-- see H.BoardsArea and PlayerColumn's solo layout.
 function H.IsSolo()
 	return #GAMESTATE:GetHumanPlayers() <= 1
 end
 
--- Each player owns one row.  A lone player's row takes the whole band, which is
--- what gives its density graph and preview their extra height.
-function H.RowGeometry(player)
-	local band = H.InnerBottom - H.InnerTop
-	if H.IsSolo() then return H.InnerTop, band end
-	local height = (band - H.RowGap)/2
-	if player == PLAYER_1 then return H.InnerTop, height end
-	return H.InnerTop + height + H.RowGap, height
+function H.Band()
+	return H.InnerTop, H.InnerBottom - H.InnerTop
+end
+
+-- P1 reads the left of the wheel and P2 the right, alone as in versus, so a
+-- player always finds their readings where they left them.
+function H.ColumnX(player)
+	return player == PLAYER_1 and H.LeftX or H.RightX
+end
+
+-- The right column is the left one's mirror image: whatever stands against the
+-- wheel on one side stands against the wheel on the other.
+function H.IsMirrored(player)
+	return player == PLAYER_2
+end
+
+function H.OtherPlayer(player)
+	return player == PLAYER_1 and PLAYER_2 or PLAYER_1
+end
+
+-- The vertical plan of a column.  The column and the leaderboards that close it
+-- are separate actors, so the one place both read it from is here.
+function H.ColumnMetrics()
+	local top, height = H.Band()
+	local gap = 14
+	local m = {Gap = gap}
+	m.HeaderTop = top
+	m.HeaderHeight = 44
+	m.ScoreTop = m.HeaderTop + m.HeaderHeight + gap
+	m.ScoreHeight = 74
+	m.CountersTop = m.ScoreTop + m.ScoreHeight + gap
+	m.CountersHeight = 62
+	m.GraphTop = m.CountersTop + m.CountersHeight + gap
+	m.GraphHeight = 136
+	m.ShapesTop = m.GraphTop + m.GraphHeight + gap
+	if H.IsSolo() then
+		-- The boards have moved to the empty side, so the radar and the
+		-- difficulty list beside it take the rest of the column.
+		m.BoardsHeight = 0
+		m.ShapesHeight = top + height - m.ShapesTop
+	else
+		-- Tall enough for a caption and five scores, which is what the pair
+		-- side by side can show without the rows closing up.
+		m.BoardsHeight = 196
+		m.BoardsTop = top + height - m.BoardsHeight
+		m.ShapesHeight = m.BoardsTop - gap - m.ShapesTop
+	end
+	return m
+end
+
+-- Where this player's two leaderboards stand: closing their own column, side by
+-- side, while both play -- and alone, taking the whole of the empty side, one
+-- above the other, with the room to show every score.
+function H.BoardsArea(player)
+	local top, height = H.Band()
+	if H.IsSolo() then
+		return {X=H.ColumnX(H.OtherPlayer(player)), Y=top, Width=H.ColumnW,
+			Height=height, Stacked=true, Mirror=false}
+	end
+	local m = H.ColumnMetrics()
+	return {X=H.ColumnX(player), Y=m.BoardsTop, Width=H.ColumnW,
+		Height=m.BoardsHeight, Stacked=false, Mirror=H.IsMirrored(player)}
+end
+
+-- The pack preview replaces the columns while a pack is hovered, and takes the
+-- right one because nothing on that side belongs to a player until a song is
+-- selected again.
+function H.PreviewArea()
+	local top, height = H.Band()
+	return {X=H.RightX, Y=top, Width=H.ColumnW, Height=height}
 end
 
 function H.AddRefresh(actor)
@@ -483,18 +549,22 @@ af[#af+1] = LoadActor(componentPath("TopBar.lua"), H)
 af[#af+1] = LoadActor(componentPath("SongHeader.lua"), H)
 af[#af+1] = LoadActor(componentPath("Songwheel.lua"), H)
 
-local rowLayer = Def.ActorFrame{
-	Name="PlayerRows",
-	-- Modal overlays (sort menu, song search, leaderboard, input test) own the
-	-- screen while they are open.  The preview strips draw after them, so stop
-	-- drawing the rows entirely instead of relying on draw order.
+local columnLayer = Def.ActorFrame{
+	Name="PlayerColumns",
+	-- Modal overlays (sort menu, quick mods, song search, leaderboard, input
+	-- test) own the screen while they are open, so stop drawing the columns
+	-- entirely instead of relying on draw order.
 	VOLT26ModalOverlayOpenedMessageCommand=function(self) self:visible(false) end,
 	VOLT26ModalOverlayClosedMessageCommand=function(self) self:visible(true) end,
 }
-rowLayer[#rowLayer+1] = LoadActor(componentPath("PlayerRow.lua"), {H=H, Player=PLAYER_1})
-rowLayer[#rowLayer+1] = LoadActor(componentPath("PlayerRow.lua"), {H=H, Player=PLAYER_2})
-rowLayer[#rowLayer+1] = LoadActor(componentPath("GroupPreview.lua"), H)
-af[#af+1] = rowLayer
+columnLayer[#columnLayer+1] = LoadActor(componentPath("PlayerColumn.lua"), {H=H, Player=PLAYER_1})
+columnLayer[#columnLayer+1] = LoadActor(componentPath("PlayerColumn.lua"), {H=H, Player=PLAYER_2})
+-- The boards are loaded beside the columns rather than inside them because
+-- alone they leave the player's column for the other side of the screen.
+columnLayer[#columnLayer+1] = LoadActor(componentPath("Leaderboards.lua"), {H=H, Player=PLAYER_1})
+columnLayer[#columnLayer+1] = LoadActor(componentPath("Leaderboards.lua"), {H=H, Player=PLAYER_2})
+columnLayer[#columnLayer+1] = LoadActor(componentPath("GroupPreview.lua"), H)
+af[#af+1] = columnLayer
 
 af[#af+1] = LoadActor(componentPath("Footer.lua"), H)
 

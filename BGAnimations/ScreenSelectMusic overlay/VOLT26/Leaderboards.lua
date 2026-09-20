@@ -3,18 +3,16 @@ local H = args.H
 local player = args.Player
 local pn = ToEnumShortString(player)
 local accent = H.Accent(player)
-local columnX = args.X
-local columnW = args.Width
 
--- The two leaderboards in this player's outer column: the machine's own best
--- times on this chart above, and GrooveStats below.  Both read the same way --
--- a rank, a name and a percentage -- and both end with this player's own line
--- when it did not make the visible cut, drawn in their colour so it can be
--- found without reading the list.
+-- This player's two leaderboards: the machine's own best times on this chart,
+-- and GrooveStats.  Both read the same way -- a rank, a name and a percentage
+-- -- and both end with this player's own line when it did not make the visible
+-- cut, drawn in their colour so it can be found without reading the list.
 --
--- Every row carries a pair, so in versus each player reads their own standing.
--- The column is narrower than the one the radar used to lend them, which is
--- what the tighter cell padding and score column below are for.
+-- Each player carries a pair, so in versus each reads their own standing.
+-- Where the pair stands is H.BoardsArea's answer: side by side, closing the
+-- player's own column, while both play -- and stacked down the whole of the
+-- empty side when one plays alone, where every score fits.
 
 local panelGap = 14
 local panelInset = 0
@@ -26,14 +24,25 @@ local scoreW = 72
 local maxEntries = 10
 local selfGap = 8
 
-local panelX = columnX + panelInset
-local panelW = columnW - panelInset*2
-local cellX = panelX + cellPad
-local cellW = panelW - cellPad*2
-local rankRight = cellX + rankW
-local nameX = rankRight + 8
-local nameW = cellW - rankW - 8 - scoreW - 10
-local scoreRight = cellX + cellW
+-- A panel's own horizontal plan.  Both panels are laid out from this, so a
+-- narrow pair side by side and a wide pair stacked read exactly the same.
+local function panelMetrics(x, width)
+	local panelX = x + panelInset
+	local panelW = width - panelInset*2
+	local cellX = panelX + cellPad
+	local cellW = panelW - cellPad*2
+	local rankRight = cellX + rankW
+	return {
+		PanelX = panelX,
+		PanelW = panelW,
+		CellX = cellX,
+		CellW = cellW,
+		RankRight = rankRight,
+		NameX = rankRight + 8,
+		NameW = cellW - rankW - 8 - scoreW - 10,
+		ScoreRight = cellX + cellW,
+	}
+end
 
 local dash = "--"
 
@@ -201,12 +210,15 @@ local function panelActor(name)
 	return panel
 end
 
-local function layOutPanel(panel, top, height, entries)
+local function layOutPanel(panel, x, width, top, height, entries)
+	local m = panelMetrics(x, width)
+	panel.metrics = m
+	panel.layoutX, panel.layoutWidth = x, width
 	panel.layoutTop, panel.layoutHeight = top, height
 	entries = entries or {}
-	panel:GetChild("HeaderRule"):xy(cellX, top + headerH):zoomto(cellW, 1)
-	panel:GetChild("Caption"):xy(cellX, top + headerH/2)
-	panel:GetChild("Status"):xy(scoreRight, top + headerH/2)
+	panel:GetChild("HeaderRule"):xy(m.CellX, top + headerH):zoomto(m.CellW, 1)
+	panel:GetChild("Caption"):xy(m.CellX, top + headerH/2)
+	panel:GetChild("Status"):xy(m.ScoreRight, top + headerH/2)
 
 	-- Spread the available scores through the body. Reserve the personal row
 	-- only when it exists outside the visible top ten.
@@ -224,21 +236,21 @@ local function layOutPanel(panel, top, height, entries)
 
 	for i=1, maxEntries do
 		local y = rowsTop + (i-0.5)*pitch
-		panel:GetChild("RowRule"..i):xy(cellX, rowsTop+i*pitch):zoomto(cellW, 1):visible(i < shown)
-		panel:GetChild("Highlight"..i):xy(panelX, y):zoomto(panelW, pitch)
-		panel:GetChild("HighlightBar"..i):xy(panelX, y):zoomto(3, pitch)
-		panel:GetChild("Rank"..i):xy(rankRight, y)
-		panel:GetChild("Name"..i):xy(nameX, y)
-		panel:GetChild("Score"..i):xy(scoreRight, y)
+		panel:GetChild("RowRule"..i):xy(m.CellX, rowsTop+i*pitch):zoomto(m.CellW, 1):visible(i < shown)
+		panel:GetChild("Highlight"..i):xy(m.PanelX, y):zoomto(m.PanelW, pitch)
+		panel:GetChild("HighlightBar"..i):xy(m.PanelX, y):zoomto(3, pitch)
+		panel:GetChild("Rank"..i):xy(m.RankRight, y)
+		panel:GetChild("Name"..i):xy(m.NameX, y)
+		panel:GetChild("Score"..i):xy(m.ScoreRight, y)
 	end
 
-	panel:GetChild("Message"):xy(panelX + panelW/2, (rowsTop + top + height)/2)
-	panel:GetChild("SelfRule"):xy(cellX, selfY - rowH/2 - selfGap/2):zoomto(cellW, 1)
-	panel:GetChild("SelfHighlight"):xy(panelX, selfY):zoomto(panelW, rowH)
-	panel:GetChild("SelfBar"):xy(panelX, selfY):zoomto(3, rowH)
-	panel:GetChild("SelfRank"):xy(rankRight, selfY)
-	panel:GetChild("SelfName"):xy(nameX, selfY)
-	panel:GetChild("SelfScore"):xy(scoreRight, selfY)
+	panel:GetChild("Message"):xy(m.PanelX + m.PanelW/2, (rowsTop + top + height)/2)
+	panel:GetChild("SelfRule"):xy(m.CellX, selfY - rowH/2 - selfGap/2):zoomto(m.CellW, 1)
+	panel:GetChild("SelfHighlight"):xy(m.PanelX, selfY):zoomto(m.PanelW, rowH)
+	panel:GetChild("SelfBar"):xy(m.PanelX, selfY):zoomto(3, rowH)
+	panel:GetChild("SelfRank"):xy(m.RankRight, selfY)
+	panel:GetChild("SelfName"):xy(m.NameX, selfY)
+	panel:GetChild("SelfScore"):xy(m.ScoreRight, selfY)
 	return rows
 end
 
@@ -246,7 +258,7 @@ local function clearRow(panel, i)
 	panel:GetChild("Highlight"..i):visible(false)
 	panel:GetChild("HighlightBar"..i):visible(false)
 	H.SetLabel(panel:GetChild("Rank"..i), "", 10)
-	H.SetLabel(panel:GetChild("Name"..i), "", 11, nameW)
+	H.SetLabel(panel:GetChild("Name"..i), "", 11, panel.metrics.NameW)
 	H.SetDisplay(panel:GetChild("Score"..i), "", 15)
 end
 
@@ -260,7 +272,7 @@ local function setRow(panel, i, entry)
 	rank:diffuse(isSelf and accent or H.Dim)
 
 	local name = panel:GetChild("Name"..i)
-	H.SetLabel(name, entry.Name, 11, nameW)
+	H.SetLabel(name, entry.Name, 11, panel.metrics.NameW)
 	name:diffuse(isSelf and H.Ink or (entry.IsRival and H.Mute or H.Ink))
 
 	local score = panel:GetChild("Score"..i)
@@ -274,21 +286,23 @@ local function setSelfRow(panel, entry)
 	panel:GetChild("SelfHighlight"):visible(shown)
 	panel:GetChild("SelfBar"):visible(shown)
 	H.SetLabel(panel:GetChild("SelfRank"), shown and tostring(entry.Rank) or "", 10)
-	H.SetLabel(panel:GetChild("SelfName"), shown and entry.Name or "", 11, nameW)
+	H.SetLabel(panel:GetChild("SelfName"), shown and entry.Name or "", 11, panel.metrics.NameW)
 	H.SetDisplay(panel:GetChild("SelfScore"), shown and string.format("%.2f%%", entry.Percent) or "", 15)
 end
 
 -- state = {Caption, Status, StatusTint, Entries, Message}
 local function fillPanel(panel, rows, state)
+	local m = panel.metrics
 	local status = panel:GetChild("Status")
 	H.SetLabel(status, state.Status or "", 9, 90)
 	status:diffuse(state.StatusTint or H.Dim)
 	H.SetLabel(panel:GetChild("Caption"), state.Caption, 9,
-		cellW - (state.Status and state.Status ~= "" and status:GetZoomedWidth()+12 or 0))
+		m.CellW - (state.Status and state.Status ~= "" and status:GetZoomedWidth()+12 or 0))
 
 	local entries = state.Entries or {}
 	if panel.layoutTop then
-		rows = layOutPanel(panel, panel.layoutTop, panel.layoutHeight, entries)
+		rows = layOutPanel(panel, panel.layoutX, panel.layoutWidth,
+			panel.layoutTop, panel.layoutHeight, entries)
 	end
 	local shown = math.min(rows, #entries)
 	for i=1, maxEntries do
@@ -309,40 +323,59 @@ local function fillPanel(panel, rows, state)
 	local message = panel:GetChild("Message")
 	local empty = #entries == 0
 	message:visible(empty)
-	if empty then H.SetLabel(message, state.Message or "NO SCORES", 10, panelW - 24) end
+	if empty then H.SetLabel(message, state.Message or "NO SCORES", 10, m.PanelW - 24) end
 end
 
 -- --------------------------------------------------------------------- frame
 
 -- Both lists stand on the screen's own ground: no box of their own, just a rule
--- between them, the way the readings and the graph are separated on the other
--- side of the card's divider.
+-- between them, the way the readings and the graph are separated further up
+-- the column.
 local af = Def.ActorFrame{
 	Name=pn.."Leaderboards",
-	LayOutCommand=function(self, p)
-		self.layoutParams = p
-		local joined = GAMESTATE:IsHumanPlayer(player)
+	RefreshCommand=function(self)
+		local joined = GAMESTATE:IsHumanPlayer(player) and H.Item() ~= nil
 		self:visible(joined)
 		if not joined then return end
-
+		self:playcommand("LayOut", H.BoardsArea(player))
+		self:playcommand("Fill")
+	end,
+	LayOutCommand=function(self, p)
+		self.area = p
 		local count = self.localCount or 0
-		local height = math.min((p.BodyHeight-panelGap)/2,
-			headerH + (count == 0 and 52 or (math.min(maxEntries, count)+1)*rowH + selfGap + 12))
-		self:GetChild("Divider"):xy(panelX, p.BodyTop + height + panelGap/2):zoomto(panelW, 1)
-		self.rowsLocal = layOutPanel(self:GetChild("Local"), p.BodyTop, height)
-		self.rowsGs = layOutPanel(self:GetChild("GrooveStats"), p.BodyTop + height + panelGap, p.BodyHeight-height-panelGap)
+		if p.Stacked then
+			-- Alone: the machine's board takes the height its own scores need
+			-- and GrooveStats takes the rest of the side under it.
+			local height = math.min((p.Height-panelGap)/2,
+				headerH + (count == 0 and 52 or (math.min(maxEntries, count)+1)*rowH + selfGap + 12))
+			self:GetChild("Divider"):xy(p.X, p.Y + height + panelGap/2):zoomto(p.Width, 1)
+			self.rowsLocal = layOutPanel(self:GetChild("Local"), p.X, p.Width, p.Y, height)
+			self.rowsGs = layOutPanel(self:GetChild("GrooveStats"),
+				p.X, p.Width, p.Y + height + panelGap, p.Height - height - panelGap)
+		else
+			-- In versus the pair closes the player's own column, the machine's
+			-- board at the screen edge and GrooveStats against the wheel, so
+			-- the two columns are mirror images of each other.
+			local half = (p.Width - panelGap)/2
+			local machineX = p.Mirror and (p.X + half + panelGap) or p.X
+			local grooveStatsX = p.Mirror and p.X or (p.X + half + panelGap)
+			self:GetChild("Divider"):xy(p.X + half + panelGap/2 - 0.5, p.Y):zoomto(1, p.Height)
+			self.rowsLocal = layOutPanel(self:GetChild("Local"), machineX, half, p.Y, p.Height)
+			self.rowsGs = layOutPanel(self:GetChild("GrooveStats"), grooveStatsX, half, p.Y, p.Height)
+		end
 		-- The spinner rides in the GrooveStats header, where the status text
 		-- would otherwise sit.
-		self:GetChild("Request"):xy(scoreRight - 8, p.BodyTop + height + panelGap + headerH/2)
+		local grooveStats = self:GetChild("GrooveStats")
+		self:GetChild("Request")
+			:xy(grooveStats.metrics.ScoreRight - 8, grooveStats.layoutTop + headerH/2)
 	end,
-	FillCommand=function(self, p)
+	FillCommand=function(self)
 		if not GAMESTATE:IsHumanPlayer(player) then return end
-		self.fillParams = p
 		local entries = localEntries() or {}
 		self.localCount = #entries
-		self:playcommand("LayOut", self.layoutParams)
+		if self.area then self:playcommand("LayOut", self.area) end
 		fillPanel(self:GetChild("Local"), self.rowsLocal or maxEntries, {
-			Caption="LOCAL - MACHINE BEST",
+			Caption="MACHINE BEST",
 			Status=#entries > 0 and (#entries.." SCORES") or "",
 			Entries=entries,
 			Message="NO SCORES YET",
@@ -418,7 +451,7 @@ local af = Def.ActorFrame{
 		})
 	end,
 	VOLT26LeaderboardUpdatedMessageCommand=function(self)
-		if self.fillParams then self:playcommand("RefreshGrooveStats") end
+		if self.area then self:playcommand("RefreshGrooveStats") end
 	end,
 }
 
@@ -430,4 +463,5 @@ local request = RequestResponseActor(0, 0)
 request.Name = "Request"
 af[#af+1] = request
 
+H.AddSettledRefresh(af, 0.30, H.IsMirrored(player) and -18 or 18, 0)
 return af

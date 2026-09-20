@@ -1,16 +1,26 @@
 local H = ...
 
 -- The header carries song-level facts only: what every player is looking at.
--- Nothing here is per-player, which is what keeps the two rows below from
+-- Nothing here is per-player, which is what keeps the two columns below from
 -- repeating it.
+--
+-- The band is read in three places that never move: the facts at the left
+-- edge, the song in the middle above the wheel it was chosen from, and the
+-- pack at the right edge over its own banner.
 local bandTop = H.TopBarH
 local bandHeight = H.HeaderH
 local bandBottom = bandTop + bandHeight
 -- The banner is allowed this much of the band before it is cropped from the
--- left, which is what stops a wide pack banner from reaching the titles.
-local bannerMaxWidth = 960
-local metaGap = 40
-local textGap = 56
+-- left, which is what stops a wide pack banner from reaching the title.
+local bannerMaxWidth = 480
+local factGap = 40
+local factsX = H.Pad
+local titleX = H.W/2
+local titleWidth = 620
+local packRight = H.W - H.Pad
+local packScrimWidth = 460
+
+local facts = {"Bpm", "Duration"}
 
 local function bannerPath()
 	local group = H.Pack()
@@ -58,10 +68,22 @@ local af = Def.ActorFrame{
 
 		H.SetLabel(self:GetChild("BpmLabel"), "BPM", 9)
 		H.SetLabel(self:GetChild("DurationLabel"), H.String("Duration"), 9)
-		H.SetLabel(self:GetChild("PackLabel"), "PACK", 9)
 		H.SetDisplay(self:GetChild("BpmValue"), bpmText(), 28, 220)
 		H.SetDisplay(self:GetChild("DurationValue"), H.Length(), 28, 220)
-		H.SetDisplay(self:GetChild("PackValue"), H.Pack():upper(), 28, 300)
+
+		-- The facts run outwards from the left edge, each one starting past the
+		-- widest line of the one before it.
+		local x = factsX
+		for _, fact in ipairs(facts) do
+			local label = self:GetChild(fact.."Label")
+			local value = self:GetChild(fact.."Value")
+			label:x(x)
+			value:x(x)
+			x = x + math.max(label:GetZoomedWidth(), value:GetZoomedWidth()) + factGap
+		end
+
+		H.SetLabel(self:GetChild("PackLabel"), "PACK", 9)
+		H.SetDisplay(self:GetChild("PackValue"), H.Pack():upper(), 28, 420)
 
 		local banner = self:GetChild("Banner")
 		local path = item and bannerPath() or nil
@@ -73,28 +95,16 @@ local af = Def.ActorFrame{
 			self.loadedPath = nil
 		end
 		banner:visible(self.loadedPath ~= nil)
+		-- The pack name stands on the banner, so the scrim under it is only
+		-- there when the banner is.
+		self:GetChild("PackScrim"):visible(self.loadedPath ~= nil)
 		self.fitTries = 0
 		if self.loadedPath then self:playcommand("FitBanner") end
 
-		local eyebrow = self:GetChild("Eyebrow")
-		H.SetLabel(eyebrow, H.String("NowSelected").." - "..H.String("SharedInfo"), 11, 620)
-
-		local title = self:GetChild("Title")
-		H.SetDisplay(title, H.Title(item), 52, 620)
-		local artist = self:GetChild("Artist")
-		H.SetDisplay(artist, H.Artist(item), 24, 620)
-
-		-- The metadata block starts one gap past whichever of the three title
-		-- lines runs longest, so it never overlaps and never drifts.
-		local textWidth = math.max(eyebrow:GetZoomedWidth(), title:GetZoomedWidth(), artist:GetZoomedWidth())
-		local x = H.Pad + textWidth + textGap
-		for _, field in ipairs({"Bpm", "Duration", "Pack"}) do
-			local label = self:GetChild(field.."Label")
-			local value = self:GetChild(field.."Value")
-			label:x(x)
-			value:x(x)
-			x = x + math.max(label:GetZoomedWidth(), value:GetZoomedWidth()) + metaGap
-		end
+		H.SetLabel(self:GetChild("Eyebrow"),
+			H.String("NowSelected").." - "..H.String("SharedInfo"), 11, titleWidth)
+		H.SetDisplay(self:GetChild("Title"), H.Title(item), 46, titleWidth)
+		H.SetDisplay(self:GetChild("Artist"), H.Artist(item), 22, titleWidth)
 	end,
 	-- A movie banner has no size until its first frame is decoded, and fitting
 	-- one before then measures nothing and blows it up to fill the screen.  The
@@ -110,6 +120,7 @@ local af = Def.ActorFrame{
 		self.fitTries = (self.fitTries or 0) + 1
 		if self.fitTries > 40 then
 			banner:visible(false)
+			self:GetChild("PackScrim"):visible(false)
 			return
 		end
 		banner:stoptweening():sleep(0.03):queuecommand("RetryFit")
@@ -127,22 +138,34 @@ af[#af+1] = Def.Sprite{
 		self:diffuse(color("1,1,1,1")):diffuseleftedge(color("1,1,1,0"))
 	end,
 }
+-- Enough ground under the pack name for it to be read off whatever artwork the
+-- pack ships, and none where there is no artwork to read it off.
+af[#af+1] = Def.Quad{
+	Name="PackScrim",
+	InitCommand=function(self)
+		self:align(1,0):xy(H.W, bandTop):zoomto(packScrimWidth, bandHeight)
+			:diffuse(H.Bg):diffusealpha(0.72):diffuseleftedge(color("0,0,0,0")):visible(false)
+	end,
+}
 af[#af+1] = Def.Quad{
 	Name="Veil",
 	InitCommand=function(self)
-		self:align(0,0):xy(0, bandTop):zoomto(H.W*0.45, bandHeight)
+		self:align(0,0):xy(0, bandTop):zoomto(H.W*0.30, bandHeight)
 			:diffuse(H.P1):diffusealpha(0.20):diffuserightedge(color("0,0,0,0"))
 	end,
 }
 
-af[#af+1] = H.LabelText{Name="Eyebrow", Px=11, Tint=H.Mute, X=H.Pad, Y=bandTop+31}
-af[#af+1] = H.DisplayText{Name="Title", Px=52, Tint=H.Ink, X=H.Pad, Y=bandTop+62}
-af[#af+1] = H.DisplayText{Name="Artist", Px=24, Tint=H.Mute, X=H.Pad, Y=bandTop+100}
+af[#af+1] = H.LabelText{Name="Eyebrow", Px=11, Tint=H.Mute, Align=center, X=titleX, Y=bandTop+26}
+af[#af+1] = H.DisplayText{Name="Title", Px=46, Tint=H.Ink, Align=center, X=titleX, Y=bandTop+62}
+af[#af+1] = H.DisplayText{Name="Artist", Px=22, Tint=H.Mute, Align=center, X=titleX, Y=bandTop+100}
 
-for _, field in ipairs({"Bpm", "Duration", "Pack"}) do
-	af[#af+1] = H.LabelText{Name=field.."Label", Px=9, Tint=H.Dim, Y=bandTop+52}
-	af[#af+1] = H.DisplayText{Name=field.."Value", Px=28, Tint=H.Ink, Y=bandTop+74}
+for _, fact in ipairs(facts) do
+	af[#af+1] = H.LabelText{Name=fact.."Label", Px=9, Tint=H.Dim, Y=bandTop+52}
+	af[#af+1] = H.DisplayText{Name=fact.."Value", Px=28, Tint=H.Ink, Y=bandTop+74}
 end
+
+af[#af+1] = H.LabelText{Name="PackLabel", Px=9, Tint=H.Dim, Align=right, X=packRight, Y=bandTop+52}
+af[#af+1] = H.DisplayText{Name="PackValue", Px=28, Tint=H.Ink, Align=right, X=packRight, Y=bandTop+74}
 
 af[#af+1] = H.Rule{Name="Divider", Y=bandBottom-1, Width=H.W, Height=1}
 
