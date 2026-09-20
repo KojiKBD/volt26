@@ -6,19 +6,23 @@ local accent = H.Accent(player)
 local columnX = args.X
 local columnW = args.Width
 
--- The two leaderboards a lone player gets in the column the radar vacates: the
--- machine's own best times on this chart above, and GrooveStats below.  Both
--- read the same way -- a rank, a name and a percentage -- and both end with this
--- player's own line when it did not make the visible cut, drawn in their colour
--- so it can be found without reading the list.
+-- The two leaderboards in this player's outer column: the machine's own best
+-- times on this chart above, and GrooveStats below.  Both read the same way --
+-- a rank, a name and a percentage -- and both end with this player's own line
+-- when it did not make the visible cut, drawn in their colour so it can be
+-- found without reading the list.
+--
+-- Every row carries a pair, so in versus each player reads their own standing.
+-- The column is narrower than the one the radar used to lend them, which is
+-- what the tighter cell padding and score column below are for.
 
 local panelGap = 14
 local panelInset = 0
 local headerH = 48
 local rowH = 21
-local cellPad = 18
-local rankW = 24
-local scoreW = 78
+local cellPad = 14
+local rankW = 22
+local scoreW = 72
 local maxEntries = 10
 local selfGap = 8
 
@@ -310,16 +314,16 @@ end
 
 -- --------------------------------------------------------------------- frame
 
--- Both lists sit inside the card, in the column the radar vacates: no ground and
--- no box of their own, just a rule between them, the way the readings and the
--- graph are separated on the other side of the divider.
+-- Both lists stand on the screen's own ground: no box of their own, just a rule
+-- between them, the way the readings and the graph are separated on the other
+-- side of the card's divider.
 local af = Def.ActorFrame{
 	Name=pn.."Leaderboards",
 	LayOutCommand=function(self, p)
 		self.layoutParams = p
-		local solo = p.Solo and GAMESTATE:IsHumanPlayer(player)
-		self:visible(solo)
-		if not solo then return end
+		local joined = GAMESTATE:IsHumanPlayer(player)
+		self:visible(joined)
+		if not joined then return end
 
 		local count = self.localCount or 0
 		local height = math.min((p.BodyHeight-panelGap)/2,
@@ -332,7 +336,7 @@ local af = Def.ActorFrame{
 		self:GetChild("Request"):xy(scoreRight - 8, p.BodyTop + height + panelGap + headerH/2)
 	end,
 	FillCommand=function(self, p)
-		if not (p.Solo and GAMESTATE:IsHumanPlayer(player)) then return end
+		if not GAMESTATE:IsHumanPlayer(player) then return end
 		self.fillParams = p
 		local entries = localEntries() or {}
 		self.localCount = #entries
@@ -350,7 +354,7 @@ local af = Def.ActorFrame{
 	-- chart.  Anything that stops that from happening -- no key, service off,
 	-- course mode -- is stated in the panel rather than left blank.
 	RefreshGrooveStatsCommand=function(self)
-		if not (H.IsSolo() and GAMESTATE:IsHumanPlayer(player) and H.Item()) then return end
+		if not (GAMESTATE:IsHumanPlayer(player) and H.Item()) then return end
 		local panel = self:GetChild("GrooveStats")
 		local rows = self.rowsGs or maxEntries
 		local function say(status, message)
