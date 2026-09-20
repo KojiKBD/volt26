@@ -1295,6 +1295,7 @@ local songBrowsingActions = {
 	MachinePlaylist = true,
 	PersonalPlaylist = true,
 	Preferred = true,
+	QuickMods = true,
 	SetSummary = true,
 	SongSearch = true,
 	SortBy = true,
@@ -2969,6 +2970,50 @@ end
 
 function VOLT26.Options.GetGlobalModifiers()
 	return VOLT26.State.Global.ActiveModifiers
+end
+
+-- Perspective.
+--
+-- The engine does not keep a perspective by name: `mod,distant` and the rest
+-- set two numbers on PlayerOptions, a vanishing-point skew and a tilt, and
+-- those are all that can be read back.  These are the five combinations the
+-- options screen offers, in the order it offers them.
+local perspectives = {
+	{Name = "Overhead", Skew = 0, Tilt =  0},
+	{Name = "Hallway",  Skew = 0, Tilt = -1},
+	{Name = "Distant",  Skew = 0, Tilt =  1},
+	{Name = "Incoming", Skew = 1, Tilt = -1},
+	{Name = "Space",    Skew = 1, Tilt =  1},
+}
+
+function VOLT26.Options.GetPerspectives()
+	return perspectives
+end
+
+-- GetPerspective(player) -> name, tilt, skew
+--
+-- The two numbers come back alongside the name because anything drawing a note
+-- field needs them rather than the name: the tilt is the angle the field is
+-- rotated through and the skew is where the vanishing point sits.
+function VOLT26.Options.GetPerspective(player)
+	local options = GAMESTATE:GetPlayerState(player):GetPlayerOptions("ModsLevel_Preferred")
+	-- Each getter answers with the value and its rate of approach, so both are
+	-- parenthesised down to the value alone.
+	local ok, skew, tilt = pcall(function()
+		return tonumber((options:Skew())) or 0, tonumber((options:Tilt())) or 0
+	end)
+	if not ok then return "Overhead", 0, 0 end
+	for _, entry in ipairs(perspectives) do
+		if math.abs(entry.Skew - skew) < 0.5 and math.abs(entry.Tilt - tilt) < 0.5 then
+			return entry.Name, tilt, skew
+		end
+	end
+	return "Overhead", tilt, skew
+end
+
+function VOLT26.Options.SetPerspective(player, name)
+	GAMESTATE:ApplyGameCommand("mod," .. tostring(name):lower(),
+		PlayerNumber:Reverse()[player] + 1)
 end
 
 function VOLT26.Options.CanReturnToMusic()

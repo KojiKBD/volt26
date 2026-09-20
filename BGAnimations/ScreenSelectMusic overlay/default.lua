@@ -48,6 +48,7 @@ af[#af+1] = LoadActor("./VOLT26/default.lua")
 
 -- Shared overlays retain their original draw order.
 af[#af+1] = LoadActor("./SortMenu/default.lua")
+af[#af+1] = LoadActor("./QuickMods/default.lua")
 af[#af+1] = LoadActor("./TestInput.lua")
 af[#af+1] = LoadActor("./Leaderboard.lua")
 af[#af+1] = LoadActor("./SongSearch/default.lua")

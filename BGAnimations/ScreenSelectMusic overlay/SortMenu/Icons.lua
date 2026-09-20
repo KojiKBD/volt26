@@ -17,6 +17,7 @@ local folder = "VOLT26/SortMenu/"
 local byKey = {
 	GoBack            = "back",
 	SwitchProfile     = "profile",
+	QuickMods         = "mods",
 	Leaderboard       = "trophy",
 	SongSearch        = "search",
 	AddFavorite       = "favorite",

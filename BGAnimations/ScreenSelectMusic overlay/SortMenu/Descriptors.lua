@@ -201,6 +201,7 @@ local actions = {
 	Leaderboard   = {Label="GrooveStats",        Action="SortMenuOpen"},
 	SongSearch    = {Label="WhereforeArtThou",   Action="SortMenuOpen"},
 	AddFavorite   = {Label="ImLovinIt",          Action="SortMenuActivate"},
+	QuickMods     = {Label="TweakIt",            Action="SortMenuOpen"},
 	TestInput     = {Label="FeelingSalty",       Action="SortMenuOpen"},
 	PracticeMode  = {Label="HardTime",           Action="SortMenuActivate"},
 	LoadNewSongs  = {Label="TakeABreather",      Action="SortMenuActivate"},

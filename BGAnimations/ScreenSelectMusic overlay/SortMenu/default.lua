@@ -139,6 +139,9 @@ local sortmenu_input    = LoadActor("SortMenu_InputHandler.lua", menu)
 local testinput_input   = LoadActor("TestInput_InputHandler.lua")
 local leaderboard_input = LoadActor("Leaderboard_InputHandler.lua")
 
+-- Quick Mods owns its own input callback, added and removed by the overlay
+-- itself, so the only thing the dock has to do is raise and lower it.
+
 local SongSearchSettings = LoadActor("../SongSearch/SongSearchSettings.lua")
 
 local IsActionEnabled = VOLT26.SongBrowsing.IsActionEnabled
@@ -159,6 +162,7 @@ local DirectInputToEngine = function(self)
 	self:playcommand("HideSortMenu")
 	overlay:playcommand("HideTestInput")
 	overlay:playcommand("HideLeaderboard")
+	overlay:playcommand("HideQuickMods")
 	MESSAGEMAN:Broadcast("VOLT26ModalOverlayClosed")
 end
 
@@ -381,6 +385,7 @@ local t = Def.ActorFrame {
 			-- Only show GoBack if we're in 3 key navigation mode, as it's redundant in 5 key.
 			{ { "", "GoBack" }, PREFSMAN:GetPreference("ThreeKeyNavigation") },
 			{ {"NextPlease", "SwitchProfile"}, IsActionEnabled("SwitchProfile") and ThemePrefs.Get("AllowScreenSelectProfile") },
+			{ {"TweakIt", "QuickMods"}, IsActionEnabled("QuickMods") },
 			{ {"GrooveStats", "Leaderboard"}, function() return IsActionEnabled("Leaderboard") and GAMESTATE:GetCurrentSong() ~= nil end },
 			{ {"WhereforeArtThou", "SongSearch"}, IsActionEnabled("SongSearch") and not GAMESTATE:IsCourseMode() and ThemePrefs.Get("KeyboardFeatures") },
 			{ {"ImLovinIt", "AddFavorite"}, function() return IsActionEnabled("AddFavorite") and GAMESTATE:GetCurrentSong() ~= nil end},
@@ -462,7 +467,19 @@ local t = Def.ActorFrame {
 		self:queuecommand("AssessAvailableChoices"):queuecommand("ShowSortMenu")
 		overlay:playcommand("HideTestInput")
 		overlay:playcommand("HideLeaderboard")
+		overlay:playcommand("HideQuickMods")
 		MESSAGEMAN:Broadcast("VOLT26ModalOverlayOpened")
+	end,
+	DirectInputToQuickModsCommand=function(self)
+		local screen = SCREENMAN:GetTopScreen()
+		local overlay = self:GetParent()
+		screen:RemoveInputCallback(sortmenu_input)
+		for player in ivalues(PlayerNumber) do
+			SCREENMAN:set_input_redirected(player, true)
+		end
+		self:playcommand("HideSortMenu")
+
+		overlay:playcommand("ShowQuickMods")
 	end,
 	DirectInputToTestInputCommand=function(self)
 		local screen = SCREENMAN:GetTopScreen()
