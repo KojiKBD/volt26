@@ -13,7 +13,6 @@ local stylename = GAMESTATE:GetCurrentStyle():GetName()
 if not VOLT26.Tournament.ShouldShowStepStats(player) then return end
 
 if (not IsUltraWide and stylename == "versus")
-	or VOLT26.Gameplay.IsCasual()
 	or (GetNotefieldWidth() > _screen.w/2 and stylename ~= "double")
 	or (NoteFieldIsCentered and not IsUsingWideScreen())
 	or (not IsUltraWide and stylename ~= "single" and stylename ~= "double")

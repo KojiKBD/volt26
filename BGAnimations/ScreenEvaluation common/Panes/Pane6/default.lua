@@ -1,7 +1,5 @@
 -- Pane6 displays TestInput.
 
-if VOLT26.Gameplay.IsCasual() then return end
-
 -- DedicatedMenu buttons are necessary here to prevent players from getting stuck in this pane
 if not PREFSMAN:GetPreference("OnlyDedicatedMenuButtons") then return end
 

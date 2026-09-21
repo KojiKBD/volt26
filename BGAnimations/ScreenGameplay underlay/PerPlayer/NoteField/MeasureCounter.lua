@@ -1,9 +1,7 @@
 local player, layout = ...
 local mods = VOLT26.Options.GetPlayerModifiers(player)
 
--- don't allow MeasureCounter to appear in Casual gamemode via profile settings
-if VOLT26.Gameplay.IsCasual()
-or not mods.MeasureCounter
+if not mods.MeasureCounter
 or mods.MeasureCounter == "None" then
 	return
 end

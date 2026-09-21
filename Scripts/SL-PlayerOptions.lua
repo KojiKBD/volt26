@@ -669,26 +669,14 @@ local Overrides = {
 			}
 		end,
 		Choices = function()
-			local tns = "TapNoteScore" .. (SL.Global.GameMode=="ITG" and "" or SL.Global.GameMode)
-			local t = {THEME:GetString("SLPlayerOptions","None")}
-			if SL.Global.GameMode=="Casual" then
-				local idx = 2
-				t[idx] = THEME:GetString(tns,"W4").."s + "..t[idx-1]
-			end
-			return t
+			return {THEME:GetString("SLPlayerOptions","None")}
 		end,
 		LoadSelections = function(self, list, pn)
 			local mods, playeroptions = GetModsAndPlayerOptions(pn)
 			-- First determine the set of actual enabled windows.
 			local windows = {true,true,true,true,true}
-			if SL.Global.Gamemode == "Casual" then
-				windows[4] = false
-				windows[5] = false
-				list[2] = true
-			else
-				playeroptions:ResetDisabledTimingWindows()
-				list[1] = true
-			end
+			playeroptions:ResetDisabledTimingWindows()
+			list[1] = true
 			mods.TimingWindows = windows
 			return list
 		end,

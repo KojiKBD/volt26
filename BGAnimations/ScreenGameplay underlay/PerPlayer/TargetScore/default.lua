@@ -6,8 +6,6 @@
 -- ineffable fire described by quietly-turning
 
 -- ---------------------------------------------------------------
--- nothing handled by this file applies to or should appear in Casual mode
-if VOLT26.Gameplay.IsCasual() then return end
 
 -- ---------------------------------------------------------------
 -- first, the usual suspects

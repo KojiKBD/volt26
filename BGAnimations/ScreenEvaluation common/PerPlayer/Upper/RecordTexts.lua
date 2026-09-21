@@ -1,5 +1,3 @@
-if SL.Global.GameMode == "Casual" then return end
-
 local player = ...
 
 local record = VOLT26.Results.ApplyNameEntryEligibility(player)

@@ -1,5 +1,3 @@
-if VOLT26.Gameplay.IsCasual() then return end
-
 local requestingPlayer
 local sprite = Def.Sprite{InitCommand=function(self) self:draworder(200) end}
 

@@ -1,5 +1,5 @@
 local Players = GAMESTATE:GetHumanPlayers()
-local NumPanes = VOLT26.Gameplay.IsCasual() and 1 or 8
+local NumPanes = 8
 
 local callbackController = VOLT26.EvaluationInput.NewCallbackController()
 local inputHandler, diagnosticInputHandler, eventOverlayInputHandler, shortcutInputHandler, screenshotInputHandler
@@ -10,57 +10,51 @@ end
 
 local t = Def.ActorFrame{Name="ScreenEval Common"}
 
-if not VOLT26.Gameplay.IsCasual() then
-	local function redirectPlayers(redirected)
-		for player in ivalues(PlayerNumber) do
-			SCREENMAN:set_input_redirected(player, redirected)
-		end
+local function redirectPlayers(redirected)
+	for player in ivalues(PlayerNumber) do
+		SCREENMAN:set_input_redirected(player, redirected)
 	end
+end
 
-	local function activateStandardInput()
-		callbackController:Deactivate("event")
-		callbackController:Activate("panes", inputHandler)
-		callbackController:Activate("diagnostics", diagnosticInputHandler)
-		callbackController:Activate("shortcuts", shortcutInputHandler)
-		callbackController:Activate("screenshot", screenshotInputHandler)
-		redirectPlayers(false)
-	end
+local function activateStandardInput()
+	callbackController:Deactivate("event")
+	callbackController:Activate("panes", inputHandler)
+	callbackController:Activate("diagnostics", diagnosticInputHandler)
+	callbackController:Activate("shortcuts", shortcutInputHandler)
+	callbackController:Activate("screenshot", screenshotInputHandler)
+	redirectPlayers(false)
+end
 
-	t.OnCommand=function(self)
-		inputHandler = LoadActor("./InputHandler.lua", {self, NumPanes})
-		diagnosticInputHandler = LoadActor("./Shared/DiagnosticInputHandler.lua")
-		eventOverlayInputHandler = LoadActor("./Shared/EventInputHandler.lua")
-		screenshotInputHandler = VOLT26.EvaluationInput.CreateScreenshotHandler(function(player)
-			MESSAGEMAN:Broadcast("CaptureScreenshot", {PlayerNumber=player})
-		end)
-		if VOLT26.EvaluationInput.CanUseReplayPracticeShortcuts() then
-			shortcutInputHandler = VOLT26.EvaluationInput.CreateReplayPracticeHandler()
-		end
-		activateStandardInput()
-		PROFILEMAN:SaveMachineProfile()
+t.OnCommand=function(self)
+	inputHandler = LoadActor("./InputHandler.lua", {self, NumPanes})
+	diagnosticInputHandler = LoadActor("./Shared/DiagnosticInputHandler.lua")
+	eventOverlayInputHandler = LoadActor("./Shared/EventInputHandler.lua")
+	screenshotInputHandler = VOLT26.EvaluationInput.CreateScreenshotHandler(function(player)
+		MESSAGEMAN:Broadcast("CaptureScreenshot", {PlayerNumber=player})
+	end)
+	if VOLT26.EvaluationInput.CanUseReplayPracticeShortcuts() then
+		shortcutInputHandler = VOLT26.EvaluationInput.CreateReplayPracticeHandler()
 	end
-	t.DirectInputToEngineCommand=function(self)
-		activateStandardInput()
-	end
-	t.DirectInputToEventOverlayHandlerCommand=function(self)
-		if not eventOverlayInputHandler then return end
-		MESSAGEMAN:Broadcast("ResetInputDiagnostics")
-		callbackController:Deactivate("panes")
-		callbackController:Deactivate("diagnostics")
-		callbackController:Deactivate("shortcuts")
-		callbackController:Deactivate("screenshot")
-		callbackController:Activate("event", eventOverlayInputHandler)
-		redirectPlayers(true)
-	end
-	t.OffCommand=function(self)
-		MESSAGEMAN:Broadcast("ResetInputDiagnostics")
-		callbackController:Clear()
-		redirectPlayers(false)
-	end
-else
-	t.OnCommand=function(self)
-		PROFILEMAN:SaveMachineProfile()
-	end
+	activateStandardInput()
+	PROFILEMAN:SaveMachineProfile()
+end
+t.DirectInputToEngineCommand=function(self)
+	activateStandardInput()
+end
+t.DirectInputToEventOverlayHandlerCommand=function(self)
+	if not eventOverlayInputHandler then return end
+	MESSAGEMAN:Broadcast("ResetInputDiagnostics")
+	callbackController:Deactivate("panes")
+	callbackController:Deactivate("diagnostics")
+	callbackController:Deactivate("shortcuts")
+	callbackController:Deactivate("screenshot")
+	callbackController:Activate("event", eventOverlayInputHandler)
+	redirectPlayers(true)
+end
+t.OffCommand=function(self)
+	MESSAGEMAN:Broadcast("ResetInputDiagnostics")
+	callbackController:Clear()
+	redirectPlayers(false)
 end
 
 -- -----------------------------------------------------------------------
@@ -82,9 +76,6 @@ t[#t+1] = LoadActor("./Shared/SongFeatures.lua")
 -- store some attributes of this playthrough of this song in the global SL table
 -- for later retrieval on ScreenEvaluationSummary
 t[#t+1] = LoadActor("./Shared/GlobalStorage.lua")
-
--- help text that appears if we're in Casual gamemode
-t[#t+1] = LoadActor("./Shared/CasualHelpText.lua")
 
 -- -----------------------------------------------------------------------
 -- Then, load player-specific actors.

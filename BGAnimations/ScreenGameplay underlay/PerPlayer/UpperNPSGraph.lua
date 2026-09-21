@@ -1,9 +1,7 @@
 local player = ...
 local mods = VOLT26.Options.GetPlayerModifiers(player)
 
-if not mods.NPSGraphAtTop
-or VOLT26.Gameplay.IsCasual()
-then
+if not mods.NPSGraphAtTop then
 	return
 end
 

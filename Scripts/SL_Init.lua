@@ -54,8 +54,8 @@ local PlayerDefaults = {
 				HideEarlyDecentWayOffJudgments = false,
 				HideEarlyDecentWayOffFlash = false,
 
-				-- While SL no longer supports disabling individual timing windows
-				-- in ITG mode, Casual mode still does so we still track it here.
+				-- The enabled windows are still recorded for GrooveStats and ITL
+				-- validation, although ITG mode never disables one.
 				TimingWindows = {true, true, true, true, true},
 				ShowFaPlusWindow = false,
 				ShowExScore = false,
@@ -228,14 +228,6 @@ VOLT26 = {
 	},
 	-- These judgment colors are used for text & numbers on dark backgrounds:
 	JudgmentColors = {
-		Casual = {
-			color("#21CCE8"),	-- blue
-			color("#e29c18"),	-- gold
-			color("#66c955"),	-- green
-			color("#b45cff"),	-- purple (greatly lightened)
-			color("#c9855e"),	-- peach?
-			color("#ff3030")	-- red (slightly lightened)
-		},
 		ITG = {
 			color("#21CCE8"),	-- blue
 			color("#e29c18"),	-- gold
@@ -254,26 +246,6 @@ VOLT26 = {
 		},
 	},
 	Preferences = {
-		Casual = {
-			TimingWindowAdd=0.0015,
-			RegenComboAfterMiss=0,
-			MaxRegenComboAfterMiss=0,
-			MinTNSToHideNotes="TapNoteScore_W3",
-			HarshHotLifePenalty=true,
-
-			PercentageScoring=true,
-			AllowW1="AllowW1_Everywhere",
-			SubSortByNumSteps=true,
-
-			TimingWindowSecondsW1=0.021500,
-			TimingWindowSecondsW2=0.043000,
-			TimingWindowSecondsW3=0.102000,
-			TimingWindowSecondsW4=0.102000,
-			TimingWindowSecondsW5=0.102000,
-			TimingWindowSecondsHold=0.320000,
-			TimingWindowSecondsMine=0.070000,
-			TimingWindowSecondsRoll=0.350000,
-		},
 		ITG = {
 			TimingWindowAdd=0.0015,
 			RegenComboAfterMiss=5,
@@ -336,41 +308,6 @@ VOLT26 = {
 		--    which does not award points for held checkpoints, but
 		--    only penalizes missed checkpoints.
 
-		Casual = {
-			PercentScoreWeightW1=3,
-			PercentScoreWeightW2=2,
-			PercentScoreWeightW3=1,
-			PercentScoreWeightW4=0,
-			PercentScoreWeightW5=0,
-			PercentScoreWeightMiss=0,
-			PercentScoreWeightLetGo=0,
-			PercentScoreWeightHeld=3,
-			PercentScoreWeightHitMine=-1,
-			PercentScoreWeightCheckpointHit=0,
-
-			GradeWeightW1=3,
-			GradeWeightW2=2,
-			GradeWeightW3=1,
-			GradeWeightW4=0,
-			GradeWeightW5=0,
-			GradeWeightMiss=0,
-			GradeWeightLetGo=0,
-			GradeWeightHeld=3,
-			GradeWeightHitMine=-1,
-			GradeWeightCheckpointHit=0,
-
-			LifePercentChangeW1=0,
-			LifePercentChangeW2=0,
-			LifePercentChangeW3=0,
-			LifePercentChangeW4=0,
-			LifePercentChangeW5=0,
-			LifePercentChangeMiss=0,
-			LifePercentChangeLetGo=0,
-			LifePercentChangeHeld=0,
-			LifePercentChangeHitMine=0,
-
-			InitialValue=0.5,
-		},
 		ITG = {
 			PercentScoreWeightW1=5,
 			PercentScoreWeightW2=4,
@@ -987,7 +924,6 @@ end
 
 function VOLT26.ThemePrefs.ApplyGameMode(gameMode)
 	local mode = gameMode or VOLT26.State.Global.GameMode
-	if mode == "Casual" then mode = "ITG" end
 	local preferences = VOLT26.Preferences[mode]
 	if not preferences then return false end
 	VOLT26.State.Global.GameMode = mode
@@ -995,7 +931,6 @@ function VOLT26.ThemePrefs.ApplyGameMode(gameMode)
 
 	for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 		local state = VOLT26.Core.GetPlayerState(player)
-		if mode == "Casual" then state.ActiveModifiers.TimingWindows = {true, true, true, false, false} end
 		local timingWindows = CustomOptionRow("TimingWindows")
 		timingWindows:LoadSelections(timingWindows.Choices, player)
 		local options = GAMESTATE:GetPlayerState(player):GetPlayerOptions("ModsLevel_Preferred")
@@ -1003,8 +938,8 @@ function VOLT26.ThemePrefs.ApplyGameMode(gameMode)
 		options:FailSetting(GetDefaultFailType())
 	end
 
-	local statsPrefix = mode == "Casual" and "Casual-" or ""
-	if PROFILEMAN:GetStatsPrefix() ~= statsPrefix then PROFILEMAN:SetStatsPrefix(statsPrefix) end
+	-- Profiles written by a former Casual session used a separate stats prefix.
+	if PROFILEMAN:GetStatsPrefix() ~= "" then PROFILEMAN:SetStatsPrefix("") end
 	return true
 end
 
@@ -1435,12 +1370,7 @@ end
 VOLT26.Gameplay = {}
 
 function VOLT26.Gameplay.GetMode()
-	if VOLT26.State.Global.GameMode == "Casual" then VOLT26.State.Global.GameMode = "ITG" end
 	return VOLT26.State.Global.GameMode
-end
-
-function VOLT26.Gameplay.IsCasual()
-	return false
 end
 
 function VOLT26.Gameplay.GetCurrentStageIndex()
@@ -1831,7 +1761,7 @@ local function new_ex_counts()
 end
 
 function VOLT26.Telemetry.IsEnabled()
-	return not VOLT26.Gameplay.IsCasual()
+	return true
 end
 
 function VOLT26.Telemetry.GetStage(player)
@@ -2049,7 +1979,6 @@ function VOLT26.Scoring.CalculateExFromRadar(counts, radar, weights, noMines)
 end
 
 function VOLT26.Scoring.CalculateExScore(player, ex_counts, use_actual_w0_weight)
-	if VOLT26.Gameplay.IsCasual() then return 0 end
 	local steps_or_trail = GAMESTATE:IsCourseMode()
 		and GAMESTATE:GetCurrentTrail(player) or GAMESTATE:GetCurrentSteps(player)
 	if not steps_or_trail then return 0 end

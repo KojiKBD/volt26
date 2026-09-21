@@ -334,7 +334,7 @@ end
 -- manages for you back to their stock SM5 values.
 --
 -- These "managed" Preferences are listed in ./Scripts/SL_Init.lua
--- per-gamemode (Casual, ITG), and actively applied (and reapplied)
+-- per-gamemode, and actively applied (and reapplied)
 -- for each new game using SetGameModePreferences()
 --
 -- SL normally calls ResetPreferencesToStockSM5() from

@@ -80,18 +80,6 @@ local function Describe(choice)
 		}
 	end
 
-	if choice == "Casual" then
-		return {
-			blurb = String("CasualBlurb", "Relaxed scoring with no failing. Play for the music, not the percentage."),
-			meter = { caption = String("MeterJudgment", "Judgment"), value = String("Forgiving", "Forgiving"), fraction = 0.35 },
-			tiles = {
-				{ value = String("Wide", "Wide"),       caption = String("CaptionTiming", "Timing") },
-				{ value = String("NoFail", "No fail"),  caption = String("CaptionLife", "Life") },
-				{ value = String("Percent", "Percent"), caption = String("CaptionGrading", "Grading") },
-				{ value = PlayerCount(),                caption = String("CaptionPlayers", "Players") },
-			},
-		}
-	end
 
 	if choice == "ITG" then
 		return {

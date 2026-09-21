@@ -3,8 +3,6 @@ local mods = VOLT26.Options.GetPlayerModifiers(player)
 
 if not mods.SubtractiveScoring then return end
 
--- don't allow SubtractiveScoring to appear in Casual gamemode via profile settings
-if VOLT26.Gameplay.IsCasual() then return end
 
 -- -----------------------------------------------------------------------
 

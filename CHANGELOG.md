@@ -25,6 +25,7 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ### Removed
 
+- The last Casual Mode compatibility branches. VOLT26 always plays ITG mode, so 34 unreachable Casual checks across gameplay, evaluation, layout, and options, the Casual judgment/preference/metric tables, `VOLT26.Gameplay.IsCasual()`, the Casual help text, and the Casual play-mode description are gone.
 - The unused ScreenInit-to-title red handoff (`_volt26 init handoff.lua`, `_G.Volt26InitHandoff`), the empty `UserContentText.lua`, and star frames `star_00001`–`star_00029` (only the animated Enhanced classic title used them).
 - `ScreenSelectColor` and the per-session colour choice it drove. The screen is gone from the screen graph (`metrics.ini`), from navigation (`Navigation.AllowScreenSelectColor` / `AfterScreenSelectColor` are folded into `Navigation.AfterSelectProfile`), and from the Theme Options menu, along with the `AllowScreenSelectColor`, `VOLT26Color` and legacy `SimplyLoveColor` preferences and their strings in every shipped language. `VOLT26/SelectColor.png` is no longer warmed up.
 

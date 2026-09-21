@@ -1,4 +1,3 @@
-if VOLT26.Gameplay.IsCasual() then return end
 
 return Def.Actor{
 	CodeMessageCommand=function(self, params)
