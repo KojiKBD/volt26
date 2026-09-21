@@ -42,7 +42,31 @@ function Navigation.AllowScreenSelectProfile()
 		and "ScreenSelectProfile" or Navigation.AfterSelectProfile()
 end
 
+-- QR login is offered while GrooveStats is connected: always, or only when a
+-- joined player has no saved API key yet ("Sometimes").
+function Navigation.ShouldShowGrooveStatsLogin()
+	if VOLT26.ThemePrefs.Get("EnableGrooveStats") ~= true
+		or not VOLT26.GrooveStats.IsConnected then
+		return false
+	end
+	local mode = VOLT26.ThemePrefs.Get("QRLogin")
+	if mode == "Always" then return true end
+	if mode ~= "Sometimes" then return false end
+	for player in ivalues(GAMESTATE:GetHumanPlayers()) do
+		local state = VOLT26.Core.GetPlayerState(player)
+		if not state or VOLT26.GrooveStats.NormalizeApiKey(state.ApiKey) == "" then
+			return true
+		end
+	end
+	return false
+end
+
 function Navigation.AfterSelectProfile()
+	if Navigation.ShouldShowGrooveStatsLogin() then return "ScreenGrooveStatsLogin" end
+	return Navigation.AfterGrooveStatsLogin()
+end
+
+function Navigation.AfterGrooveStatsLogin()
 	if THEME:GetMetric("Common", "AutoSetStyle") then
 		local styles = {"single", "versus"}
 		GAMESTATE:SetCurrentStyle(styles[math.max(GAMESTATE:GetNumSidesJoined(), 1)])
@@ -176,6 +200,7 @@ Branch.AfterScreenRankingDouble = Navigation.AfterScreenRankingDouble
 Branch.AfterScreenDemonstration = Navigation.AfterScreenDemonstration
 Branch.AllowScreenSelectProfile = Navigation.AllowScreenSelectProfile
 Branch.AfterSelectProfile = Navigation.AfterSelectProfile
+Branch.AfterGrooveStatsLogin = Navigation.AfterGrooveStatsLogin
 Branch.AllowScreenSelectPlayMode = Navigation.AllowScreenSelectPlayMode
 Branch.AllowScreenSelectPlayMode2 = Navigation.AllowScreenSelectPlayMode2
 Branch.AfterEvaluationStage = Navigation.AfterEvaluationStage

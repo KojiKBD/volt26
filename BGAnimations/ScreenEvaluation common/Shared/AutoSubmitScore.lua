@@ -320,6 +320,10 @@ local AutoSubmitRequestProcessor = function(res, overlay)
 		overlay:queuecommand("DirectInputToEventOverlayHandler")
 	end
 
+	if VOLT26.Downloads.IsTransportEnabled() then
+		-- This will only download if the expected data exists.
+		AttemptDownloads(res)
+	end
 end
 
 local af = Def.ActorFrame {

@@ -181,8 +181,11 @@ local function AddFavorites()
 end
 
 local function ChangePlayModeAvailable()
+	-- Online lobbies synchronize regular songs only.
+	local onlineHandler = GetOnlineHandlerInstance()
 	return GAMESTATE:IsEventMode() and
-		ThemePrefs.Get("AllowScreenSelectPlayMode2")
+		ThemePrefs.Get("AllowScreenSelectPlayMode2") and
+		not (onlineHandler and onlineHandler.connected)
 end
 
 local function AddSorts()
@@ -408,7 +411,7 @@ local t = Def.ActorFrame {
 					-- Loading songs doesn't work from course mode because it invalidates autogen courses,
 					-- which could delete the currently selected course.
 					{ {"TakeABreather", "LoadNewSongs"}, IsActionEnabled("LoadNewSongs") and not GAMESTATE:IsCourseMode() },
-					{ {"NeedMoreRam", "ViewDownloads"}, IsActionEnabled("ViewDownloads") },
+					{ {"NeedMoreRam", "ViewDownloads"}, IsActionEnabled("ViewDownloads") and VOLT26.Downloads.IsTransportEnabled() },
 					{ {"SetSummaryText", "SetSummary"}, IsActionEnabled("SetSummary") and VOLT26.State.Global.Stages.PlayedThisGame > 0 },
 					{ {"BottomText", "OnlineLobbies"}, IsActionEnabled("OnlineLobbies") and ThemePrefs.Get("EnableOnlineLobbies") and GAMESTATE:IsEventMode() and not GAMESTATE:IsCourseMode() },
 				}

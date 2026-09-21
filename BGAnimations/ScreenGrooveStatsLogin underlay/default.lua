@@ -26,11 +26,12 @@ ws = NETWORK:WebSocket{
       -- Send the UUID to the server so it can track the machine.
       ws:Send(JsonEncode(data))
     elseif msgType == "Message" then
-      local resp = JsonDecode(msg.data)
+      local decoded, resp = pcall(JsonDecode, msg.data)
+      if not decoded or type(resp) ~= "table" then return end
 
-      if resp.event == "apiKey" then
+      if resp.event == "apiKey" and type(resp.data) == "table" then
         local data = resp.data
-        if data.uuid == uuid then
+        if data.uuid == uuid and (data.side == 1 or data.side == 2) then
           local apiKey = data.apiKey
           local username = data.username
           local side = data.side
@@ -41,10 +42,9 @@ ws = NETWORK:WebSocket{
             SetPlayerOptionsJsonFromGroovestats(player, data.playerOptions)
           end
 
-          SL[pn].ApiKey = apiKey
-          SL[pn].GrooveStatsUsername = username
           -- If they're QR code logging in, let's assume they're a pad player.
-          SL[pn].IsPadPlayer = true
+          VOLT26.GrooveStats.SetPlayerIdentity(player, apiKey, username, true)
+          username = SL[pn].GrooveStatsUsername
           MESSAGEMAN:Broadcast("SetCreditsText", {pn=pn, username=username})
           MESSAGEMAN:Broadcast("HideQr", {pn=pn, username=username})
         end

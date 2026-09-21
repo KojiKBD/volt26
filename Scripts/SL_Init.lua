@@ -1307,10 +1307,10 @@ local songBrowsingActions = {
 	-- their owning inventory capabilities are explicitly accepted.
 	Leaderboard = true,
 	LoadNewSongs = false,
-	OnlineLobbies = false,
+	OnlineLobbies = true,
 	PracticeMode = false,
 	TestInput = true,
-	ViewDownloads = false,
+	ViewDownloads = true,
 }
 
 function VOLT26.SongBrowsing.IsActionEnabled(action)
@@ -2831,8 +2831,12 @@ VOLT26.Downloads.States = {
 	completed=true, failed=true, cancelled=true,
 }
 
+-- Event unlock downloads follow the operator's GrooveStats settings and only
+-- run while the service session is connected.
 function VOLT26.Downloads.IsTransportEnabled()
-	return false
+	return VOLT26.ThemePrefs.Get("EnableGrooveStats") == true
+		and VOLT26.ThemePrefs.Get("AutoDownloadUnlocks") == true
+		and VOLT26.GrooveStats.IsConnected == true
 end
 
 function VOLT26.Downloads.NormalizeJob(id, raw)
@@ -2956,9 +2960,10 @@ function VOLT26.Tournament.RestoreAllPlayers()
 	end
 end
 
--- Annual ITL persistence remains disabled until a versioned provider and active dates are defined.
+-- Local ITL records follow the inherited Simply Love implementation
+-- (Scripts/SL_ITL.lua): per-profile ITL files, event points, and unlocks.
 function VOLT26.Tournament.IsLocalItlEnabled()
-	return false
+	return true
 end
 
 VOLT26.CustomSongs = {}
@@ -3092,7 +3097,7 @@ local ThemeOptionLines = {
 }
 
 local MenuTimerLines = {
-	"MenuTimer", "ScreenSelectMusicMenuTimer", "ScreenPlayerOptionsMenuTimer",
+	"MenuTimer", "ScreenGrooveStatsLoginMenuTimer", "ScreenSelectMusicMenuTimer", "ScreenPlayerOptionsMenuTimer",
 	"ScreenEvaluationMenuTimer", "ScreenEvaluationNonstopMenuTimer",
 	"ScreenEvaluationSummaryMenuTimer", "ScreenNameEntryMenuTimer",
 }

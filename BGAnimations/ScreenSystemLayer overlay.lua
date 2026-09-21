@@ -387,6 +387,14 @@ t[#t+1] = Def.ActorFrame{
 }
 
 -- -----------------------------------------------------------------------
+-- Event unlocks already extracted by earlier sessions.
+LoadUnlocksCache()
+
+-- -----------------------------------------------------------------------
+-- Online lobby handler: one global instance, reused by every screen.
+t[#t+1] = CreateOnlineHandler()
+
+-- -----------------------------------------------------------------------
 -- SystemMessage stuff.
 -- Put it on top of everything
 -- this is what appears when someone uses SCREENMAN:SystemMessage(text)

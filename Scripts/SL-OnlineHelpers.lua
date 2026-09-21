@@ -521,8 +521,10 @@ CreateOnlineHandler = function()
                 self.errorMsg = nil
                 self:GetChild("Display"):visible(true)
               elseif msgType == "Message" then
-                local response = JsonDecode(msg.data)
-                HandleResponse(response, self)
+                local decoded, response = pcall(JsonDecode, msg.data)
+                if decoded and type(response) == "table" then
+                  HandleResponse(response, self)
+                end
               elseif msgType == "Close" then
                 self.inLobby = false
                 MESSAGEMAN:Broadcast("DisconnectOnline")
