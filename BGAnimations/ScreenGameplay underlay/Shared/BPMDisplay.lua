@@ -1,5 +1,5 @@
 local Players = GAMESTATE:GetHumanPlayers()
-local MusicRate = SL.Global.ActiveModifiers.MusicRate
+local MusicRate = VOLT26.Global.ActiveModifiers.MusicRate
 
 local MasterPlayerState = GAMESTATE:GetPlayerState(GAMESTATE:GetMasterPlayerNumber())
 local so = GAMESTATE:GetSongOptionsObject("ModsLevel_Song")
@@ -91,7 +91,7 @@ local t = Def.ActorFrame{
 		-- push this BPM bmt off to the side; the UpperNPSGraph will take priority in the center
 		if #GAMESTATE:GetHumanPlayers() == 1
 		and GetNotefieldX(mpn) == _screen.cx
-		and SL[ToEnumShortString(mpn)].ActiveModifiers.NPSGraphAtTop
+		and VOLT26[ToEnumShortString(mpn)].ActiveModifiers.NPSGraphAtTop
 		then
 			self:x(_screen.cx + _screen.w * (mpn==PLAYER_1 and 0.3 or -0.3))
 		end

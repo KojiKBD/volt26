@@ -1,6 +1,6 @@
 local player = ...
 local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26[pn].ActiveModifiers
 local result = VOLT26.Results.GetCurrent(player)
 
 -- a string representing the NoteSkin the player was using
@@ -77,7 +77,7 @@ for i, column in ipairs( cols ) do
 	-- for each possible judgment
 	for j, judgment in ipairs(rows) do
 		-- don't add rows for TimingWindows that were turned off, but always add Miss
-		if SL[pn].ActiveModifiers.TimingWindows[j] or j==#rows or (mods.ShowFaPlusWindow and mods.ShowFaPlusPane and SL[pn].ActiveModifiers.TimingWindows[j-1]) then
+		if VOLT26[pn].ActiveModifiers.TimingWindows[j] or j==#rows or (mods.ShowFaPlusWindow and mods.ShowFaPlusPane and VOLT26[pn].ActiveModifiers.TimingWindows[j-1]) then
 			-- add a BitmapText actor to be the number for this column
 			local judgementText = 0
 			judgementText = result.columnJudgments[i][judgment]

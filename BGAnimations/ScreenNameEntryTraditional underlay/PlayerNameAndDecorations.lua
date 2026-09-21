@@ -1,13 +1,13 @@
 local Player = ...
 local pn = ToEnumShortString(Player)
-local CanEnterName = SL[pn].HighScores.EnteringName
+local CanEnterName = VOLT26[pn].HighScores.EnteringName
 
 if CanEnterName then
-	SL[pn].HighScores.Name = ""
+	VOLT26[pn].HighScores.Name = ""
 end
 
 if PROFILEMAN:IsPersistentProfile(Player) then
-	SL[pn].HighScores.Name = PROFILEMAN:GetProfile(Player):GetLastUsedHighScoreName()
+	VOLT26[pn].HighScores.Name = PROFILEMAN:GetProfile(Player):GetLastUsedHighScoreName()
 end
 
 local t = Def.ActorFrame{
@@ -53,10 +53,10 @@ t[#t+1] = LoadFont("Wendy/_wendy white")..{
 	InitCommand=function(self) self:zoom(0.75):halign(0):xy(-80,0) end,
 	OnCommand=function(self)
 		self:visible( CanEnterName )
-		self:settext( SL[pn].HighScores.Name or "" )
+		self:settext( VOLT26[pn].HighScores.Name or "" )
 	end,
 	SetCommand=function(self)
-		self:settext( SL[pn].HighScores.Name or "" )
+		self:settext( VOLT26[pn].HighScores.Name or "" )
 	end
 }
 

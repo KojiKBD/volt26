@@ -50,7 +50,7 @@ return Def.Sprite{
 		self:Center():scaletoclipped(_screen.w, _screen.h)
 			:draworder(1000):diffusealpha(0)
 
-		local data = SL.Global.Volt26TransData
+		local data = VOLT26.Global.Volt26TransData
 		if data and data.paths and data.paths[data.next_frame] then
 			self.Volt26Data = data
 			self.Volt26Frame = data.next_frame
@@ -87,8 +87,8 @@ return Def.Sprite{
 
 	FinishVolt26TransitionCommand=function(self)
 		self:diffusealpha(0)
-		if SL.Global.Volt26TransData == self.Volt26Data then
-			SL.Global.Volt26TransData = nil
+		if VOLT26.Global.Volt26TransData == self.Volt26Data then
+			VOLT26.Global.Volt26TransData = nil
 		end
 		self.Volt26Data = nil
 	end

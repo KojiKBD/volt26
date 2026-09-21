@@ -549,7 +549,7 @@ end
 
 
 -- Keep VOLT26.Preferences reserved for the inherited game-mode scoring table
--- until all compatibility consumers have migrated away from SL.Preferences.
+-- until all compatibility consumers have migrated away from VOLT26.Preferences.
 VOLT26.ThemePrefs = {
 	Get = function(name) return ThemePrefs.Get(name) end,
 	Set = function(name, value) ThemePrefs.Set(name, value) end,

@@ -33,7 +33,7 @@ SSM_Header_StageText = function()
 
 	-- if the continue system is enabled, don't worry about determining "Final Stage"
 	if ThemePrefs.Get("NumberOfContinuesAllowed") > 0 then
-		return THEME:GetString("Stage", "Stage") .. " " .. tostring(SL.Global.Stages.PlayedThisGame + 1)
+		return THEME:GetString("Stage", "Stage") .. " " .. tostring(VOLT26.Global.Stages.PlayedThisGame + 1)
 	end
 
 	local topscreen = SCREENMAN:GetTopScreen()
@@ -45,7 +45,7 @@ SSM_Header_StageText = function()
 		if topscreen:GetName() == "ScreenEvaluationStage" then
 			local song = GAMESTATE:GetCurrentSong()
 			local Duration = song:GetLastSecond()
-			local DurationWithRate = Duration / SL.Global.ActiveModifiers.MusicRate
+			local DurationWithRate = Duration / VOLT26.Global.ActiveModifiers.MusicRate
 
 			local LongCutoff = PREFSMAN:GetPreference("LongVerSongSeconds")
 			local MarathonCutoff = PREFSMAN:GetPreference("MarathonVerSongSeconds")
@@ -55,10 +55,10 @@ SSM_Header_StageText = function()
 
 			local SongCost = (IsMarathon and 3) or (IsLong and 2) or 1
 
-			if SL.Global.Stages.PlayedThisGame + SongCost >= PREFSMAN:GetPreference("SongsPerPlay") then
+			if VOLT26.Global.Stages.PlayedThisGame + SongCost >= PREFSMAN:GetPreference("SongsPerPlay") then
 				return THEME:GetString("Stage", "Final")
 			else
-				return THEME:GetString("Stage", "Stage") .. " " .. tostring(SL.Global.Stages.PlayedThisGame + SongCost)
+				return THEME:GetString("Stage", "Stage") .. " " .. tostring(VOLT26.Global.Stages.PlayedThisGame + SongCost)
 			end
 
 		-- if we're on ScreenEval within Marathon Mode, generic text will suffice
@@ -68,7 +68,7 @@ SSM_Header_StageText = function()
 		-- if we're on ScreenSelectMusic, display the number of Stages.PlayedThisGame + 1
 		-- the song the player actually selects may cost more than 1, but we cannot know that now
 		else
-			return THEME:GetString("Stage", "Stage") .. " " .. tostring(SL.Global.Stages.PlayedThisGame + 1)
+			return THEME:GetString("Stage", "Stage") .. " " .. tostring(VOLT26.Global.Stages.PlayedThisGame + 1)
 		end
 	end
 end

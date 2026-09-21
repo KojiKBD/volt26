@@ -3,7 +3,7 @@
 
 local player, layout = ...
 local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26[pn].ActiveModifiers
 
 local barWidth = 160
 local barHeight = 10
@@ -12,8 +12,8 @@ local tickDuration = 0.5
 local numTicks = mods.ErrorBarMultiTick and 10 or 1
 local currentTick = 1
 local judgmentToTrim = {
-    TapNoteScore_W3 = mods.ErrorBarTrim == "Excellent" and SL.Global.GameMode == "ITG",
-    TapNoteScore_W4 = mods.ErrorBarTrim ~= "Off" and SL.Global.GameMode == "ITG",
+    TapNoteScore_W3 = mods.ErrorBarTrim == "Excellent" and VOLT26.Global.GameMode == "ITG",
+    TapNoteScore_W4 = mods.ErrorBarTrim ~= "Off" and VOLT26.Global.GameMode == "ITG",
     TapNoteScore_W5 = mods.ErrorBarTrim ~= "Off"
 }
 
@@ -142,13 +142,13 @@ for i = 1, #enabledTimingWindows do
     if mods.ShowFaPlusWindow and wi == 1 then
         -- Split the Fantastic window
         windows.timing[#windows.timing + 1] = GetTimingWindow(1, "FA+")
-        windows.color[#windows.color + 1] = SL.JudgmentColors["FA+"][1]
+        windows.color[#windows.color + 1] = VOLT26.JudgmentColors["FA+"][1]
 
         windows.timing[#windows.timing + 1] = GetTimingWindow(2, "FA+")
-        windows.color[#windows.color + 1] = SL.JudgmentColors["FA+"][2]
+        windows.color[#windows.color + 1] = VOLT26.JudgmentColors["FA+"][2]
     else
         windows.timing[#windows.timing + 1] = GetTimingWindow(wi)
-        windows.color[#windows.color + 1] = SL.JudgmentColors[SL.Global.GameMode][wi]
+        windows.color[#windows.color + 1] = VOLT26.JudgmentColors[VOLT26.Global.GameMode][wi]
     end 
 end
 

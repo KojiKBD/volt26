@@ -7,13 +7,13 @@ local result = VOLT26.Results.GetCurrent(player)
 local TapNoteScores = {
 	Types = { 'W0', 'W1', 'W2', 'W3', 'W4', 'W5', 'Miss' },
 	Colors = {
-		SL.JudgmentColors["ITG"][1], -- Fantastic Blue
-		SL.JudgmentColors["FA+"][2], -- Just extract the Fantastic white color
-        SL.JudgmentColors["ITG"][2], -- Yellow Excellent
-		SL.JudgmentColors["ITG"][3], -- Green Great
-		SL.JudgmentColors["ITG"][4], -- Purple Decent
-		SL.JudgmentColors["ITG"][5], -- Way Off
-		SL.JudgmentColors["ITG"][6], -- Red Miss
+		VOLT26.JudgmentColors["ITG"][1], -- Fantastic Blue
+		VOLT26.JudgmentColors["FA+"][2], -- Just extract the Fantastic white color
+        VOLT26.JudgmentColors["ITG"][2], -- Yellow Excellent
+		VOLT26.JudgmentColors["ITG"][3], -- Green Great
+		VOLT26.JudgmentColors["ITG"][4], -- Purple Decent
+		VOLT26.JudgmentColors["ITG"][5], -- Way Off
+		VOLT26.JudgmentColors["ITG"][6], -- Red Miss
 	},
 	-- x values for P1 and P2
 	x = { P1=64, P2=94 }
@@ -39,8 +39,8 @@ local t = Def.ActorFrame{
 
 -- The FA+ window shares the status as the FA window.
 -- If the FA window is disabled, then we consider the FA+ window disabled as well.
-local windows = {SL[pn].ActiveModifiers.TimingWindows[1]}
-for v in ivalues( SL[pn].ActiveModifiers.TimingWindows) do
+local windows = {VOLT26[pn].ActiveModifiers.TimingWindows[1]}
+for v in ivalues( VOLT26[pn].ActiveModifiers.TimingWindows) do
 	windows[#windows + 1] = v
 end
 
@@ -121,10 +121,10 @@ for index, RCType in ipairs(RadarCategories.Types) do
 					self:x( ((controller == PLAYER_1) and -114) or 286 )
 					self:y(47)
 					
-					if SL[pn].ActiveModifiers.ShowExScore then
+					if VOLT26[pn].ActiveModifiers.ShowExScore then
 						self:diffuse(Color.White)
 					else
-						self:diffuse( SL.JudgmentColors[SL.Global.GameMode][1] )
+						self:diffuse( VOLT26.JudgmentColors[VOLT26.Global.GameMode][1] )
 					end
 				end
 			}

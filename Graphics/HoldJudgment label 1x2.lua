@@ -16,7 +16,7 @@ return Def.Sprite{
 		for _, player in ipairs(PlayerNumber) do
 			local pn = ToEnumShortString(player)
 			if playerAf and playerAf == GetPlayerAF(pn) then
-				label = SL[pn].ActiveModifiers.HoldJudgment
+				label = VOLT26[pn].ActiveModifiers.HoldJudgment
 				break
 			end
 		end

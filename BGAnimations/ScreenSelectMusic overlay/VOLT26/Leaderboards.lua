@@ -140,8 +140,8 @@ local function gsProcessor(response, params)
 
 	-- A player scoring in EX wants the EX board first; everyone else gets the
 	-- ordinary one.  Either way the fallback is whichever board came back.
-	local wantsEx = SL and SL[pn] and SL[pn].ActiveModifiers
-		and SL[pn].ActiveModifiers.ShowExScore or false
+	local wantsEx = SL and VOLT26[pn] and VOLT26[pn].ActiveModifiers
+		and VOLT26[pn].ActiveModifiers.ShowExScore or false
 	local exBoard = normalizeBoard(playerData.exLeaderboard)
 	local gsBoard = normalizeBoard(playerData.gsLeaderboard)
 	local entries, isEx = {}, false
@@ -394,11 +394,11 @@ local af = Def.ActorFrame{
 			fillPanel(panel, rows, {Caption="GROOVESTATS", Status=status, Entries={}, Message=message})
 		end
 
-		if not IsServiceAllowed(SL.GrooveStats.Leaderboard) then
+		if not IsServiceAllowed(VOLT26.GrooveStats.Leaderboard) then
 			say("OFFLINE", "GROOVESTATS UNAVAILABLE")
 			return
 		end
-		if not (SL[pn] and SL[pn].ApiKey and SL[pn].ApiKey ~= "") then
+		if not (VOLT26[pn] and VOLT26[pn].ApiKey and VOLT26[pn].ApiKey ~= "") then
 			say("NO KEY", "NO API KEY FOR THIS PROFILE")
 			return
 		end
@@ -439,7 +439,7 @@ local af = Def.ActorFrame{
 		local query = {maxLeaderboardResults=maxEntries}
 		query["chartHashP"..(player == PLAYER_1 and 1 or 2)] = hash
 		local headers = {}
-		headers["x-api-key-player-"..(player == PLAYER_1 and 1 or 2)] = SL[pn].ApiKey
+		headers["x-api-key-player-"..(player == PLAYER_1 and 1 or 2)] = VOLT26[pn].ApiKey
 
 		self:GetChild("Request"):playcommand("MakeGrooveStatsRequest", {
 			endpoint="?action=playerLeaderboards&"..NETWORK:EncodeQueryParameters(query),

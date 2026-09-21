@@ -23,10 +23,10 @@ local abbreviations = {
 local colors = {}
 for w=num_judgments_available,1,-1 do
 	if modifiers.TimingWindows[w] then
-		colors[w] = DeepCopy(SL.JudgmentColors[SL.Global.GameMode][w])
+		colors[w] = DeepCopy(VOLT26.JudgmentColors[VOLT26.Global.GameMode][w])
 	else
-		abbreviations[SL.Global.GameMode][w] = abbreviations[SL.Global.GameMode][w+1]
-		colors[w] = DeepCopy(colors[w+1] or SL.JudgmentColors[SL.Global.GameMode][w+1])
+		abbreviations[VOLT26.Global.GameMode][w] = abbreviations[VOLT26.Global.GameMode][w+1]
+		colors[w] = DeepCopy(colors[w+1] or VOLT26.JudgmentColors[VOLT26.Global.GameMode][w+1])
 	end
 end
 
@@ -90,7 +90,7 @@ pane[#pane+1] = Def.Quad{
 -- centered text for W1
 pane[#pane+1] = Def.BitmapText{
 	Font="Common Normal",
-	Text=abbreviations[SL.Global.GameMode][1],
+	Text=abbreviations[VOLT26.Global.GameMode][1],
 	InitCommand=function(self)
 		local x = pane_width/2
 
@@ -107,7 +107,7 @@ for i=2,num_judgments_available do
 	-- early (left) judgment text
 	pane[#pane+1] = Def.BitmapText{
 		Font="Common Normal",
-		Text=abbreviations[SL.Global.GameMode][i],
+		Text=abbreviations[VOLT26.Global.GameMode][i],
 		InitCommand=function(self)
 			local window = -1 * GetTimingWindow(i)
 			local better_window = -1 * GetTimingWindow(i - 1)
@@ -120,7 +120,7 @@ for i=2,num_judgments_available do
 				:addx(x_avg):addy(7)
 				:zoom(0.65)
 			-- Hide the text if it's the same as the previous window.
-			if abbreviations[SL.Global.GameMode][i] == abbreviations[SL.Global.GameMode][i-1] then
+			if abbreviations[VOLT26.Global.GameMode][i] == abbreviations[VOLT26.Global.GameMode][i-1] then
 				self:visible(false)
 			end
 		end,
@@ -129,7 +129,7 @@ for i=2,num_judgments_available do
 	-- late (right) judgment text
 	pane[#pane+1] = Def.BitmapText{
 		Font="Common Normal",
-		Text=abbreviations[SL.Global.GameMode][i],
+		Text=abbreviations[VOLT26.Global.GameMode][i],
 		InitCommand=function(self)
 			local window = GetTimingWindow(i)
 			local better_window = GetTimingWindow(i - 1)
@@ -142,7 +142,7 @@ for i=2,num_judgments_available do
 				:addx(x_avg):addy(7)
 				:zoom(0.65)
 			-- Hide the text if it's the same as the previous window.
-			if abbreviations[SL.Global.GameMode][i] == abbreviations[SL.Global.GameMode][i-1] then
+			if abbreviations[VOLT26.Global.GameMode][i] == abbreviations[VOLT26.Global.GameMode][i-1] then
 				self:visible(false)
 			end
 		end,

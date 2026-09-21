@@ -3,7 +3,7 @@ local player = ...
 local styletype = ToEnumShortString(GAMESTATE:GetCurrentStyle():GetStyleType())
 
 local playerStats = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
-local routineStatus = SL.Global.RoutineStatus
+local routineStatus = VOLT26.Global.RoutineStatus
 if (styletype == "TwoPlayersSharedSides") then
 	playerStats = STATSMAN:GetCurStageStats():GetRoutineStageStats()
 end

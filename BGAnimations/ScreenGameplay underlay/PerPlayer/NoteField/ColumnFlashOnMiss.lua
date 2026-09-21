@@ -1,6 +1,6 @@
 
 local player = ...
-local mods = SL[ToEnumShortString(player)].ActiveModifiers
+local mods = VOLT26[ToEnumShortString(player)].ActiveModifiers
 local columns = {}
 
 local NumColumns = GAMESTATE:GetCurrentStyle():ColumnsPerPlayer()

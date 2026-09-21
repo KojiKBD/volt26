@@ -22,7 +22,7 @@ local SetRpgStyle = function(eventAf)
 		"Democratic People's Republic of Timing",
 		"Footspeed Empire",
 	}
-	local idx = ((SL.Global.ActiveColorIndex - 1) % #factions) + 1
+	local idx = ((VOLT26.Global.ActiveColorIndex - 1) % #factions) + 1
 	local faction_name = factions[idx]
 
 	if faction_name == "Stamina Nation" then
@@ -210,12 +210,12 @@ local GetRpgPaneFunctions = function(eventAf, rpgData, player)
 	if rpgData["result"] == "score-added" then
 		score = pss:GetPercentDancePoints() * 100
 		scoreDelta = score
-		rate = SL.Global.ActiveModifiers.MusicRate or 1.0
+		rate = VOLT26.Global.ActiveModifiers.MusicRate or 1.0
 		rateDelta = rate
 	elseif rpgData["result"] == "improved" or rpgData["result"] == "score-not-improved" then
 		score = pss:GetPercentDancePoints() * 100
 		scoreDelta = rpgData["scoreDelta"] and rpgData["scoreDelta"]/100.0 or 0.0
-		rate = SL.Global.ActiveModifiers.MusicRate or 1.0
+		rate = VOLT26.Global.ActiveModifiers.MusicRate or 1.0
 		rateDelta = rpgData["rateDelta"] and rpgData["rateDelta"]/100.0 or 0.0
 	else
 		-- song-not-ranked (invalid case)
@@ -690,9 +690,9 @@ local GetItlPaneFunctions = function(eventAf, itlData, player)
 			if i ~= nil then
 				offset = j + 1
 				local clearTypeMap = {
-					["FC"] = SL.JudgmentColors["ITG"][3],
-					["FEC"] = SL.JudgmentColors["ITG"][2],
-					["FFC"] = SL.JudgmentColors["ITG"][1],
+					["FC"] = VOLT26.JudgmentColors["ITG"][3],
+					["FEC"] = VOLT26.JudgmentColors["ITG"][2],
+					["FFC"] = VOLT26.JudgmentColors["ITG"][1],
 					["FBFC"] = ItlPink,
 				}
 
@@ -719,7 +719,7 @@ local GetItlPaneFunctions = function(eventAf, itlData, player)
 			if i ~= nil then
 				offset = j + 1
 				local gradeMap = {
-					["Quad"] = SL.JudgmentColors["ITG"][1],
+					["Quad"] = VOLT26.JudgmentColors["ITG"][1],
 					["Quint"] = ItlPink,
 				}
 
@@ -808,7 +808,7 @@ for player in ivalues(PlayerNumber) do
 				-- All other cases should be handled by normal ItlFile.lua write.
 				local song = GAMESTATE:GetCurrentSong()
 				local song_dir = song:GetSongDir()
-				if VOLT26.Tournament.IsLocalItlEnabled() and SL[pn].ITLData["pathMap"][song_dir] == nil then
+				if VOLT26.Tournament.IsLocalItlEnabled() and VOLT26[pn].ITLData["pathMap"][song_dir] == nil then
 					UpdateItlData(player)
 				end
 			end

@@ -31,7 +31,7 @@ else
 			-- the 4th check is GameMode
 			if i==4 then
 				-- that string has a %s token so we can pass in the current SL GameMode
-				text = text .. ScreenString("QRInvalidScore"..i):format(SL.Global.GameMode) .. "\n"
+				text = text .. ScreenString("QRInvalidScore"..i):format(VOLT26.Global.GameMode) .. "\n"
 			elseif i == 7 then
 				-- If Metrics/Preferences are incorrect, also list them out.
 				text = text .. ScreenString("QRInvalidScore"..i) .. "\n" .. badSettings .. "\n"

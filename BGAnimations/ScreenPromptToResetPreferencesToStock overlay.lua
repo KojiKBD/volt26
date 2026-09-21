@@ -36,7 +36,7 @@ local InputHandler = function(event)
 			end
 
 			--either way, change the theme now
-			THEME:SetTheme(SL.NextTheme)
+			THEME:SetTheme(VOLT26.NextTheme)
 		end
 	end
 end

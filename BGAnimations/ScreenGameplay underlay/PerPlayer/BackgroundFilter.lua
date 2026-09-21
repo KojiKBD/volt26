@@ -1,6 +1,6 @@
 local player = ...
 local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26[pn].ActiveModifiers
 
 -- if no BackgroundFilter is necessary, it's safe to bail now
 if mods.BackgroundFilter == "Off" then return end
@@ -18,11 +18,11 @@ return Def.Quad{
 	ComboFlashCommand=function(self)
 		local pss = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
 		local FlashColor = nil
-		local WorstAcceptableFC = SL.Preferences[SL.Global.GameMode].MinTNSToHideNotes:gsub("TapNoteScore_W", "")
+		local WorstAcceptableFC = VOLT26.Preferences[VOLT26.Global.GameMode].MinTNSToHideNotes:gsub("TapNoteScore_W", "")
 
 		for i=1, tonumber(WorstAcceptableFC) do
 			if pss:FullComboOfScore("TapNoteScore_W"..i) then
-				FlashColor = SL.JudgmentColors[SL.Global.GameMode][i]
+				FlashColor = VOLT26.JudgmentColors[VOLT26.Global.GameMode][i]
 				break
 			end
 		end

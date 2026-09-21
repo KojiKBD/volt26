@@ -51,7 +51,7 @@ end
 -- get timing window in milliseconds
 
 GetTimingWindow = function(n, mode)
-	local prefs = SL.Preferences[mode or SL.Global.GameMode]
+	local prefs = VOLT26.Preferences[mode or VOLT26.Global.GameMode]
 	local scale = PREFSMAN:GetPreference("TimingWindowScale")
 	return prefs["TimingWindowSecondsW"..n] * scale + prefs.TimingWindowAdd
 end
@@ -131,7 +131,7 @@ GetNotefieldX = function( player )
 	-- double is always centered
 	if style:GetStyleType() == "StyleType_OnePlayerTwoSides" then return _screen.cx end
 
-	local PlayerOffset = SL[p].ActiveModifiers.NoteFieldOffsetX * (player == PLAYER_1 and -1 or 1)
+	local PlayerOffset = VOLT26[p].ActiveModifiers.NoteFieldOffsetX * (player == PLAYER_1 and -1 or 1)
 
 	local NumPlayersAndSides = ToEnumShortString( style:GetStyleType() )
 	return THEME:GetMetric(Branch.GameplayScreen(),"Player".. p .. NumPlayersAndSides .."X") + PlayerOffset
@@ -748,7 +748,7 @@ GetPlayerOptionsString = function(player, modsLevel)
 
 	-- if the player used an XMod of 1x, it won't be in PlayerOptions list
 	-- so check here, and add it in manually if necessary
-	if SL[pn].ActiveModifiers.SpeedModType == "X" and SL[pn].ActiveModifiers.SpeedMod == 1 then
+	if VOLT26[pn].ActiveModifiers.SpeedModType == "X" and VOLT26[pn].ActiveModifiers.SpeedMod == 1 then
 		optionslist = "1x, "
 	end
 
@@ -760,7 +760,7 @@ GetPlayerOptionsString = function(player, modsLevel)
 			not string.find(option, "Lights") then
 			-- 100% Mini will be in the PlayerOptions as just "Mini" so use the value from the SL table instead
 			if option:match("Mini") then
-				option = SL[pn].ActiveModifiers.Mini .. " Mini"
+				option = VOLT26[pn].ActiveModifiers.Mini .. " Mini"
 			end
 
 			if option:match("Cover") then
@@ -854,7 +854,7 @@ end
 -- If the banner is missing, use VOLT26's fallback banner for the selected color.
 GetFallbackBanner = function()
     local banner_directory = THEME:GetPathG("", "_FallbackBanners/VOLT26")
-    return banner_directory .. "/banner" .. SL.Global.ActiveColorIndex .. " (doubleres).png"
+    return banner_directory .. "/banner" .. VOLT26.Global.ActiveColorIndex .. " (doubleres).png"
 end
 
 -- -----------------------------------------------------------------------
@@ -868,19 +868,19 @@ TotalCourseLength = function(player)
         t = t + te:GetSong():GetLastSecond()
     end
 
-    return t / SL.Global.ActiveModifiers.MusicRate
+    return t / VOLT26.Global.ActiveModifiers.MusicRate
 end
 
 -- calculate amount of course played for properly scaling the scatterplot of judgments
 TotalCourseLengthPlayed = function(player)
 	local pn = ToEnumShortString(player)
 	local trail = GAMESTATE:GetCurrentTrail(player)
-	local storage = SL[pn].Stages.Stats[SL.Global.Stages.PlayedThisGame + 1]
+	local storage = VOLT26[pn].Stages.Stats[VOLT26.Global.Stages.PlayedThisGame + 1]
 	if storage.DeathSecond ~= nil then
 		local deathSecond = storage.DeathSecond
 		local t = 0
 		for te in ivalues(trail:GetTrailEntries()) do
-			t = t + ( te:GetSong():GetLastSecond() / SL.Global.ActiveModifiers.MusicRate )
+			t = t + ( te:GetSong():GetLastSecond() / VOLT26.Global.ActiveModifiers.MusicRate )
 			if t > deathSecond then break end
 		end
 		return t

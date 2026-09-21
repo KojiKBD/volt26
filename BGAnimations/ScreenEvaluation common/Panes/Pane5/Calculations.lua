@@ -17,7 +17,7 @@ for millisecond=-millisecondLimit,millisecondLimit do
 			local absoluteOffset = math.abs(offset)
 			if absoluteOffset > GetTimingWindow(1, "FA+")
 				and absoluteOffset <= GetTimingWindow(2, "FA+") then
-				tint = SL.JudgmentColors["FA+"][2]
+				tint = VOLT26.JudgmentColors["FA+"][2]
 			end
 		end
 		local x = (millisecond + millisecondLimit + 1) * barWidth

@@ -1,5 +1,5 @@
 -- File to handle Event specific (ITL/RPG) progress such as song scores, ranking points, quest completions, etc.
--- if not IsServiceAllowed(SL.GrooveStats.AutoSubmit) or GAMESTATE:IsCourseMode() then return end
+-- if not IsServiceAllowed(VOLT26.GrooveStats.AutoSubmit) or GAMESTATE:IsCourseMode() then return end
 
 -- Unsure if it's possible to detect whether the chat module pane is active, so check that the file exists
 local chatModule = FILEMAN:DoesFileExist(THEME:GetCurrentThemeDirectory() .. "Modules/TwitchChat.lua")

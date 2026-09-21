@@ -91,7 +91,7 @@ return LoadFont("Wendy/_wendy monospace numbers")..{
 		if IsEX then
 			-- If EX Score, let's diffuse it to be the same as the ITG top window.
 			-- This will make it consistent with the EX Score Pane.
-			self:diffuse(SL.JudgmentColors["ITG"][1])
+			self:diffuse(VOLT26.JudgmentColors["ITG"][1])
 		end
 	end,
 

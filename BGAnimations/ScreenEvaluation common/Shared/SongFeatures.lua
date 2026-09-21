@@ -16,7 +16,7 @@ return Def.ActorFrame{
 			-- FIXME: the current layout of ScreenEvaluation doesn't accommodate split BPMs
 			--        so this currently uses the MasterPlayer's BPM values
 			local bpms = StringifyDisplayBPMs()
-			local MusicRate = SL.Global.ActiveModifiers.MusicRate
+			local MusicRate = VOLT26.Global.ActiveModifiers.MusicRate
 			if  MusicRate ~= 1 then
 				-- format a string like "150 - 300 bpm (1.5x Music Rate)"
 				self:settext( ("%s bpm (%gx %s)"):format(bpms, MusicRate, THEME:GetString("OptionTitles", "MusicRate")) )
@@ -42,7 +42,7 @@ return Def.ActorFrame{
 			end
 
 			if seconds then
-				seconds = seconds / SL.Global.ActiveModifiers.MusicRate
+				seconds = seconds / VOLT26.Global.ActiveModifiers.MusicRate
 				-- longer than 1 hour in length
 				if seconds > 3600 then
 					-- format to display as H:MM:SS
@@ -61,7 +61,7 @@ return Def.ActorFrame{
 	LoadFont("Common Normal")..{
 		InitCommand=function(self)
 			self:zoom(0.6):maxwidth(418/2.3):x(-145):horizalign("left")
-			if SL.Global.ActiveModifiers.MusicRate ~= 1 then
+			if VOLT26.Global.ActiveModifiers.MusicRate ~= 1 then
 				self:maxwidth(418/3.5)
 			end
 		end,

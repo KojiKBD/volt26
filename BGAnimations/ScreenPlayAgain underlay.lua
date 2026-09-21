@@ -58,12 +58,12 @@ local function input(event)
 					GAMESTATE:InsertCoin(-coins)
 				end
 
-				SL.Global.Stages.Remaining = PREFSMAN:GetPreference("SongsPerPlay")
-				SL.Global.ContinuesRemaining = SL.Global.ContinuesRemaining - 1
+				VOLT26.Global.Stages.Remaining = PREFSMAN:GetPreference("SongsPerPlay")
+				VOLT26.Global.ContinuesRemaining = VOLT26.Global.ContinuesRemaining - 1
 
-				SL.Global.ScreenAfter.PlayAgain = "ScreenSelectMusic"
+				VOLT26.Global.ScreenAfter.PlayAgain = "ScreenSelectMusic"
 			else
-				SL.Global.ScreenAfter.PlayAgain = "ScreenEvaluationSummary"
+				VOLT26.Global.ScreenAfter.PlayAgain = "ScreenEvaluationSummary"
 			end
 
 			topscreen:RemoveInputCallback(input)
@@ -141,7 +141,7 @@ local t = Def.ActorFrame{
 	InitCommand=function(self)
 		-- reset this now, otherwise it might still be set to SSM from a previous continue
 		-- and we don't want that if a timeout occurs
-		SL.Global.ScreenAfter.PlayAgain = "ScreenEvaluationSummary"
+		VOLT26.Global.ScreenAfter.PlayAgain = "ScreenEvaluationSummary"
 
 		choice_wheel:set_info_set(choices, 1)
 		self:queuecommand("Capture")

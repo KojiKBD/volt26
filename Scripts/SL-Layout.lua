@@ -5,7 +5,7 @@
 -- that it adds gameplay elements around the judgment graphic, according to the
 -- user options. The combo counter is moved out of the way if necessary.
 function GetGameplayLayout(player, reverse)
-    local mods = SL[ToEnumShortString(player)].ActiveModifiers
+    local mods = VOLT26[ToEnumShortString(player)].ActiveModifiers
 
     -- default positions of combo and judgment graphic
     local comboY = _screen.cy + (reverse and -30 or 30)

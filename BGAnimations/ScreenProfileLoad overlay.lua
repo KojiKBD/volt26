@@ -6,7 +6,7 @@ return Def.ActorFrame{
 	end,
 	OffCommand=function(self)
 		-- by the time this screen's OffCommand is called, player mods should already have been read from file
-		-- and applied to the SL[pn].ActiveModifiers table, so it is now safe to call ApplyMods() on any human players
+		-- and applied to the VOLT26[pn].ActiveModifiers table, so it is now safe to call ApplyMods() on any human players
 		for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 			ApplyMods(player)
 		end

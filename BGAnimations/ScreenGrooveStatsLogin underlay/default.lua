@@ -4,9 +4,9 @@ local uuid = CRYPTMAN:GenerateRandomUUID():gsub("-", ""):upper()
 local ws = nil
 
 local ResetGrooveStatsSettings = function(pn)
-  SL[pn].ApiKey = ""
-  SL[pn].GrooveStatsUsername = ""
-  SL[pn].IsPadPlayer = false
+  VOLT26[pn].ApiKey = ""
+  VOLT26[pn].GrooveStatsUsername = ""
+  VOLT26[pn].IsPadPlayer = false
 end
 
 ws = NETWORK:WebSocket{
@@ -44,7 +44,7 @@ ws = NETWORK:WebSocket{
 
           -- If they're QR code logging in, let's assume they're a pad player.
           VOLT26.GrooveStats.SetPlayerIdentity(player, apiKey, username, true)
-          username = SL[pn].GrooveStatsUsername
+          username = VOLT26[pn].GrooveStatsUsername
           MESSAGEMAN:Broadcast("SetCreditsText", {pn=pn, username=username})
           MESSAGEMAN:Broadcast("HideQr", {pn=pn, username=username})
         end
@@ -122,7 +122,7 @@ for player in ivalues(GAMESTATE:GetHumanPlayers()) do
     },
 
     LoadFont("Common Normal")..{
-      Text=SL[pn].ApiKey and THEME:GetString("ScreenSelectProfile", "ProfileConnected") or "",
+      Text=VOLT26[pn].ApiKey and THEME:GetString("ScreenSelectProfile", "ProfileConnected") or "",
       InitCommand=function(self)
       end,
       HideQrMessageCommand=function(self, params)
@@ -137,7 +137,7 @@ for player in ivalues(GAMESTATE:GetHumanPlayers()) do
 
   -- Display a QR code to fetch the API keu if we always want to display the
   -- screen, or if the player doesn't already have an API key saved.
-  if ThemePrefs.Get("QRLogin") == "Always" or SL[pn].ApiKey == "" then
+  if ThemePrefs.Get("QRLogin") == "Always" or VOLT26[pn].ApiKey == "" then
     local side = (player == PLAYER_1) and 1 or 2
     local url = ("https://www.groovestats.com/qrlogin.php?UUID=%s&SIDE=%d"):format(uuid, side)
 

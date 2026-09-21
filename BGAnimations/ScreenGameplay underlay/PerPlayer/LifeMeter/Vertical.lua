@@ -16,7 +16,7 @@ or PREFSMAN:GetPreference("Center1Player") and #GAMESTATE:GetHumanPlayers() == 1
 -- and step stats, move their vertical lifemeter to the inside of the notefield
 elseif GetScreenAspectRatio() > 21/9
 and #GAMESTATE:GetHumanPlayers() > 1
-and SL[pn].ActiveModifiers.DataVisualizations == "Step Statistics"
+and VOLT26[pn].ActiveModifiers.DataVisualizations == "Step Statistics"
 then
 	_x = _screen.cx + (player==PLAYER_1 and -1 or 1) * 60
 end

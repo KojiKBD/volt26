@@ -6,10 +6,10 @@ local styletype = ToEnumShortString(GAMESTATE:GetCurrentStyle():GetStyleType())
 local result = VOLT26.Results.GetCurrent(player)
 if (styletype == "TwoPlayersSharedSides") then
 	percent = result.exPercent
-	diffuse = SL.JudgmentColors[SL.Global.GameMode][1]
+	diffuse = VOLT26.JudgmentColors[VOLT26.Global.GameMode][1]
 elseif result.showEx then
 	percent = result.exPercent
-	diffuse = SL.JudgmentColors[SL.Global.GameMode][1]
+	diffuse = VOLT26.JudgmentColors[VOLT26.Global.GameMode][1]
 else
 	percent = FormatPercentScore(result.percentDP):gsub("%%", "")
 	percent = tonumber(percent)

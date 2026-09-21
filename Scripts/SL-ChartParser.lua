@@ -316,16 +316,16 @@ local MaybeCopyHashFromOppositePlayer = function(pn, filename, stepsType, diffic
 	end
 
 	-- Check if the opposite player already hashed this same chart.
-	if (SL[opposite_player].Streams.Filename == filename and
-			SL[opposite_player].Streams.StepsType == stepsType and
-			SL[opposite_player].Streams.Difficulty == difficulty and
-			SL[opposite_player].Streams.Description == description) then
-		SL[pn].Streams.Hash = SL[opposite_player].Streams.Hash
-		SL[pn].Streams.EquallySpacedPerMeasure = SL[opposite_player].Streams.EquallySpacedPerMeasure
-		SL[pn].Streams.Filename = filename
-		SL[pn].Streams.StepsType = stepsType
-		SL[pn].Streams.Difficulty = difficulty
-		SL[pn].Streams.Description = description
+	if (VOLT26[opposite_player].Streams.Filename == filename and
+			VOLT26[opposite_player].Streams.StepsType == stepsType and
+			VOLT26[opposite_player].Streams.Difficulty == difficulty and
+			VOLT26[opposite_player].Streams.Description == description) then
+		VOLT26[pn].Streams.Hash = VOLT26[opposite_player].Streams.Hash
+		VOLT26[pn].Streams.EquallySpacedPerMeasure = VOLT26[opposite_player].Streams.EquallySpacedPerMeasure
+		VOLT26[pn].Streams.Filename = filename
+		VOLT26[pn].Streams.StepsType = stepsType
+		VOLT26[pn].Streams.Difficulty = difficulty
+		VOLT26[pn].Streams.Description = description
 		return true
 	end
 
@@ -349,14 +349,14 @@ VOLT26ComputeChartHash = function(steps, pn)
 
 	-- If we've copied from the other player then we're done.
 	if MaybeCopyHashFromOppositePlayer(pn, filename, stepsType, difficulty, description) then
-		return SL[pn].Streams.Hash
+		return VOLT26[pn].Streams.Hash
 	end
 
 	-- Only parse the file if it's not the chart we've already hashed.
-	if (SL[pn].Streams.Filename ~= filename or
-			SL[pn].Streams.StepsType ~= stepsType or
-			SL[pn].Streams.Difficulty ~= difficulty or
-			SL[pn].Streams.Description ~= description) then
+	if (VOLT26[pn].Streams.Filename ~= filename or
+			VOLT26[pn].Streams.StepsType ~= stepsType or
+			VOLT26[pn].Streams.Difficulty ~= difficulty or
+			VOLT26[pn].Streams.Description ~= description) then
 
 		local hash = ''
 		local equallySpacedPerMeasure = {}
@@ -380,13 +380,13 @@ VOLT26ComputeChartHash = function(steps, pn)
 			end
 		end
 
-		SL[pn].Streams.Hash = hash
-		SL[pn].Streams.EquallySpacedPerMeasure = equallySpacedPerMeasure
-		SL[pn].Streams.Filename = filename
-		SL[pn].Streams.StepsType = stepsType
-		SL[pn].Streams.Difficulty = difficulty
-		SL[pn].Streams.Description = description
+		VOLT26[pn].Streams.Hash = hash
+		VOLT26[pn].Streams.EquallySpacedPerMeasure = equallySpacedPerMeasure
+		VOLT26[pn].Streams.Filename = filename
+		VOLT26[pn].Streams.StepsType = stepsType
+		VOLT26[pn].Streams.Difficulty = difficulty
+		VOLT26[pn].Streams.Description = description
 	end
 
-	return SL[pn].Streams.Hash
+	return VOLT26[pn].Streams.Hash
 end

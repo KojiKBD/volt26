@@ -1,6 +1,6 @@
 -- Pane8 displays a list of High Scores obrained from GrooveStats for the stepchart that was played.
 
-if not IsServiceAllowed(SL.GrooveStats.AutoSubmit) then return end
+if not IsServiceAllowed(VOLT26.GrooveStats.AutoSubmit) then return end
 
 local player = unpack(...)
 

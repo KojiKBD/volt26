@@ -23,14 +23,14 @@
 
 local player, layout = ...
 local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26[pn].ActiveModifiers
 
 local judgmentColors = {
-    TapNoteScore_W1 = SL.JudgmentColors[SL.Global.GameMode][1],
-    TapNoteScore_W2 = SL.JudgmentColors[SL.Global.GameMode][2],
-    TapNoteScore_W3 = SL.JudgmentColors[SL.Global.GameMode][3],
-    TapNoteScore_W4 = SL.JudgmentColors[SL.Global.GameMode][4],
-    TapNoteScore_W5 = SL.JudgmentColors[SL.Global.GameMode][5],
+    TapNoteScore_W1 = VOLT26.JudgmentColors[VOLT26.Global.GameMode][1],
+    TapNoteScore_W2 = VOLT26.JudgmentColors[VOLT26.Global.GameMode][2],
+    TapNoteScore_W3 = VOLT26.JudgmentColors[VOLT26.Global.GameMode][3],
+    TapNoteScore_W4 = VOLT26.JudgmentColors[VOLT26.Global.GameMode][4],
+    TapNoteScore_W5 = VOLT26.JudgmentColors[VOLT26.Global.GameMode][5],
 }
 
 local barWidth = 240
@@ -40,8 +40,8 @@ local tickDuration = 0.75
 local numTicks = mods.ErrorBarMultiTick and 15 or 1
 local currentTick = 1
 local judgmentToTrim = {
-    TapNoteScore_W3 = mods.ErrorBarTrim == "Excellent" and SL.Global.GameMode == "ITG",
-    TapNoteScore_W4 = mods.ErrorBarTrim ~= "Off" and SL.Global.GameMode == "ITG",
+    TapNoteScore_W3 = mods.ErrorBarTrim == "Excellent" and VOLT26.Global.GameMode == "ITG",
+    TapNoteScore_W4 = mods.ErrorBarTrim ~= "Off" and VOLT26.Global.GameMode == "ITG",
     TapNoteScore_W5 = mods.ErrorBarTrim ~= "Off"
 }
 
@@ -69,7 +69,7 @@ local function DisplayTick(self, params)
         -- Check if we need to adjust the color for the white fantastic window.
         if mods.ShowFaPlusWindow and ToEnumShortString(params.TapNoteScore) == "W1" and
             not VOLT26.Scoring.IsW0Judgment(params, player) then
-            color = SL.JudgmentColors["FA+"][2]
+            color = VOLT26.JudgmentColors["FA+"][2]
         end
 
         tick:diffusealpha(1)

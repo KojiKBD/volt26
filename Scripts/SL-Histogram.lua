@@ -14,7 +14,7 @@ local function gen_vertices(player, width, height, Steps, desaturation)
 	
 	if not Steps or not Song then return {} end
 
-	-- This function does no work if we already have the data in SL.Streams cache.
+	-- This function does no work if we already have the data in VOLT26.Streams cache.
 	local chartData = VOLT26.ChartData.Refresh(Steps, player)
 	local PeakNPS = chartData.PeakNPS
 	local NPSperMeasure = chartData.NPSperMeasure

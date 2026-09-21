@@ -3,7 +3,7 @@ local player, header_height, width = unpack(...)
 local style = GAMESTATE:GetCurrentStyle():GetName()
 
 local FilterAlpha = BackgroundFilterValues()
-local alpha = clamp(FilterAlpha[SL[ToEnumShortString(player)].ActiveModifiers.BackgroundFilter]/100 or 0, 0.25, 0.9)
+local alpha = clamp(FilterAlpha[VOLT26[ToEnumShortString(player)].ActiveModifiers.BackgroundFilter]/100 or 0, 0.25, 0.9)
 if style ~= "double" then
 	return Def.Quad{
 		InitCommand=function(self)

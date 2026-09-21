@@ -5,13 +5,13 @@ local playerStats
 local steps, meter, difficulty, stepartist, grade, score
 local TNSTypes = { 'W0', 'W1', 'W2', 'W3', 'W4', 'W5', 'Miss' }
 local Colors = {
-			SL.JudgmentColors["ITG"][1],
-			SL.JudgmentColors["FA+"][2], -- Get the Fantastic White Window
-			SL.JudgmentColors["ITG"][2],
-			SL.JudgmentColors["ITG"][3],
-			SL.JudgmentColors["ITG"][4],
-			SL.JudgmentColors["ITG"][5], 
-			SL.JudgmentColors["ITG"][6],
+			VOLT26.JudgmentColors["ITG"][1],
+			VOLT26.JudgmentColors["FA+"][2], -- Get the Fantastic White Window
+			VOLT26.JudgmentColors["ITG"][2],
+			VOLT26.JudgmentColors["ITG"][3],
+			VOLT26.JudgmentColors["ITG"][4],
+			VOLT26.JudgmentColors["ITG"][5], 
+			VOLT26.JudgmentColors["ITG"][6],
 		}
 
 -- variables for positioning and horizalign, dependent on playernumber

@@ -15,9 +15,9 @@ local InputHandler = function(event)
 
 	-- a local function to delete a character from a player's highscore name
 	local function RemoveLastCharacter(pn)
-		if SL[pn].HighScores.Name:len() > 0 then
+		if VOLT26[pn].HighScores.Name:len() > 0 then
 			-- remove the last character
-			SL[pn].HighScores.Name = SL[pn].HighScores.Name:sub(1, -2)
+			VOLT26[pn].HighScores.Name = VOLT26[pn].HighScores.Name:sub(1, -2)
 			-- update the display
 			t:GetChild("PlayerNameAndDecorations_"..pn):GetChild("PlayerName"):queuecommand("Set")
 			-- play the "delete" sound
@@ -32,24 +32,24 @@ local InputHandler = function(event)
 	if event.type ~= "InputEventType_Release" then
 		local pn = ToEnumShortString(event.PlayerNumber)
 
-		if event.GameButton == "MenuRight" and SL[pn].HighScores.EnteringName then
+		if event.GameButton == "MenuRight" and VOLT26[pn].HighScores.EnteringName then
 			-- scroll this player's AlphabetWheel right by 1
 			AlphabetWheels[pn]:scroll_by_amount(1)
 			t:GetChild("move"):playforplayer(event.PlayerNumber)
 
-		elseif event.GameButton == "MenuLeft" and SL[pn].HighScores.EnteringName then
+		elseif event.GameButton == "MenuLeft" and VOLT26[pn].HighScores.EnteringName then
 			-- scroll this player's AlphabetWheel left by 1
 			AlphabetWheels[pn]:scroll_by_amount(-1)
 			t:GetChild("move"):playforplayer(event.PlayerNumber)
 
 		elseif event.GameButton == "Start" then
 
-			if SL[pn].HighScores.EnteringName then
+			if VOLT26[pn].HighScores.EnteringName then
 				-- This gets us the value selected out of the PossibleCharacters table
 				local SelectedCharacter = AlphabetWheels[pn]:get_info_at_focus_pos()
 
 				if SelectedCharacter == "&OK;" then
-					SL[pn].HighScores.EnteringName = false
+					VOLT26[pn].HighScores.EnteringName = false
 					-- hide this player's cursor
 					t:GetChild("PlayerNameAndDecorations_"..pn):GetChild("Cursor"):queuecommand("Hide")
 					-- hide this player's AlphabetWheel
@@ -61,9 +61,9 @@ local InputHandler = function(event)
 					RemoveLastCharacter(pn)
 
 				else -- it must be a normal character
-					if SL[pn].HighScores.Name:len() < CharacterLimit then
+					if VOLT26[pn].HighScores.Name:len() < CharacterLimit then
 						-- append the new character
-						SL[pn].HighScores.Name = SL[pn].HighScores.Name .. SelectedCharacter
+						VOLT26[pn].HighScores.Name = VOLT26[pn].HighScores.Name .. SelectedCharacter
 						-- update the display
 						t:GetChild("PlayerNameAndDecorations_"..pn):GetChild("PlayerName"):queuecommand("Set")
 						-- play the "enter" sound
@@ -72,7 +72,7 @@ local InputHandler = function(event)
 						t:GetChild("invalid"):playforplayer(event.PlayerNumber)
 					end
 
-					if SL[pn].HighScores.Name:len() >= CharacterLimit then
+					if VOLT26[pn].HighScores.Name:len() >= CharacterLimit then
 						AlphabetWheels[pn]:scroll_to_pos(2)
 					end
 
@@ -83,7 +83,7 @@ local InputHandler = function(event)
 			-- check if we're ready to save scores and proceed to the next screen
 			t:queuecommand("AttemptToFinish")
 
-		elseif event.GameButton == "Select" and SL[pn].HighScores.EnteringName then
+		elseif event.GameButton == "Select" and VOLT26[pn].HighScores.EnteringName then
 			RemoveLastCharacter(pn)
 		end
 	end

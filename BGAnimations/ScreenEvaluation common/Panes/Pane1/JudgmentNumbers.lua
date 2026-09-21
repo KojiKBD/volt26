@@ -38,12 +38,12 @@ for i=1,#TapNoteScores.Types do
 		InitCommand=function(self)
 			self:zoom(0.5):horizalign(right)
 
-			self:diffuse( SL.JudgmentColors[SL.Global.GameMode][i] )
+			self:diffuse( VOLT26.JudgmentColors[VOLT26.Global.GameMode][i] )
 
 			-- if some TimingWindows were turned off, the leading 0s should not
 			-- be colored any differently than the (lack of) JudgmentNumber,
 			-- so load a unique Metric group.
-			if SL[pn].ActiveModifiers.TimingWindows[i]==false and i ~= #TapNoteScores.Types then
+			if VOLT26[pn].ActiveModifiers.TimingWindows[i]==false and i ~= #TapNoteScores.Types then
 				self:Load("RollingNumbersEvaluationNoDecentsWayOffs")
 				self:diffuse(color("#444444"))
 

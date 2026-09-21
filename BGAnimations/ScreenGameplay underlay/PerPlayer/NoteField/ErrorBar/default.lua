@@ -1,6 +1,6 @@
 local player, layout = ...
 local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26[pn].ActiveModifiers
 
 if mods.ErrorBar == "None" then
     return

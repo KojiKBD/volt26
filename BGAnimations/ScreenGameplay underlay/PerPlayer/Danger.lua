@@ -23,7 +23,7 @@ local prevHealth = "HealthState_Alive"
 local danger = Def.Quad{
 	Name="Danger" .. pn,
 	InitCommand=function(self)
-		self:visible(not SL[pn].ActiveModifiers.HideLifebar)
+		self:visible(not VOLT26[pn].ActiveModifiers.HideLifebar)
 		self:diffusealpha(0)
 
 		if IsPlayingDouble or PREFSMAN:GetPreference("Center1Player") and GAMESTATE:GetNumSidesJoined() == 1 then
@@ -41,7 +41,7 @@ local danger = Def.Quad{
 }
 
 -- if the player has HideDanger enabled, we only want to flash the red Quad if they fail
-if SL[pn].ActiveModifiers.HideDanger then
+if VOLT26[pn].ActiveModifiers.HideDanger then
 
 	danger.HealthStateChangedMessageCommand=function(self, param)
 		if param.PlayerNumber == player and param.HealthState == "HealthState_Dead" then

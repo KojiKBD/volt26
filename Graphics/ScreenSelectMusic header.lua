@@ -20,7 +20,7 @@ local UpdateTimer = function(af, dt)
 	timer_refresh_elapsed = timer_refresh_elapsed + (dt or 0)
 	if timer_refresh_elapsed < 1 then return end
 	timer_refresh_elapsed = 0
-	local seconds = GetTimeSinceStart() - (SL.Global.TimeAtSessionStart or GetTimeSinceStart())
+	local seconds = GetTimeSinceStart() - (VOLT26.Global.TimeAtSessionStart or GetTimeSinceStart())
 
 	-- if this game session is less than 1 hour in duration so far
 	if seconds < 3600 then
@@ -46,8 +46,8 @@ if PREFSMAN:GetPreference("EventMode") then
 		-- TimeAtSessionStart will be reset to nil between game sessions
 		-- thus, if it's currently nil, we're loading ScreenSelectMusic
 		-- for the first time this particular game session
-		if SL.Global.TimeAtSessionStart == nil then
-			SL.Global.TimeAtSessionStart = GetTimeSinceStart()
+		if VOLT26.Global.TimeAtSessionStart == nil then
+			VOLT26.Global.TimeAtSessionStart = GetTimeSinceStart()
 		end
 
 		self:SetUpdateFunction( UpdateTimer )
@@ -96,7 +96,7 @@ end
 -- "ITG" aligned to right of screen
 af[#af+1] = LoadFont("Helvetica Bold")..{
 	Name="GameModeText",
-	Text=THEME:GetString("ScreenSelectPlayMode", SL.Global.GameMode),
+	Text=THEME:GetString("ScreenSelectPlayMode", VOLT26.Global.GameMode),
 	InitCommand=function(self)
 		self:diffusealpha(0):halign(1):y(15)
 		self:zoom( SL_WideScale(0.5, 0.6) )
@@ -112,7 +112,7 @@ af[#af+1] = LoadFont("Helvetica Bold")..{
 		self:sleep(0.1):decelerate(0.33):diffusealpha(1)
 	end,
 	SLGameModeChangedMessageCommand=function(self)
-		self:settext(THEME:GetString("ScreenSelectPlayMode", SL.Global.GameMode))
+		self:settext(THEME:GetString("ScreenSelectPlayMode", VOLT26.Global.GameMode))
 	end
 }
 

@@ -1,6 +1,6 @@
 local player = Var "Player"
 local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26[pn].ActiveModifiers
 local style = GAMESTATE:GetCurrentStyle()
 local styletype = style and style:GetStyleType() or nil
 

@@ -21,7 +21,7 @@ return function(SongNumberInCourse)
 				steps = GAMESTATE:GetCurrentSteps(player)
 			end
 
-			-- This will parse out and set all the required info for the chart in the SL.Streams cache,
+			-- This will parse out and set all the required info for the chart in the VOLT26.Streams cache,
 			-- The function will only do work iff we're parsing a chart different than what's in the cache.
 			local chartData = VOLT26.ChartData.Refresh(steps, player)
 

@@ -93,14 +93,14 @@ local filename =  theme_name .. " UserPrefs.ini"
 -- profile switcher. It does two things:
 -- 1) properly reset profile state (e.g. modifiers), and
 -- 2) persist any state that should survive a profile switch (e.g., session history
---    in SL[pn].Stages with songs played for displaying on ScreenEvaluationSummary).
+--    in VOLT26[pn].Stages with songs played for displaying on ScreenEvaluationSummary).
 -- LoadProfileCustom takes care of this for persistent profiles.
 LoadGuest = function(player)
 	GAMESTATE:ResetPlayerOptions(player)
 	local pn = ToEnumShortString(player)
-	local stages = SL[pn].Stages
-	SL[pn]:initialize()
-	SL[pn].Stages = stages
+	local stages = VOLT26[pn].Stages
+	VOLT26[pn]:initialize()
+	VOLT26[pn].Stages = stages
 end
 
 
@@ -121,13 +121,13 @@ LoadProfileCustom = function(profile, dir)
 
 	if pn then
 		-- Remember and persist stats about songs played across profile switches
-		local stages = SL[pn].Stages
+		local stages = VOLT26[pn].Stages
 
-		SL[pn]:initialize()
+		VOLT26[pn]:initialize()
 		ParseGrooveStatsIni(player)
 		if VOLT26.Tournament.IsLocalItlEnabled() then ReadItlFile(player) end
 
-		SL[pn].Stages = stages
+		VOLT26[pn].Stages = stages
 	end
 
 	if pn and FILEMAN:DoesFileExist(path) then
@@ -144,7 +144,7 @@ LoadProfileCustom = function(profile, dir)
 				-- is a valid value (or choice) for the corresponding OptionRow
 				if type(v) == "string" and CustomOptionRow(k) and FindInTable(v, CustomOptionRow(k).Values or CustomOptionRow(k).Choices)
 				or type(v) ~= "string" then
-					SL[pn].ActiveModifiers[k] = v
+					VOLT26[pn].ActiveModifiers[k] = v
 				end
 
 				-- special-case PlayerOptionsString for now
@@ -168,7 +168,7 @@ LoadProfileCustom = function(profile, dir)
 					
 					-- Finally extract out the PlayerOptionsString by the fetching it from the engine
 					-- Update the SL table so that this PlayerOptionsString value is easily accessible throughout the theme
-					SL[pn].PlayerOptionsString = GAMESTATE:GetPlayerState(player):GetPlayerOptionsString("ModsLevel_Preferred")
+					VOLT26[pn].PlayerOptionsString = GAMESTATE:GetPlayerState(player):GetPlayerOptionsString("ModsLevel_Preferred")
 				end
 			end
 		end
@@ -187,15 +187,15 @@ SaveProfileCustom = function(profile, dir)
 			VOLT26.Tournament.RestorePlayer(player)
 			local pn = ToEnumShortString(player)
 			local output = {}
-			for k,v in pairs(SL[pn].ActiveModifiers) do
+			for k,v in pairs(VOLT26[pn].ActiveModifiers) do
 				if permitted_profile_settings[k] and type(v)==permitted_profile_settings[k] then
 					output[k] = v
 				end
 			end
 
-			-- these values are saved outside the SL[pn].ActiveModifiers tables
+			-- these values are saved outside the VOLT26[pn].ActiveModifiers tables
 			-- and thus won't be handled in the loop above
-			output.PlayerOptionsString = SL[pn].PlayerOptionsString
+			output.PlayerOptionsString = VOLT26[pn].PlayerOptionsString
 
 			IniFile.WriteFile( path, {[theme_name]=output} )
 

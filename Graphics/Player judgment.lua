@@ -1,6 +1,6 @@
 local player = Var "Player"
 local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26[pn].ActiveModifiers
 local sprite
 local coupleSprite
 local style = GAMESTATE:GetCurrentStyle()

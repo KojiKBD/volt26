@@ -42,16 +42,16 @@ for i, judgment in ipairs(TNS.Types) do
 		-- Add the windows from FA+ (W0 is handled by FA+ W1).
 		if judgment ~= "W0" then
 			TNS.Names[#TNS.Names+1] = THEME:GetString("TapNoteScoreFA+", judgment)
-			TNS.Colors[#TNS.Colors+1] = SL.JudgmentColors["FA+"][i-1]
+			TNS.Colors[#TNS.Colors+1] = VOLT26.JudgmentColors["FA+"][i-1]
 		end
 		-- And then additionally add the Way Off window.
 		if judgment == "W5" then
 			TNS.Names[#TNS.Names+1] = THEME:GetString("TapNoteScore", judgment)
-			TNS.Colors[#TNS.Colors+1] = SL.JudgmentColors["ITG"][5]
+			TNS.Colors[#TNS.Colors+1] = VOLT26.JudgmentColors["ITG"][5]
 		end
 	else
 		TNS.Names[#TNS.Names+1] = THEME:GetString(tns_string, judgment)
-		TNS.Colors[#TNS.Colors+1] = SL.JudgmentColors[gameMode][i]
+		TNS.Colors[#TNS.Colors+1] = VOLT26.JudgmentColors[gameMode][i]
 	end
 end
 

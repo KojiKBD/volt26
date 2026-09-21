@@ -61,7 +61,7 @@ af[#af+1] = Def.GraphDisplay{
 	Name="GraphDisplay",
 	InitCommand=function(self)
 		self:vertalign(top)
-		local ColorIndex = ((SL.Global.ActiveColorIndex + (player==PLAYER_1 and -1 or 1)) % #SL.Colors) + 1
+		local ColorIndex = ((VOLT26.Global.ActiveColorIndex + (player==PLAYER_1 and -1 or 1)) % #VOLT26.Colors) + 1
 		self:Load("GraphDisplay" .. ColorIndex )
 
 		if not GAMESTATE:IsCourseMode() then

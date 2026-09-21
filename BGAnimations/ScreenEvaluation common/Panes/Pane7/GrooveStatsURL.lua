@@ -36,13 +36,13 @@ local cmod = GAMESTATE:GetPlayerState(pn):GetPlayerOptions("ModsLevel_Preferred"
 local used_cmod = cmod ~= nil and "1" or "0"
 
 local failed = result.failed and "1" or "0"
-local rate = tonumber(string.format("%.0f", SL.Global.ActiveModifiers.MusicRate * 100))
+local rate = tonumber(string.format("%.0f", VOLT26.Global.ActiveModifiers.MusicRate * 100))
 
 local steps = GAMESTATE:GetCurrentSteps(player)
 
 -- Optional online consumers request hashing explicitly; normal browsing does not.
 local hash = VOLT26.ChartHash.Compute(steps, player)
-local hash_version = SL.GrooveStats.ChartHashVersion
+local hash_version = VOLT26.GrooveStats.ChartHashVersion
 
 local rescored = {
   W0 = 0,

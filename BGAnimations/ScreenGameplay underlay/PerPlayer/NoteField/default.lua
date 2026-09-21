@@ -1,6 +1,6 @@
 local player = ...
 local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26[pn].ActiveModifiers
 local opts = GAMESTATE:GetPlayerState(player):GetCurrentPlayerOptions()
 local layout = GetGameplayLayout(player, opts:Reverse() ~= 0)
 

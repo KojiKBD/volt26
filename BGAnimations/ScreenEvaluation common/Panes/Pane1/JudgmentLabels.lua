@@ -3,7 +3,7 @@ local player, controller = unpack(...)
 local pn = ToEnumShortString(player)
 local result = VOLT26.Results.GetCurrent(player)
 local styletype = ToEnumShortString(GAMESTATE:GetCurrentStyle():GetStyleType())
-local tns_string = "TapNoteScore" .. (SL.Global.GameMode=="ITG" and "" or SL.Global.GameMode)
+local tns_string = "TapNoteScore" .. (VOLT26.Global.GameMode=="ITG" and "" or VOLT26.Global.GameMode)
 
 local firstToUpper = function(str)
     return (str:gsub("^%l", string.upper))
@@ -45,7 +45,7 @@ local t = Def.ActorFrame{
 	end,
 }
 
-local windows = SL[pn].ActiveModifiers.TimingWindows
+local windows = VOLT26[pn].ActiveModifiers.TimingWindows
 
 --  labels: W1, W2, W3, W4, W5, Miss
 
@@ -76,7 +76,7 @@ for i=1, #TapNoteScores.Types do
 				end
 				self:y((i-1)*28 -16)
 				-- diffuse the JudgmentLabels the appropriate colors for the current GameMode
-				self:diffuse( SL.JudgmentColors[SL.Global.GameMode][i] )
+				self:diffuse( VOLT26.JudgmentColors[VOLT26.Global.GameMode][i] )
 			end
 		}
 	end

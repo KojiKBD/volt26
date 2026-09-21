@@ -16,8 +16,8 @@ local function CreditsText( player )
 			-- this feels like a holdover from SM3.9 that just never got updated
 			local str = ScreenSystemLayerHelpers.GetCreditsMessage(player)
 			local pn = ToEnumShortString(player)
-			if SL[pn].GrooveStatsUsername ~= "" then
-				str = SL[pn].GrooveStatsUsername
+			if VOLT26[pn].GrooveStatsUsername ~= "" then
+				str = VOLT26[pn].GrooveStatsUsername
 			end
 
 			self:settext(str)

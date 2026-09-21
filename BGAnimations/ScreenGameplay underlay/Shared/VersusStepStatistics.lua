@@ -98,7 +98,7 @@ for player in ivalues(Players) do
                     if IsEX then
                         -- If EX Score, let's diffuse it to be the same as th ITG top window.
                         -- This will make it consistent with the EX Score Pane.
-                        self:diffuse(SL.JudgmentColors["ITG"][1])
+                        self:diffuse(VOLT26.JudgmentColors["ITG"][1])
                     end
                 end,
                 JudgmentMessageCommand=function(self, params)

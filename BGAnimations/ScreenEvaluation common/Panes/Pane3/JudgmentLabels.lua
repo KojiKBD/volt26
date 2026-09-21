@@ -1,19 +1,19 @@
 local player = ...
 local pn = ToEnumShortString(player)
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26[pn].ActiveModifiers
 
 local TapNoteScores = {Types={}, Names={}}
 local Colors = {}
 if mods.ShowFaPlusWindow and mods.ShowFaPlusPane then
 	TapNoteScores.Types = {'W0', 'W1', 'W2', 'W3', 'W4', 'W5', 'Miss'}
 	Colors = {
-		SL.JudgmentColors["ITG"][1], -- Fantastic Blue
-		SL.JudgmentColors["FA+"][2], -- Just extract the Fantastic white color
-        SL.JudgmentColors["ITG"][2], -- Yellow Excellent
-		SL.JudgmentColors["ITG"][3], -- Green Great
-		SL.JudgmentColors["ITG"][4], -- Purple Decent
-		SL.JudgmentColors["ITG"][5], -- Way Off
-		SL.JudgmentColors["ITG"][6], -- Red Miss
+		VOLT26.JudgmentColors["ITG"][1], -- Fantastic Blue
+		VOLT26.JudgmentColors["FA+"][2], -- Just extract the Fantastic white color
+        VOLT26.JudgmentColors["ITG"][2], -- Yellow Excellent
+		VOLT26.JudgmentColors["ITG"][3], -- Green Great
+		VOLT26.JudgmentColors["ITG"][4], -- Purple Decent
+		VOLT26.JudgmentColors["ITG"][5], -- Way Off
+		VOLT26.JudgmentColors["ITG"][6], -- Red Miss
 	}
 	-- get all TNS names
 	TapNoteScores.Names = {
@@ -28,14 +28,14 @@ if mods.ShowFaPlusWindow and mods.ShowFaPlusPane then
 else
 	TapNoteScores.Types = {'W1', 'W2', 'W3', 'W4', 'W5', 'Miss'}
 	Colors = {
-		SL.JudgmentColors[SL.Global.GameMode][1],
-		SL.JudgmentColors[SL.Global.GameMode][2],
-		SL.JudgmentColors[SL.Global.GameMode][3],
-		SL.JudgmentColors[SL.Global.GameMode][4],
-		SL.JudgmentColors[SL.Global.GameMode][5],
-		SL.JudgmentColors[SL.Global.GameMode][6],
+		VOLT26.JudgmentColors[VOLT26.Global.GameMode][1],
+		VOLT26.JudgmentColors[VOLT26.Global.GameMode][2],
+		VOLT26.JudgmentColors[VOLT26.Global.GameMode][3],
+		VOLT26.JudgmentColors[VOLT26.Global.GameMode][4],
+		VOLT26.JudgmentColors[VOLT26.Global.GameMode][5],
+		VOLT26.JudgmentColors[VOLT26.Global.GameMode][6],
 	}
-	local tns_string = "TapNoteScore" .. (SL.Global.GameMode=="ITG" and "" or SL.Global.GameMode)
+	local tns_string = "TapNoteScore" .. (VOLT26.Global.GameMode=="ITG" and "" or VOLT26.Global.GameMode)
 	-- get TNS names appropriate for the current GameMode, localized to the current language
 	for i, judgment in ipairs(TapNoteScores.Types) do
 		TapNoteScores.Names[#TapNoteScores.Names+1] = THEME:GetString(tns_string, judgment)
@@ -51,7 +51,7 @@ local t = Def.ActorFrame{
 
 local miss_bmt
 
-local windows = SL[pn].ActiveModifiers.TimingWindows
+local windows = VOLT26[pn].ActiveModifiers.TimingWindows
 
 --  labels: W1 ---> Miss
 for i=1, #TapNoteScores.Types do
@@ -79,7 +79,7 @@ t[#t+1] = LoadFont("Common Normal")..{
 	Text=ScreenString("Held"),
 	InitCommand=function(self)
 		self:y(140):zoom(0.6):halign(1)
-			:diffuse( SL.JudgmentColors[SL.Global.GameMode][6] )
+			:diffuse( VOLT26.JudgmentColors[VOLT26.Global.GameMode][6] )
 	end,
 	OnCommand=function(self)
 		self:x( miss_bmt:GetX() - miss_bmt:GetWidth()/1.15 )

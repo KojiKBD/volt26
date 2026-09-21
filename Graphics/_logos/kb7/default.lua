@@ -42,13 +42,13 @@ local middle_width = (256 / 2) + 28
 local z = 0.09
 
 -- overlay the VOLT26 SelectColor icon 7 times
-af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(SL.Colors[12])):x(-(2*gap + 2.5*icon_width + middle_width)) end }
-af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(SL.Colors[ 2])):x(-(1*gap + 1.5*icon_width + middle_width)) end }
-af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(SL.Colors[ 4])):x(-(        0.5*icon_width + middle_width)) end }
-af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(SL.Colors[ 6])) end }
-af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(SL.Colors[ 7])):x(          0.5*icon_width + middle_width)  end }
-af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(SL.Colors[ 9])):x(  1*gap + 1.5*icon_width + middle_width)  end }
-af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(SL.Colors[11])):x(  2*gap + 2.5*icon_width + middle_width)  end }
+af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(VOLT26.Colors[12])):x(-(2*gap + 2.5*icon_width + middle_width)) end }
+af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(VOLT26.Colors[ 2])):x(-(1*gap + 1.5*icon_width + middle_width)) end }
+af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(VOLT26.Colors[ 4])):x(-(        0.5*icon_width + middle_width)) end }
+af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(VOLT26.Colors[ 6])) end }
+af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(VOLT26.Colors[ 7])):x(          0.5*icon_width + middle_width)  end }
+af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(VOLT26.Colors[ 9])):x(  1*gap + 1.5*icon_width + middle_width)  end }
+af[#af+1] = LoadActor(stylepath)..{ InitCommand=function(self) self:zoom(z):diffuse(color(VOLT26.Colors[11])):x(  2*gap + 2.5*icon_width + middle_width)  end }
 
 -- -----------------------------------------------------------------------
 

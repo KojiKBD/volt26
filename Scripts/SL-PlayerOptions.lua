@@ -3,7 +3,7 @@
 -- -----------------------------------------------------------------------
 
 local GetModsAndPlayerOptions = function(player)
-	local mods = SL[ToEnumShortString(player)].ActiveModifiers
+	local mods = VOLT26[ToEnumShortString(player)].ActiveModifiers
 	-- This can get called already when loading ScreenTitleMenu if all screens
 	-- before and including ScreenSelectPlayMode are disabled. Top screen will
 	-- be nil in that case.
@@ -188,8 +188,8 @@ local Overrides = {
 		EnabledForPlayers = function() 
 			local players = {}
 			for player in ivalues(GAMESTATE:GetHumanPlayers()) do
-				local variant = SL[ToEnumShortString(player)].ActiveModifiers.NoteSkinVariant
-				local noteskin = SL[ToEnumShortString(player)].ActiveModifiers.NoteSkin
+				local variant = VOLT26[ToEnumShortString(player)].ActiveModifiers.NoteSkinVariant
+				local noteskin = VOLT26[ToEnumShortString(player)].ActiveModifiers.NoteSkin
 				if (noteskin and NOTESKIN:HasVariants(noteskin)) then
 					players[#players+1] = player
 				end
@@ -214,7 +214,7 @@ local Overrides = {
 		Choices = function() return map(StripSpriteHints, GetJudgmentGraphics()) end,
 		Values = function() return GetJudgmentGraphics() end,
 		SaveSelections = function(self, list, pn)
-			local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+			local mods = VOLT26[ToEnumShortString(pn)].ActiveModifiers
 			for i, val in ipairs(self.Values) do
 				if list[i] then mods.JudgmentGraphic = val; break end
 			end
@@ -229,7 +229,7 @@ local Overrides = {
 		Choices = function() return map(StripSpriteHints, GetHoldJudgments()) end,
 		Values = function() return GetHoldJudgments() end,
 		SaveSelections = function(self, list, pn)
-			local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+			local mods = VOLT26[ToEnumShortString(pn)].ActiveModifiers
 			for i, val in ipairs(self.Values) do
 				if list[i] then mods.HoldJudgment = val; break end
 			end
@@ -243,7 +243,7 @@ local Overrides = {
 		ExportOnChange = true,
 		Choices = function() return GetComboFonts() end,
 		SaveSelections = function(self, list, pn)
-			local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+			local mods = VOLT26[ToEnumShortString(pn)].ActiveModifiers
 			for i, val in ipairs(self.Choices) do
 				if list[i] then mods.ComboFont = val; break end
 			end
@@ -290,14 +290,14 @@ local Overrides = {
 		ExportOnChange = true,
 		OneChoiceForAllPlayers = true,
 		LoadSelections = function(self, list, pn)
-			local rate = ("%g"):format( SL.Global.ActiveModifiers.MusicRate )
+			local rate = ("%g"):format( VOLT26.Global.ActiveModifiers.MusicRate )
 			local i = FindInTable(rate, self.Choices) or 1
 			list[i] = true
 			return list
 		end,
 		SaveSelections = function(self, list, pn)
 
-			local mods = SL.Global.ActiveModifiers
+			local mods = VOLT26.Global.ActiveModifiers
 
 			for i=1,#self.Choices do
 				if list[i] then
@@ -409,7 +409,7 @@ local Overrides = {
 			return { "ShowFaPlusWindow", "ShowExScore", "ShowFaPlusPane" }
 		end,
 		LoadSelections = function(self, list, pn)
-			local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+			local mods = VOLT26[ToEnumShortString(pn)].ActiveModifiers
 			if VOLT26.Tournament.IsEnabled() then
 				list[1] = mods.ShowFaPlusWindow or false
 				return list
@@ -421,7 +421,7 @@ local Overrides = {
 			return list
 		end,
 		SaveSelections = function(self, list, pn)
-			local sl_pn = SL[ToEnumShortString(pn)]
+			local sl_pn = VOLT26[ToEnumShortString(pn)]
 			local mods = sl_pn.ActiveModifiers
 
 			if VOLT26.Tournament.IsEnabled() then
@@ -445,7 +445,7 @@ local Overrides = {
 		SelectType = "SelectMultiple",
 		Values = { "Targets", "SongBG", "Combo", "Lifebar", "Score", "Danger", "ComboExplosions" },
 		LoadSelections = function(self, list, pn)
-			local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+			local mods = VOLT26[ToEnumShortString(pn)].ActiveModifiers
 			list[1] = mods.HideTargets or false
 			list[2] = mods.HideSongBG  or false
 			list[3] = mods.HideCombo   or false
@@ -507,13 +507,13 @@ local Overrides = {
 			return t
 		end,
 		LoadSelections = function(self, list, pn)
-			local i = tonumber(SL[ToEnumShortString(pn)].ActiveModifiers.TargetScore) or 11
+			local i = tonumber(VOLT26[ToEnumShortString(pn)].ActiveModifiers.TargetScore) or 11
 			list[i] = true
 			return list
 		end,
 		SaveSelections = function(self, list, pn)
 			for i,v in ipairs(self.Values) do
-				if list[i] then SL[ToEnumShortString(pn)].ActiveModifiers.TargetScore = i; break end
+				if list[i] then VOLT26[ToEnumShortString(pn)].ActiveModifiers.TargetScore = i; break end
 			end
 		end
 	},
@@ -542,7 +542,7 @@ local Overrides = {
 			local vals = {}
 			if IsUsingWideScreen() then
 				vals = { "JudgmentTilt", "ColumnCues" }
-				if IsServiceAllowed(SL.GrooveStats.GetScores) then
+				if IsServiceAllowed(VOLT26.GrooveStats.GetScores) then
 					vals[#vals+1] = "DisplayScorebox"
 				end
 			else
@@ -556,7 +556,7 @@ local Overrides = {
 		SelectType = "SelectMultiple",
 		Values = function()
 			local vals = {}
-			if not IsUsingWideScreen() and IsServiceAllowed(SL.GrooveStats.GetScores) then
+			if not IsUsingWideScreen() and IsServiceAllowed(VOLT26.GrooveStats.GetScores) then
 				vals = { "DisplayScorebox" }
 			end
 			return vals
@@ -571,14 +571,14 @@ local Overrides = {
 			return stringify(range(first, last, step), "%g")
 		end,
 		LoadSelections = function(self, list, pn)
-			local mods =SL[ToEnumShortString(pn)].ActiveModifiers
+			local mods =VOLT26[ToEnumShortString(pn)].ActiveModifiers
 			local tiltMultiplier = ("%g"):format(mods.TiltMultiplier)
 			local i = FindInTable(tiltMultiplier, self.Choices) or 1
 			list[i] = true
 			return list
 		end,
 		SaveSelections = function(self, list, pn)
-			local mods =SL[ToEnumShortString(pn)].ActiveModifiers
+			local mods =VOLT26[ToEnumShortString(pn)].ActiveModifiers
 
 			for i=1,#self.Choices do
 				if list[i] then
@@ -686,7 +686,7 @@ local Overrides = {
 				if list[i] then
 					mods.TimingWindows = self.Values[i]
 					playeroptions:ResetDisabledTimingWindows()
-					if SL.Global.GameMode == "ITG" then return end
+					if VOLT26.Global.GameMode == "ITG" then return end
 					for i,enabled in ipairs(mods.TimingWindows) do
 						if not enabled then
 							playeroptions:DisableTimingWindow("TimingWindow_W"..i)
@@ -708,7 +708,7 @@ local Overrides = {
 			return range(first, last, step)
 		end,
 		LoadSelections = function(self, list, pn)
-			local val = tonumber(SL[ToEnumShortString(pn)].ActiveModifiers.NoteFieldOffsetX) or 0
+			local val = tonumber(VOLT26[ToEnumShortString(pn)].ActiveModifiers.NoteFieldOffsetX) or 0
 			for i,v in ipairs(self.Choices) do
 				if v == val then
 					list[i] = true
@@ -720,7 +720,7 @@ local Overrides = {
 		SaveSelections = function(self, list, pn)
 			for i,v in ipairs(self.Choices) do
 				if list[i] then
-					SL[ToEnumShortString(pn)].ActiveModifiers.NoteFieldOffsetX = v
+					VOLT26[ToEnumShortString(pn)].ActiveModifiers.NoteFieldOffsetX = v
 					break
 				end
 			end
@@ -738,7 +738,7 @@ local Overrides = {
 			return range(first, last, step)
 		end,
 		LoadSelections = function(self, list, pn)
-			local val = tonumber(SL[ToEnumShortString(pn)].ActiveModifiers.NoteFieldOffsetY) or 0
+			local val = tonumber(VOLT26[ToEnumShortString(pn)].ActiveModifiers.NoteFieldOffsetY) or 0
 			for i,v in ipairs(self.Choices) do
 				if v == val then
 					list[i] = true
@@ -750,7 +750,7 @@ local Overrides = {
 		SaveSelections = function(self, list, pn)
 			for i,v in ipairs(self.Choices) do
 				if list[i] then
-					SL[ToEnumShortString(pn)].ActiveModifiers.NoteFieldOffsetY = v
+					VOLT26[ToEnumShortString(pn)].ActiveModifiers.NoteFieldOffsetY = v
 					break
 				end
 			end
@@ -846,7 +846,7 @@ local OptionRowDefault = {
 					return list
 				end
 				self.SaveSelections = Overrides[name].SaveSelections or function(subself, list, pn)
-					local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+					local mods = VOLT26[ToEnumShortString(pn)].ActiveModifiers
 					local vals = self.Values or self.Choices
 					for i, val in ipairs(vals) do
 						if list[i] then mods[name] = val; break end
@@ -857,7 +857,7 @@ local OptionRowDefault = {
 				-- "SelectMultiple" typically means a collection of theme-defined flags in a single OptionRow
 				-- most of these behave the same and can fall back on this generic definition; a notable exception is "Hide"
 				self.LoadSelections = Overrides[name].LoadSelections or function(subself, list, pn)
-					local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+					local mods = VOLT26[ToEnumShortString(pn)].ActiveModifiers
 					local vals = self.Values or self.Choices
 					for i, mod in ipairs(vals) do
 						list[i] = mods[mod] or false
@@ -865,7 +865,7 @@ local OptionRowDefault = {
 					return list
 				end
 				self.SaveSelections = Overrides[name].SaveSelections or function(subself, list, pn)
-					local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+					local mods = VOLT26[ToEnumShortString(pn)].ActiveModifiers
 					local vals = self.Values or self.Choices
 					for i, mod in ipairs(vals) do
 						mods[mod] = list[i]
@@ -922,7 +922,7 @@ function ApplyMods(player)
 		-- second, the player that this applies to
 		--
 		-- LoadSelections() receives a table of all false values, one for each entry in this OptionRow's Choices table
-		-- LoadSelections() will process that table, and set the appropriate entries to true using the SL[pn].ActiveModifiers table
+		-- LoadSelections() will process that table, and set the appropriate entries to true using the VOLT26[pn].ActiveModifiers table
 		-- when done setting one or more entries to true, LoadSelections() will return that table of true/false values
 		--
 		-- SaveSelections() expects the same sort of arguments, but it expects the true/false table to be already set appropriately

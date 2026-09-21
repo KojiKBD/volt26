@@ -49,7 +49,7 @@ end
 GetDisplayBPMs = function(player, StepsOrTrail, MusicRate)
 	player       = player       or GAMESTATE:GetMasterPlayerNumber()
 	StepsOrTrail = StepsOrTrail or (GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentTrail(player)) or GAMESTATE:GetCurrentSteps(player)
-	MusicRate    = MusicRate    or SL.Global.ActiveModifiers.MusicRate
+	MusicRate    = MusicRate    or VOLT26.Global.ActiveModifiers.MusicRate
 
 	if not StepsOrTrail then return end
 
@@ -95,7 +95,7 @@ end
 StringifyDisplayBPMs = function(player, StepsOrTrail, MusicRate)
 	player       = player       or GAMESTATE:GetMasterPlayerNumber()
 	StepsOrTrail = StepsOrTrail or (GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentTrail(player)) or GAMESTATE:GetCurrentSteps(player)
-	MusicRate    = MusicRate    or SL.Global.ActiveModifiers.MusicRate
+	MusicRate    = MusicRate    or VOLT26.Global.ActiveModifiers.MusicRate
 
 	local bpms = GetDisplayBPMs(player, StepsOrTrail, MusicRate)
 

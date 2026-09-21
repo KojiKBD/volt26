@@ -2,7 +2,7 @@
 -- later modified for SL.
 
 local player, layout = ...
-local mods = SL[ToEnumShortString(player)].ActiveModifiers
+local mods = VOLT26[ToEnumShortString(player)].ActiveModifiers
 
 local threshold = nil
 for i = 1, NumJudgmentsAvailable() do

@@ -180,7 +180,7 @@ RequestResponseActor = function(x, y)
 				Frames=Sprite.LinearFrames(30,1),
 				InitCommand=function(self)
 					self:zoom(0.15)
-					self:diffuse(GetHexColor(SL.Global.ActiveColorIndex, true))
+					self:diffuse(GetHexColor(VOLT26.Global.ActiveColorIndex, true))
 				end,
 			},
 			LoadFont("Common Normal")..{
@@ -263,7 +263,7 @@ ValidForGrooveStats = function(player)
 	-- FA+ is okay because it just halves ITG's TimingWindowW1 but keeps everything else the same.
 	-- Casual (and Experimental, Demonic, etc.) uses different settings
 	-- that are incompatible with GrooveStats ranking.
-	valid[4] = SL.Global.GameMode == "ITG"
+	valid[4] = VOLT26.Global.GameMode == "ITG"
 
 	-- ------------------------------------------
 	-- Next, check global Preferences that would invalidate the score.
@@ -360,10 +360,10 @@ ValidForGrooveStats = function(player)
 	-- And then verify the windows themselves.
 	local TWA = PREFSMAN:GetPreference("TimingWindowAdd")
 	local pn = ToEnumShortString(player)
-	if SL.Global.GameMode == "ITG" then
+	if VOLT26.Global.GameMode == "ITG" then
 		for i, window in ipairs(TimingWindows) do
 			-- Only check if the Timing Window is actually "enabled".
-			if i > 5 or SL[pn].ActiveModifiers.TimingWindows[i] then
+			if i > 5 or VOLT26[pn].ActiveModifiers.TimingWindows[i] then
 				valid[7] = Check(FloatEquals(PREFSMAN:GetPreference("TimingWindowSeconds"..window) + TWA, ExpectedWindows[i]), "- TimingWindow"..window, badSettings) and valid[7]
 			end
 		end
@@ -377,7 +377,7 @@ ValidForGrooveStats = function(player)
 	end
 
 	-- Validate Rate Mod
-	local rate = SL.Global.ActiveModifiers.MusicRate * 100
+	local rate = VOLT26.Global.ActiveModifiers.MusicRate * 100
 	valid[8] = 100 <= rate and rate <= 300
 
 
@@ -413,7 +413,7 @@ ValidForGrooveStats = function(player)
 
 	local minTNSToScoreNores = ToEnumShortString(PREFSMAN:GetPreference("MinTNSToScoreNotes"))
 
-	if SL.Global.GameMode == "ITG" then
+	if VOLT26.Global.GameMode == "ITG" then
 		-- The cut off for rehits is only allowed to be set to Greats (W3) or worse.
 		-- Anything else is not allowed for GrooveStats submission.
 		-- "invalid" options (like HitMine or something), resolve to TNS_None.
@@ -448,7 +448,7 @@ CreateCommentString = function(player)
 
 	local comment = ""
 
-	local rate = SL.Global.ActiveModifiers.MusicRate
+	local rate = VOLT26.Global.ActiveModifiers.MusicRate
 	if rate ~= 1 then
 		if #comment ~= 0 then
 			comment = comment .. ", "
@@ -474,12 +474,12 @@ CreateCommentString = function(player)
 
 	local timingWindowOption = ""
 
-	if SL.Global.GameMode == "ITG" then
-		if not SL[pn].ActiveModifiers.TimingWindows[4] and not SL[pn].ActiveModifiers.TimingWindows[5] then
+	if VOLT26.Global.GameMode == "ITG" then
+		if not VOLT26[pn].ActiveModifiers.TimingWindows[4] and not VOLT26[pn].ActiveModifiers.TimingWindows[5] then
 			timingWindowOption = "No Dec/WO"
-		elseif not SL[pn].ActiveModifiers.TimingWindows[5] then
+		elseif not VOLT26[pn].ActiveModifiers.TimingWindows[5] then
 			timingWindowOption = "No WO"
-		elseif not SL[pn].ActiveModifiers.TimingWindows[1] and not SL[pn].ActiveModifiers.TimingWindows[2] then
+		elseif not VOLT26[pn].ActiveModifiers.TimingWindows[1] and not VOLT26[pn].ActiveModifiers.TimingWindows[2] then
 			timingWindowOption = "No Fan/Exc"
 		end
 	end
@@ -553,7 +553,7 @@ WriteUnlocksCache = function()
 	local cache_file = "/Songs/unlocks-cache.json"
 	local f = RageFileUtil:CreateRageFile()
 	if f:Open(cache_file, 2) then
-		f:Write(JsonEncode(SL.GrooveStats.UnlocksCache))
+		f:Write(JsonEncode(VOLT26.GrooveStats.UnlocksCache))
 	end
 	f:destroy()
 end
@@ -617,7 +617,7 @@ DownloadEventUnlock = function(url, unlockName, packName)
 	-- successfully to the intended location.
 	-- Unlocks are placed in the cache whenever unlocks are bot successfully
 	-- downloaded and zipped.
-	if SL.GrooveStats.UnlocksCache[url] and SL.GrooveStats.UnlocksCache[url][packName] then
+	if VOLT26.GrooveStats.UnlocksCache[url] and VOLT26.GrooveStats.UnlocksCache[url][packName] then
 		return
 	end
 
@@ -671,10 +671,10 @@ DownloadEventUnlock = function(url, unlockName, packName)
 					if not FILEMAN:Unzip("/Downloads/"..downloadfile, destinationPack) then
 						downloadInfo.ErrorMessage = "Failed to Unzip!"
 					else
-						if SL.GrooveStats.UnlocksCache[url] == nil then
-							SL.GrooveStats.UnlocksCache[url] = {}
+						if VOLT26.GrooveStats.UnlocksCache[url] == nil then
+							VOLT26.GrooveStats.UnlocksCache[url] = {}
 						end
-						SL.GrooveStats.UnlocksCache[url][packName] = true
+						VOLT26.GrooveStats.UnlocksCache[url][packName] = true
 
 						-- If Pack.ini doesn't exist (new unlock for this player), create it.
 						local group = string.lower(packName)
@@ -730,9 +730,9 @@ end
 -- than a certain amount of time.
 RemoveStaleCachedRequests = function()
 	local timeout = 1 * 60  -- One minute
-	for requestCacheKey, data in pairs(SL.GrooveStats.RequestCache) do
+	for requestCacheKey, data in pairs(VOLT26.GrooveStats.RequestCache) do
 		if GetTimeSinceStart() - data.Timestamp >= timeout then
-			SL.GrooveStats.RequestCache[requestCacheKey] = nil
+			VOLT26.GrooveStats.RequestCache[requestCacheKey] = nil
 		end
 	end
 end
@@ -976,7 +976,7 @@ GetPlayerOptionsJsonForGrooveStats = function(player)
 	local pn = ToEnumShortString(player)
 
 	local MaybeSetOption = function(options, key, value, expectedType)
-		local keyData = SL.Global.GrooveStatsPlayerOptionKeys[key]
+		local keyData = VOLT26.Global.GrooveStatsPlayerOptionKeys[key]
 		if keyData ~= nil then
 			if keyData.Type == expectedType then
 				if expectedType == "string" and type(value) == "string" then
@@ -1000,7 +1000,7 @@ GetPlayerOptionsJsonForGrooveStats = function(player)
 	end
 
 	-- First let's handle SL specific mods.
-	for key, value in pairs(SL[pn].ActiveModifiers) do
+	for key, value in pairs(VOLT26[pn].ActiveModifiers) do
 		MaybeSetOption(options, key, value, type(value))
 	end
 
@@ -1011,19 +1011,19 @@ GetPlayerOptionsJsonForGrooveStats = function(player)
 	-- Mini and VisualDelay are special cases that we handle separately.
 	-- They're stored as strings in the SL table, but we want to save them as
 	-- numbers in the GrooveStats JSON.
-	local mini = SL[pn].ActiveModifiers.Mini:gsub("%%", "")/1
-	local visualDelay = SL[pn].ActiveModifiers.VisualDelay:gsub("ms","")/1
+	local mini = VOLT26[pn].ActiveModifiers.Mini:gsub("%%", "")/1
+	local visualDelay = VOLT26[pn].ActiveModifiers.VisualDelay:gsub("ms","")/1
 
 	-- Similarly, BackgroundFilter has options that directly map to numbers.
 	local FilterAlpha = BackgroundFilterValues()
-	local value = FilterAlpha[SL[pn].ActiveModifiers.BackgroundFilter]
+	local value = FilterAlpha[VOLT26[pn].ActiveModifiers.BackgroundFilter]
 	local backgroundFilter = value and value or 0
 
 	-- HideLookeahead is stored as a boolean in SL, but we want to save it as
 	-- a number in GrooveStats.\
 	-- We use 3 here since that's actually what SL represents, even though
 	-- we'll collapse it down to true/false when loading from GrooveStats.
-	local hideLookahead = SL[pn].ActiveModifiers.HideLookahead and 3 or 0
+	local hideLookahead = VOLT26[pn].ActiveModifiers.HideLookahead and 3 or 0
 
 	local hasCover = false
 	local hasNoMines = false
@@ -1082,13 +1082,13 @@ SetPlayerOptionsJsonFromGroovestats = function(player, jsonStr)
 	local playerOptionsString = ""
 	for key, value in pairs(options) do
 		-- First let's check if the key is actually part of the SL table
-		if SL[pn].ActiveModifiers[key] ~= nil then
-			local keyData = SL.Global.GrooveStatsPlayerOptionKeys[key]
+		if VOLT26[pn].ActiveModifiers[key] ~= nil then
+			local keyData = VOLT26.Global.GrooveStatsPlayerOptionKeys[key]
 			if keyData ~= nil then
 				if keyData.Type == "string" and type(value) == "number" then
 					-- If the option is a string, we need to map it to the correct value.
 					if keyData.Map and keyData.Map[value] then
-						SL[pn].ActiveModifiers[key] = keyData.Map[value]
+						VOLT26[pn].ActiveModifiers[key] = keyData.Map[value]
 					else
 						Trace("Tried to set option for key: "..key.." but the value: "..value.." is not in the map.")
 					end
@@ -1098,26 +1098,26 @@ SetPlayerOptionsJsonFromGroovestats = function(player, jsonStr)
 					-- Background Filter is saved as a number (for Zmod/DD) but SL saves it as a string
 					-- HideLookahead is saved as a number (for Zmod) but SL is just binary
 					if key == "Mini" then
-						SL[pn].ActiveModifiers[key] = value.."%"
+						VOLT26[pn].ActiveModifiers[key] = value.."%"
 					elseif key == "VisualDelay" then
-						SL[pn].ActiveModifiers[key] = value.."ms"
+						VOLT26[pn].ActiveModifiers[key] = value.."ms"
 					elseif key == "BackgroundFilter" then
 						local FilterAlpha = BackgroundFilterValues()
 						-- Check if the value exists in the FilterAlpha table.
 						for filterName, alpha in pairs(FilterAlpha) do
 							if alpha == value then
-								SL[pn].ActiveModifiers[key] = filterName
+								VOLT26[pn].ActiveModifiers[key] = filterName
 								break
 							end
 						end
 					elseif key == "HideLookahead" then
-						SL[pn].ActiveModifiers[key] = (value > 0) and true or false
+						VOLT26[pn].ActiveModifiers[key] = (value > 0) and true or false
 					else
 						-- If the option is a number, we just use the value directly.
-						SL[pn].ActiveModifiers[key] = value
+						VOLT26[pn].ActiveModifiers[key] = value
 					end
 				elseif keyData.Type == "boolean" and type(value) == "boolean" then
-					SL[pn].ActiveModifiers[key] = value
+					VOLT26[pn].ActiveModifiers[key] = value
 				end
 			end
 		end
@@ -1130,7 +1130,7 @@ SetPlayerOptionsJsonFromGroovestats = function(player, jsonStr)
 		elseif key == "Reverse" and value == true then
 			playerOptionsTable[#playerOptionsTable + 1] = "Reverse"
 		elseif (key == "Perspective" or key == "Turn" or key == "HideLightType" or key == "NoteSkin") and type(value) == "number" then
-			local keyData = SL.Global.GrooveStatsPlayerOptionKeys[key]
+			local keyData = VOLT26.Global.GrooveStatsPlayerOptionKeys[key]
 			if keyData ~= nil and keyData.Map ~= nil and keyData.Map[value] then
 				-- If the option is a string, we need to map it to the correct value.
 				playerOptionsTable[#playerOptionsTable + 1] = keyData.Map[value]
@@ -1139,28 +1139,28 @@ SetPlayerOptionsJsonFromGroovestats = function(player, jsonStr)
 	end
 
 	-- Also add in the SpeedMod and Mini options for player options.
-	if SL[pn].ActiveModifiers.SpeedModType == "X" then
-		playerOptionsTable[#playerOptionsTable + 1] = SL[pn].ActiveModifiers.SpeedMod.."x"
-	elseif SL[pn].ActiveModifiers.SpeedModType == "C" then
+	if VOLT26[pn].ActiveModifiers.SpeedModType == "X" then
+		playerOptionsTable[#playerOptionsTable + 1] = VOLT26[pn].ActiveModifiers.SpeedMod.."x"
+	elseif VOLT26[pn].ActiveModifiers.SpeedModType == "C" then
 		playerOptionsTable[#playerOptionsTable + 1] = "C"..SL[pn].ActiveModifiers.SpeedMod
-	elseif SL[pn].ActiveModifiers.SpeedModType == "M" then
+	elseif VOLT26[pn].ActiveModifiers.SpeedModType == "M" then
 		playerOptionsTable[#playerOptionsTable + 1] = "m"..SL[pn].ActiveModifiers.SpeedMod
 	end
 
-	if SL[pn].ActiveModifiers.Mini == 100 then
+	if VOLT26[pn].ActiveModifiers.Mini == 100 then
 		playerOptionsTable[#playerOptionsTable + 1] = "Mini"
-	elseif SL[pn].ActiveModifiers.Mini ~= 0 then
-		playerOptionsTable[#playerOptionsTable + 1] = SL[pn].ActiveModifiers.Mini.." Mini"
+	elseif VOLT26[pn].ActiveModifiers.Mini ~= 0 then
+		playerOptionsTable[#playerOptionsTable + 1] = VOLT26[pn].ActiveModifiers.Mini.." Mini"
 	end
 
-	if SL[pn].ActiveModifiers.VisualDelay ~= "0ms" then
-		playerOptionsTable[#playerOptionsTable + 1] = SL[pn].ActiveModifiers.VisualDelay.." VisualDelay"
+	if VOLT26[pn].ActiveModifiers.VisualDelay ~= "0ms" then
+		playerOptionsTable[#playerOptionsTable + 1] = VOLT26[pn].ActiveModifiers.VisualDelay.." VisualDelay"
 	end
 
 	-- And then set the player options string.
 	if #playerOptionsTable > 0 then
 		playerOptionsString = table.concat(playerOptionsTable, ", ")
 		GAMESTATE:GetPlayerState(player):SetPlayerOptions("ModsLevel_Preferred", playerOptionsString)
-		SL[pn].ActiveModifiers.PlayerOptionsString = playerOptionsString
+		VOLT26[pn].ActiveModifiers.PlayerOptionsString = playerOptionsString
 	end
 end

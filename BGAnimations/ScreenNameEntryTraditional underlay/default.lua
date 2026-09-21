@@ -8,7 +8,7 @@ local NumStages = VOLT26.Evaluation.GetStageCount()
 local DurationPerStage = 4
 ---------------------------------------------------------------------------
 for player in ivalues(Players) do
-	if SL[ToEnumShortString(player)].HighScores.EnteringName then
+	if VOLT26[ToEnumShortString(player)].HighScores.EnteringName then
 		-- Add one AlphabetWheel per human player
 		AlphabetWheels[ToEnumShortString(player)] = setmetatable({}, sick_wheel_mt)
 	end
@@ -55,7 +55,7 @@ local t = Def.ActorFrame {
 		topscreen:AddInputCallback( LoadActor("InputHandler.lua", {self, AlphabetWheels}) )
 	end,
 	AttemptToFinishCommand=function(self)
-		if not SL.P1.HighScores.EnteringName and not SL.P2.HighScores.EnteringName then
+		if not VOLT26.P1.HighScores.EnteringName and not VOLT26.P2.HighScores.EnteringName then
 			self:playcommand("Finish")
 		end
 	end,
@@ -65,7 +65,7 @@ local t = Def.ActorFrame {
 		-- if so, fade out that player's cursor and alphabetwheel and play the "start" sound
 		for player in ivalues(Players) do
 			local pn = ToEnumShortString(player)
-			if SL[pn].HighScores.EnteringName then
+			if VOLT26[pn].HighScores.EnteringName then
 				-- hide this player's cursor
 				self:GetChild("PlayerNameAndDecorations_"..pn):GetChild("Cursor"):queuecommand("Hide")
 				-- hide this player's AlphabetWheel
@@ -80,12 +80,12 @@ local t = Def.ActorFrame {
 	FinishCommand=function(self)
 		-- store the highscore name for this game
 		for player in ivalues(Players) do
-			GAMESTATE:StoreRankingName(player, SL[ToEnumShortString(player)].HighScores.Name)
+			GAMESTATE:StoreRankingName(player, VOLT26[ToEnumShortString(player)].HighScores.Name)
 
 			-- if a profile is in use
 			if PROFILEMAN:IsPersistentProfile(player) then
 				-- update that profile's LastUsedHighScoreName attribute
-				PROFILEMAN:GetProfile(player):SetLastUsedHighScoreName( SL[ToEnumShortString(player)].HighScores.Name )
+				PROFILEMAN:GetProfile(player):SetLastUsedHighScoreName( VOLT26[ToEnumShortString(player)].HighScores.Name )
 			end
 		end
 
@@ -195,7 +195,7 @@ for player in ivalues(Players) do
 	--		a metatable defining a generic item in the wheel
 	--		x position
 	--		y position
-	if SL[pn].HighScores.EnteringName then
+	if VOLT26[pn].HighScores.EnteringName then
 		t[#t+1] = AlphabetWheels[pn]:create_actors( "AlphabetWheel_"..pn, 7, alphabet_character_mt, _screen.cx + x_offset, _screen.cy+38)
 	end
 end

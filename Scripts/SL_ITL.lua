@@ -4,7 +4,7 @@ IsItlSong = function(player)
 	local song_dir = song:GetSongDir()
 	local group = string.lower(song:GetGroupName())
 	local pn = ToEnumShortString(player)
-	return string.find(group, "itl online 2026") or string.find(group, "itl 2026") or SL[pn].ITLData["pathMap"][song_dir] ~= nil
+	return string.find(group, "itl online 2026") or string.find(group, "itl 2026") or VOLT26[pn].ITLData["pathMap"][song_dir] ~= nil
 end
 
 
@@ -62,9 +62,9 @@ end
 WriteItlFile = function(player)
 	local pn = ToEnumShortString(player)
 	-- No data to write, return early.
-	if (not TableContainsData(SL[pn].ITLData["pathMap"]) and
-			not TableContainsData(SL[pn].ITLData["hashMap"]) and
-			not TableContainsData(SL[pn].ITLData["unlockFolders"])) then
+	if (not TableContainsData(VOLT26[pn].ITLData["pathMap"]) and
+			not TableContainsData(VOLT26[pn].ITLData["hashMap"]) and
+			not TableContainsData(VOLT26[pn].ITLData["unlockFolders"])) then
 		return
 	end
 
@@ -81,7 +81,7 @@ WriteItlFile = function(player)
 	local f = RageFileUtil:CreateRageFile()
 
 	if f:Open(path, 2) then
-		f:Write(JsonEncode(SL[pn].ITLData))
+		f:Write(JsonEncode(VOLT26[pn].ITLData))
 		f:Close()
 	end
 	f:destroy()
@@ -117,12 +117,12 @@ ReadItlFile = function(player)
 		itlData = JsonDecode(existing)
 	end
 
-	SL[pn].ITLData = itlData
+	VOLT26[pn].ITLData = itlData
 end
 
 UpdateItlUnlocks = function(player, downloadFolders)
 	local pn = ToEnumShortString(player)
-	local unlockFolders = SL[pn].ITLData["unlockFolders"]
+	local unlockFolders = VOLT26[pn].ITLData["unlockFolders"]
 	for folder in ivalues(downloadFolders) do
 		unlockFolders[folder] = true
 	end
@@ -295,8 +295,8 @@ UpdateItlData = function(player)
 
 	-- We also require all the windows to be enabled.
 	-- ITG mode is the only mode that has all the windows enabled by default.
-	local allWindowsEnabled = SL.Global.GameMode == "ITG"
-	for enabled in ivalues(SL[pn].ActiveModifiers.TimingWindows) do
+	local allWindowsEnabled = VOLT26.Global.GameMode == "ITG"
+	for enabled in ivalues(VOLT26[pn].ActiveModifiers.TimingWindows) do
 		allWindowsEnabled = allWindowsEnabled and enabled
 	end
 
@@ -306,8 +306,8 @@ UpdateItlData = function(player)
 				minesEnabled and
 				not stats:GetFailed() and
 				allWindowsEnabled) then
-		local hash = SL[pn].Streams.Hash
-		local hashMap = SL[pn].ITLData["hashMap"]
+		local hash = VOLT26[pn].Streams.Hash
+		local hashMap = VOLT26[pn].ITLData["hashMap"]
 
 		local prevData = nil
 		if hashMap ~= nil and hashMap[hash] ~= nil then
@@ -324,7 +324,7 @@ UpdateItlData = function(player)
 		local song = GAMESTATE:GetCurrentSong()
 		local song_dir = song:GetSongDir()
 		if song_dir ~= nil and #song_dir ~= 0 then
-			local pathMap = SL[pn].ITLData["pathMap"]
+			local pathMap = VOLT26[pn].ITLData["pathMap"]
 			pathMap[song_dir] = hash
 		end
 		

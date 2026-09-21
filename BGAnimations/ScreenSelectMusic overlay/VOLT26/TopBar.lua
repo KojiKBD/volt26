@@ -42,7 +42,7 @@ local af = Def.ActorFrame{
 		self:GetChild("Brand"):settext("SELECT")
 		if showPaidTimer then
 			H.SetDisplay(self:GetChild("Clock"),
-				math.max(0, math.ceil(tonumber(SL.Global.MenuTimer.ScreenSelectMusic) or 0)), clockSize)
+				math.max(0, math.ceil(tonumber(VOLT26.Global.MenuTimer.ScreenSelectMusic) or 0)), clockSize)
 		end
 		-- The right-hand readout is driven from an update function rather than a
 		-- sleep chain: this actor also receives queued Refresh commands, and a

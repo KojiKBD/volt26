@@ -1,4 +1,4 @@
-if not IsServiceAllowed(SL.GrooveStats.AutoSubmit) or GAMESTATE:IsCourseMode() then return end
+if not IsServiceAllowed(VOLT26.GrooveStats.AutoSubmit) or GAMESTATE:IsCourseMode() then return end
 
 local NumEntries = math.min(10, PREFSMAN:GetPreference("MaxHighScoresPerListForMachine"))
 
@@ -185,9 +185,9 @@ local AutoSubmitRequestProcessor = function(res, overlay)
 			if data and data[playerStr] then
 				-- And then also ensure that the chart hash matches the currently parsed one.
 				-- It's better to just not display anything than display the wrong scores.
-				if SL["P"..side].Streams.Hash == data[playerStr]["chartHash"] then
+				if VOLT26["P"..side].Streams.Hash == data[playerStr]["chartHash"] then
 					local personalRank = nil
-					local showExScore = SL["P"..side].ActiveModifiers.ShowExScore and data[playerStr]["exLeaderboard"]
+					local showExScore = VOLT26["P"..side].ActiveModifiers.ShowExScore and data[playerStr]["exLeaderboard"]
 
 					local leaderboardData = nil
 					if showExScore then
@@ -212,7 +212,7 @@ local AutoSubmitRequestProcessor = function(res, overlay)
 							-- TODO(teejusb): Determine how we want to easily display EX scores.
 							-- For now just highlight blue because it's simple.
 							if showExScore then
-								entry:GetChild("Score"):diffuse(SL.JudgmentColors["ITG"][1])
+								entry:GetChild("Score"):diffuse(VOLT26.JudgmentColors["ITG"][1])
 							else
 								entry:GetChild("Score"):diffuse(Color.White)
 							end
@@ -375,7 +375,7 @@ local af = Def.ActorFrame {
 			}
 			local body = {}
 
-			local rate = tonumber(string.format("%.0f", SL.Global.ActiveModifiers.MusicRate * 100))
+			local rate = tonumber(string.format("%.0f", VOLT26.Global.ActiveModifiers.MusicRate * 100))
 			for i=1,2 do
 				local player = "PlayerNumber_P"..i
 				local pn = ToEnumShortString(player)
@@ -385,7 +385,7 @@ local af = Def.ActorFrame {
 					local stats = STATSMAN:GetCurStageStats():GetPlayerStageStats(player)
 					local submitForPlayer = false
 
-					if valid and not stats:GetFailed() and SL[pn].IsPadPlayer then
+					if valid and not stats:GetFailed() and VOLT26[pn].IsPadPlayer then
 						local percentDP = stats:GetPercentDancePoints()
 						local score = tonumber(("%.0f"):format(percentDP * 10000))
 
@@ -394,9 +394,9 @@ local af = Def.ActorFrame {
 							profileName = PROFILEMAN:GetProfile(player):GetDisplayName()
 						end
 
-						if SL[pn].ApiKey ~= "" and SL[pn].Streams.Hash ~= "" then
-							query["chartHashP"..i] = SL[pn].Streams.Hash
-							headers["x-api-key-player-"..i] = SL[pn].ApiKey
+						if VOLT26[pn].ApiKey ~= "" and VOLT26[pn].Streams.Hash ~= "" then
+							query["chartHashP"..i] = VOLT26[pn].Streams.Hash
+							headers["x-api-key-player-"..i] = VOLT26[pn].ApiKey
 
 							body["player"..i] = {
 								rate=rate,

@@ -5,12 +5,12 @@ function GetHexColor( n, decorative )
 	-- if we were passed nil or a non-number, return white
 	if n == nil or type(n) ~= "number" then return Color.White end
 
-	local colorTable = SL.Colors
+	local colorTable = VOLT26.Colors
 	if decorative then
-		colorTable = SL.DecorativeColors
+		colorTable = VOLT26.DecorativeColors
 	end
-	if SL.VOLT26 and SL.VOLT26.Colors then
-		colorTable = SL.VOLT26.Colors
+	if VOLT26.VOLT26 and VOLT26.VOLT26.Colors then
+		colorTable = VOLT26.VOLT26.Colors
 	end
 
 	-- use the number passed in to lookup a color in the corresponding color table
@@ -28,7 +28,7 @@ end
 -- runtime colour choice any more: everything shared uses the brand accent
 -- (Phantom Red) and Player 2 is differentiated with Phantom White.
 local function AccentIndex( pn )
-	local brand = SL.VOLT26
+	local brand = VOLT26.VOLT26
 	if not brand then return 1 end
 	if pn ~= nil and brand.PlayerAccentColorIndex then
 		local index = brand.PlayerAccentColorIndex[pn]

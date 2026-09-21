@@ -2,8 +2,8 @@ local player = ...
 local pn = ToEnumShortString(player)
 
 if (not VOLT26.Options.GetPlayerModifiers(player).DisplayScorebox or
-		not IsServiceAllowed(SL.GrooveStats.GetScores) or
-		SL[pn].ApiKey == "") then
+		not IsServiceAllowed(VOLT26.GrooveStats.GetScores) or
+		VOLT26[pn].ApiKey == "") then
 	return
 end
 
@@ -109,7 +109,7 @@ local LeaderboardRequestProcessor = function(res, master)
 		SetScoreData(2, 1, "", "No Scores", "", false, false, false, false)
 
 		local numEntries = 0
-		if SL["P"..n].ActiveModifiers.ShowExScore then
+		if VOLT26["P"..n].ActiveModifiers.ShowExScore then
 			-- If the player is using EX scoring, then we want to display the EX leaderboard first.
 			if data[playerStr]["exLeaderboard"] then
 				numEntries = 0
@@ -290,9 +290,9 @@ local af = Def.ActorFrame{
 				maxLeaderboardResults=NumEntries,
 			}
 
-			if SL[pn].ApiKey ~= "" and SL[pn].Streams.Hash ~= "" then
-				query["chartHashP"..n] = SL[pn].Streams.Hash
-				headers["x-api-key-player-"..n] = SL[pn].ApiKey
+			if VOLT26[pn].ApiKey ~= "" and VOLT26[pn].Streams.Hash ~= "" then
+				query["chartHashP"..n] = VOLT26[pn].Streams.Hash
+				headers["x-api-key-player-"..n] = VOLT26[pn].ApiKey
 				sendRequest = true
 			end
 
@@ -460,7 +460,7 @@ for i=1,NumEntries do
 			if score.isFail then
 				clr = Color.Red
 			elseif score.isEx then
-				clr = SL.JudgmentColors["ITG"][1]
+				clr = VOLT26.JudgmentColors["ITG"][1]
 			elseif score.isSelf then
 				clr = self_color
 			elseif score.isRival then

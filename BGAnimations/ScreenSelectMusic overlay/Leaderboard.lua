@@ -196,7 +196,7 @@ local LeaderboardRequestProcessor = function(res, master)
 		local playerData = type(data[playerStr]) == "table" and data[playerStr] or nil
 		if playerData then
 			master[pn].isRanked = playerData["isRanked"]
-			if SL["P"..i].ActiveModifiers.ShowExScore then
+			if VOLT26["P"..i].ActiveModifiers.ShowExScore then
 				-- If the player is using EX scoring, then we want to display the EX leaderboard first.
 				if playerData["exLeaderboard"] then
 					leaderboardList[#leaderboardList + 1] = {
@@ -325,7 +325,7 @@ local af = Def.ActorFrame{
 	RequestResponseActor(17, 50)..{
 		SendLeaderboardRequestCommand=function(self)
 			local master = self:GetParent()
-			local serviceAllowed = IsServiceAllowed(SL.GrooveStats.Leaderboard)
+			local serviceAllowed = IsServiceAllowed(VOLT26.GrooveStats.Leaderboard)
 			local sendRequest = false
 			local headers = {}
 			local query = {
@@ -336,7 +336,7 @@ local af = Def.ActorFrame{
 			for i=1,2 do
 				local pn = "P"..i
 				local chartHash = ""
-				if serviceAllowed and SL[pn].ApiKey ~= "" and GAMESTATE:IsPlayerEnabled(pn) then
+				if serviceAllowed and VOLT26[pn].ApiKey ~= "" and GAMESTATE:IsPlayerEnabled(pn) then
 					local steps = GAMESTATE:GetCurrentSteps(pn)
 					local ok, hash = pcall(VOLT26.ChartHash.Compute, steps, pn)
 					if ok and type(hash) == "string" then
@@ -346,9 +346,9 @@ local af = Def.ActorFrame{
 					end
 				end
 
-				if serviceAllowed and SL[pn].ApiKey ~= "" and chartHash ~= "" then
+				if serviceAllowed and VOLT26[pn].ApiKey ~= "" and chartHash ~= "" then
 					query["chartHashP"..i] = chartHash
-					headers["x-api-key-player-"..i] = SL[pn].ApiKey
+					headers["x-api-key-player-"..i] = VOLT26[pn].ApiKey
 					sendRequest = true
 				else
 					local leaderboardList = master[pn]["Leaderboards"]
@@ -362,7 +362,7 @@ local af = Def.ActorFrame{
 				end
 			end
 			if not serviceAllowed then
-				if SL.GrooveStats.IsConnected then
+				if VOLT26.GrooveStats.IsConnected then
 					-- If we disable the service from a previous request, surface it to the user here.
 					for i=1, 2 do
 						local pn = "P"..i

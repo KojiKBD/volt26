@@ -10,9 +10,9 @@ local worstWindow = GetTimingWindow(math.max(2, VOLT26.Analysis.GetWorstJudgment
 local colors = {}
 for window=NumJudgmentsAvailable(),1,-1 do
 	if modifiers.TimingWindows[window] then
-		colors[window] = DeepCopy(SL.JudgmentColors[SL.Global.GameMode][window])
+		colors[window] = DeepCopy(VOLT26.JudgmentColors[VOLT26.Global.GameMode][window])
 	else
-		colors[window] = DeepCopy(colors[window + 1] or SL.JudgmentColors[SL.Global.GameMode][window + 1])
+		colors[window] = DeepCopy(colors[window + 1] or VOLT26.JudgmentColors[VOLT26.Global.GameMode][window + 1])
 	end
 end
 
@@ -56,7 +56,7 @@ for _, points in ipairs(pointBatches) do
 			if modifiers.ShowFaPlusWindow and modifiers.ShowFaPlusPane
 				and absoluteOffset > GetTimingWindow(1, "FA+")
 				and absoluteOffset <= GetTimingWindow(2, "FA+") then
-				tint = SL.JudgmentColors["FA+"][2]
+				tint = VOLT26.JudgmentColors["FA+"][2]
 			end
 			local vertexColor = {tint[1], tint[2], tint[3], 0.666}
 			vertices[#vertices + 1] = {{point.x, point.y, 0}, vertexColor}

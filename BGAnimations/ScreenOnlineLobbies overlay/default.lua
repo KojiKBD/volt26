@@ -74,7 +74,7 @@ local password_character_mt = {
 	}
 }
 
-SL.Global.Online = SL.Global.Online or {}
+VOLT26.Global.Online = VOLT26.Global.Online or {}
 
 -- Just for testing
 local sample_lobby = {
@@ -739,7 +739,7 @@ local af = Def.ActorFrame{
 					self:horizalign(left):x(-170):y(-170):zoom(0.5)
 				end,
 				HoverCommand=function(self)
-					self:diffuse(active_index == self:GetParent().idx and GetHexColor(SL.Global.ActiveColorIndex) or Color.White)
+					self:diffuse(active_index == self:GetParent().idx and GetHexColor(VOLT26.Global.ActiveColorIndex) or Color.White)
 				end
 			},
 
@@ -800,7 +800,7 @@ local af = Def.ActorFrame{
 					self:zoom(0.5)
 				end,
 				HoverCommand=function(self)
-					self:diffuse(active_index == self:GetParent().idx and GetHexColor(SL.Global.ActiveColorIndex) or Color.White)
+					self:diffuse(active_index == self:GetParent().idx and GetHexColor(VOLT26.Global.ActiveColorIndex) or Color.White)
 				end
 			},
 			Def.Quad{
@@ -857,7 +857,7 @@ local af = Def.ActorFrame{
 					self:zoom(0.5)
 				end,
 				HoverCommand=function(self)
-					self:diffuse(active_index == self:GetParent().idx and GetHexColor(SL.Global.ActiveColorIndex) or Color.White)
+					self:diffuse(active_index == self:GetParent().idx and GetHexColor(VOLT26.Global.ActiveColorIndex) or Color.White)
 				end
 			},
 			Def.Quad{
@@ -914,7 +914,7 @@ local af = Def.ActorFrame{
 					self:zoom(0.5)
 				end,
 				HoverCommand=function(self)
-					self:diffuse(active_index == self:GetParent().idx and GetHexColor(SL.Global.ActiveColorIndex) or Color.White)
+					self:diffuse(active_index == self:GetParent().idx and GetHexColor(VOLT26.Global.ActiveColorIndex) or Color.White)
 				end
 			},
 			Def.Quad{
@@ -1072,7 +1072,7 @@ local af = Def.ActorFrame{
 					self:zoom(0.5)
 				end,
 				HoverCommand=function(self)
-					self:diffuse(joined_active_index == self:GetParent().idx and GetHexColor(SL.Global.ActiveColorIndex) or Color.White)
+					self:diffuse(joined_active_index == self:GetParent().idx and GetHexColor(VOLT26.Global.ActiveColorIndex) or Color.White)
 				end
 			}
 		},
@@ -1101,7 +1101,7 @@ local af = Def.ActorFrame{
 					self:zoom(0.5)
 				end,
 				HoverCommand=function(self)
-					self:diffuse(joined_active_index == self:GetParent().idx and GetHexColor(SL.Global.ActiveColorIndex) or Color.White)
+					self:diffuse(joined_active_index == self:GetParent().idx and GetHexColor(VOLT26.Global.ActiveColorIndex) or Color.White)
 				end
 			}
 		},
@@ -1130,7 +1130,7 @@ local af = Def.ActorFrame{
 					self:zoom(0.5)
 				end,
 				HoverCommand=function(self)
-					self:diffuse(joined_active_index == self:GetParent().idx and GetHexColor(SL.Global.ActiveColorIndex) or Color.White)
+					self:diffuse(joined_active_index == self:GetParent().idx and GetHexColor(VOLT26.Global.ActiveColorIndex) or Color.White)
 				end
 			}
 		},
@@ -1187,7 +1187,7 @@ local af = Def.ActorFrame{
 					self:zoom(0.5)
 				end,
 				HoverCommand=function(self)
-					self:diffuse(leave_confirm_index == 0 and GetHexColor(SL.Global.ActiveColorIndex) or Color.White)
+					self:diffuse(leave_confirm_index == 0 and GetHexColor(VOLT26.Global.ActiveColorIndex) or Color.White)
 				end
 			}
 		},
@@ -1216,7 +1216,7 @@ local af = Def.ActorFrame{
 					self:zoom(0.5)
 				end,
 				HoverCommand=function(self)
-					self:diffuse(leave_confirm_index == 1 and GetHexColor(SL.Global.ActiveColorIndex) or Color.White)
+					self:diffuse(leave_confirm_index == 1 and GetHexColor(VOLT26.Global.ActiveColorIndex) or Color.White)
 				end
 			}
 		}
@@ -1257,7 +1257,7 @@ local af = Def.ActorFrame{
 			Texture=THEME:GetPathG("", "LoadingSpinner 10x3.png"),
 			Frames=Sprite.LinearFrames(30,1),
 			InitCommand=function(self)
-				self:x(-118):zoom(0.14):diffuse(GetHexColor(SL.Global.ActiveColorIndex, true)):visible(false)
+				self:x(-118):zoom(0.14):diffuse(GetHexColor(VOLT26.Global.ActiveColorIndex, true)):visible(false)
 			end,
 		},
 		LoadFont("Common Normal")..{

@@ -23,9 +23,9 @@ local Update = function(self, dt)
 	end
 
 	if menuTimerEnabled then
-		SL.Global.MenuTimer.ScreenSelectMusic = topscreen:GetChild("Timer"):GetSeconds()
+		VOLT26.Global.MenuTimer.ScreenSelectMusic = topscreen:GetChild("Timer"):GetSeconds()
 	end
-	SL.Global.MusicWheelLocked = topscreen:GetMusicWheel():IsLocked()
+	VOLT26.Global.MusicWheelLocked = topscreen:GetMusicWheel():IsLocked()
 end
 
 return Def.ActorFrame{

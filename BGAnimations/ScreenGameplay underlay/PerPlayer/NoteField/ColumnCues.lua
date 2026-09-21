@@ -1,7 +1,7 @@
 local player = ...
 local pn = ToEnumShortString(player)
 
-local mods = SL[pn].ActiveModifiers
+local mods = VOLT26[pn].ActiveModifiers
 if not mods.ColumnCues then return end
 
 local columnMapping = GetColumnMapping(player)
@@ -58,7 +58,7 @@ local Update = function(self, delta)
 			-- Get the current music rate.
 			-- Note that Lua files might change the rate mode so this might not be accurate.
 			-- It's hard to handle that case since we don't exactly know when a file will apply a rate mod.
-			local rate = SL.Global.ActiveModifiers.MusicRate
+			local rate = VOLT26.Global.ActiveModifiers.MusicRate
 			local scaledDuration = duration / rate
 			-- Make sure there's still something to display after any potential scaling.
 			if scaledDuration > 2 * fadeTime then
