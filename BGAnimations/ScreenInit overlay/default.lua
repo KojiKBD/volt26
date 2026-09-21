@@ -2,9 +2,6 @@
 -- descending-city vow and no longer replays the old red/logo handoff frame.
 local af = Def.ActorFrame{
 	InitCommand=function(self) self:Center() end,
-	OffCommand=function(self)
-		_G.Volt26InitHandoff = true
-	end
 }
 
 -- Keep startup compatibility checks active before the title sequence.

@@ -530,7 +530,6 @@ return Def.ActorFrame{
                 and event.GameButton == "Back" then
                     restartingIntro = true
                     _G.Volt26CityIntroPlayed = nil
-                    _G.Volt26InitHandoff = false
                     RedirectIntroInput(false)
                     Trace("[VOLT26 3D] Back requested; restarting opening vow")
                     screen:SetPrevScreenName("ScreenTitleMenu"):begin_backing_out()

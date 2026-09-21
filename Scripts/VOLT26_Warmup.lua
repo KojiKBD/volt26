@@ -8,6 +8,10 @@ local groups = {
 	Core = {
 		"VOLT26/SharedBackground.png",
 		"VOLT26/logo_main (doubleres).png",
+		"VOLT26/daysuntil.png",
+	},
+	-- Appended to Core only when the classic Performance-mode title is used.
+	ClassicTitle = {
 		"VOLT26/trainoverlay.png",
 		"VOLT26/black_bars.png",
 		"VOLT26/Stars/star_00000.png",
@@ -16,7 +20,6 @@ local groups = {
 		"VOLT26/options_text.png",
 		"VOLT26/exit_text.png",
 		"VOLT26/Knife.png",
-		"VOLT26/daysuntil.png",
 	},
 	Selection = {
 		"VOLT26/SharedBackground.png",
@@ -37,9 +40,18 @@ local groups = {
 local warmed = {}
 local warmedPaths = {}
 
+local function GroupEntries(group)
+	local entries = {}
+	for _, relativePath in ipairs(groups[group] or {}) do entries[#entries+1] = relativePath end
+	if group == "Core" and VOLT26.TitleMenu.UsesClassicLayout() then
+		for _, relativePath in ipairs(groups.ClassicTitle) do entries[#entries+1] = relativePath end
+	end
+	return entries
+end
+
 local function Resolve(group)
 	local paths = {}
-	for _, relativePath in ipairs(groups[group] or {}) do
+	for _, relativePath in ipairs(GroupEntries(group)) do
 		local path = THEME:GetPathG("", relativePath)
 		if not warmedPaths[path] then paths[#paths+1] = path end
 	end

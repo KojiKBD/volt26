@@ -2,9 +2,9 @@
 -- Reset game-cycle state through the VOLT26 CORE API.
 VOLT26.Core.ResetSession()
 
--- Temporary visual prototype; set false to restore the original title underlay.
-local USE_3D_PROTOTYPE = true
-if USE_3D_PROTOTYPE then
+-- Enhanced mode: the 3D city owns the title presentation.  Performance mode
+-- falls through to the classic layout below, which is far cheaper to draw.
+if not VOLT26.TitleMenu.UsesClassicLayout() then
     local prototype = LoadActor(THEME:GetPathB("ScreenTitleMenu", "underlay/Prototype3D.lua"))
     local media = LoadActor(THEME:GetPathB("ScreenTitleMenu", "underlay/Media.lua"))
     -- Prepare the profile/color/style flow and Song Select while the player is
@@ -48,66 +48,16 @@ end
 -- VOLT26 LAYER 1.5: AFTER EFFECTS STAR BURST
 -- ==========================================
 do
-    local performance = VOLT26.Performance.IsEnabled()
-    local startNum = 0
-    local endNum = 29
-    local fDelay = 1 / 20 
-    local currentFrame = startNum
-
-    -- FIX 1: Use string.format so it actually finds "star_00000.png"
-    local function framePath(n)
-        return THEME:GetPathG("", string.format("VOLT26/Stars/star_%05d.png", n))
-    end
-
-    -- Loading a new Full HD PNG on every animation tick stalls the screen's
-    -- input processing. Keep the same artwork and timing, but warm every
-    -- texture before the loop begins so frame changes are cache lookups.
-    if performance then
-        -- Keep one correctly indexed transparent frame in low-end mode.
-        -- This preserves the static star burst without decoding/swapping
-        -- thirty Full HD textures during the title screen.
-        af[#af+1] = Def.Sprite{
-            Name="VOLT26_StaticStars",
-            Texture=framePath(startNum),
-            InitCommand=function(self)
-                self:zoomto(_screen.w, _screen.h)
-                self:z(1)
-            end,
-        }
-    else
-        local framePaths = {}
-        for frame = startNum, endNum do
-            framePaths[frame] = framePath(frame)
-            if PREFETCHMAN then PREFETCHMAN:Add(framePaths[frame]) end
-        end
-
-        local starAnim = Def.Sprite{
-            Texture=framePaths[startNum],
-            InitCommand=function(self)
-                self:zoomto(_screen.w, _screen.h)
-                self:z(1)
-            end,
-        }
-
-        starAnim.OnCommand=function(self)
-            self:sleep(fDelay):queuecommand("Animate")
-        end
-        
-        starAnim.AnimateCommand=function(self)
-            currentFrame = currentFrame + 1
-            
-            -- If we hit the end, wrap back to 0
-            if currentFrame > endNum then
-                currentFrame = startNum
-            end
-            
-            -- Load the next image and queue the next frame
-            self:Load(framePaths[currentFrame])
-            self:sleep(fDelay):queuecommand("Animate")
-        end
-
-        af[#af+1] = starAnim
-    end
+    -- The classic layout only runs in Performance mode, so it keeps a single
+    -- transparent star frame instead of animating thirty Full HD textures.
+    af[#af+1] = Def.Sprite{
+        Name="VOLT26_StaticStars",
+        Texture=THEME:GetPathG("", "VOLT26/Stars/star_00000.png"),
+        InitCommand=function(self)
+            self:zoomto(_screen.w, _screen.h)
+            self:z(1)
+        end,
+    }
 end
 
 -- ==========================================
@@ -576,11 +526,9 @@ do
             end)
 
             -- ScreenInit is a separate screen and never contributes to this
-            -- timer. When its visual handoff is present, wait for that final
-            -- dissolve before considering the title menu idle.
+            -- timer.
             if VOLT26.TitleMenu.ShouldUseAFK() then
-                local arrival_delay = _G.Volt26InitHandoff == true and 0.90 or 0
-                self:sleep(arrival_delay):queuecommand("ArmAFKTimer")
+                self:queuecommand("ArmAFKTimer")
             end
         end,
         ArmAFKTimerCommand=function(self)

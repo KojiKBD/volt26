@@ -24,10 +24,12 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ### Removed
 
+- The unused ScreenInit-to-title red handoff (`_volt26 init handoff.lua`, `_G.Volt26InitHandoff`), the empty `UserContentText.lua`, and star frames `star_00001`–`star_00029` (only the animated Enhanced classic title used them).
 - `ScreenSelectColor` and the per-session colour choice it drove. The screen is gone from the screen graph (`metrics.ini`), from navigation (`Navigation.AllowScreenSelectColor` / `AfterScreenSelectColor` are folded into `Navigation.AfterSelectProfile`), and from the Theme Options menu, along with the `AllowScreenSelectColor`, `VOLT26Color` and legacy `SimplyLoveColor` preferences and their strings in every shipped language. `VOLT26/SelectColor.png` is no longer warmed up.
 
 ### Changed
 
+- Performance mode uses the classic title (train, sliding menu images, knife confirm) as the lightweight option for less powerful cabinets; Enhanced mode keeps the 3D city and its opening vow. The choice follows `VOLT26.TitleMenu.UsesClassicLayout()`. The classic title shows only its four actionable entries, uses a single static star frame, and the start-up warm-up loads its textures only when it will be shown.
 - The title opening now follows the measured 18.093-second duration of `intro.ogg`. Its three centered VOLT vow paragraphs accumulate with the spoken passage, fade out together, and then give way to the closing logo fade-in/fade-out during the camera landing. A 92%-opaque black layer dims the moving scene; Optima Nova renders the copy in white with restrained red keyword accents. The former clouds, red star/logo handoff, title-system labels, and discarded 3D Gameplay hover overlay no longer cover the presentation. Title input and the AFK timer retain their existing lifecycle.
 - The four 3D title banners render live concentric red stars behind their captions instead of playing AVI movies.
 - Profile and play-mode selection fit 16:10 screens: widths follow the screen, title tabs no longer overlap, the active tab's word is legible, and the key hints no longer collide with a second "Event Mode" footer or the credit names.

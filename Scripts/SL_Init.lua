@@ -3146,6 +3146,12 @@ function VOLT26.TitleMenu.GetAFKTimeoutSeconds()
 	return VOLT26.TitleMenu.AFKTimeoutSeconds
 end
 
+-- Performance mode keeps the lightweight classic title for low-powered
+-- cabinets; Enhanced mode uses the 3D city title and its opening cinematic.
+function VOLT26.TitleMenu.UsesClassicLayout()
+	return VOLT26.Performance.IsEnabled()
+end
+
 function VOLT26.TitleMenu.ShouldUseAFK()
 	return GAMESTATE:GetCoinMode() ~= "CoinMode_Pay"
 end

@@ -1,5 +1,7 @@
 local introDuration = VOLT26.TitleMenu.GetIntroDurationSeconds()
-local enabled = not _G.Volt26CityIntroPlayed
+-- The opening vow belongs to the 3D city; the classic Performance-mode title
+-- has no cinematic.
+local enabled = not VOLT26.TitleMenu.UsesClassicLayout() and not _G.Volt26CityIntroPlayed
 local red = color("#ED1C24")
 local introFadeOutDuration = 0.36
 local logoAt = 12.60
@@ -8,10 +10,6 @@ local logoFadeOutDuration = 0.78
 local logoHoldDuration = introDuration - introFadeOutDuration - logoAt
 	- logoFadeInDuration - logoFadeOutDuration
 local paragraphFadeOutDuration = 0.25
-
--- ScreenInit's old red/logo handoff is intentionally retired. The title screen's
--- own opening now provides the complete transition into the city.
-_G.Volt26InitHandoff = nil
 
 local paragraphs = {
 	{
