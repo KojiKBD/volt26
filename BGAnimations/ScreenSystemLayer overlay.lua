@@ -50,10 +50,6 @@ local function CreditsText( player )
 					--        today, but there's always hope
 					--        I'll see tomorrow
 
-					-- dark text for RainbowMode
-					if ThemePrefs.Get("RainbowMode") then
-						textColor = Color.Black
-					end
 				end
 			end
 
@@ -293,9 +289,6 @@ end
 local function DiffuseText(bmt)
 	local textColor = Color.White
 	local shadowLength = 0
-	if ThemePrefs.Get("RainbowMode") and not HolidayCheer() then
-		textColor = Color.Black
-	end
 
 	bmt:diffuse(textColor):shadowlength(shadowLength)
 end

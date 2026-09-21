@@ -46,7 +46,6 @@ local af = Def.ActorFrame {
 	Def.DeviceList {
 		Font=THEME:GetPathF("","Common Normal"),
 		InitCommand=function(self)
-			if ThemePrefs.Get("RainbowMode") then self:diffuse(0,0,0,1) end
 			self:xy(_screen.cx,_screen.h-60):zoom(0.8)
 		end
 	}
@@ -70,7 +69,6 @@ if VOLT26.InputDiagnostics.SupportsPadVisuals(game) then
 	af[#af+1] = Def.BitmapText{
 		Font="Common Normal",
 		InitCommand=function(self)
-			if ThemePrefs.Get("RainbowMode") then self:diffuse(0,0,0,1) end
 			self:xy(_screen.cx, _screen.cy+32):vertalign(top):vertspacing(-3)
 			unmapped_list = self
 		end,
@@ -89,7 +87,6 @@ else
 	af[#af+1] = Def.InputList{
 		Font="Common Normal",
 		InitCommand=function(self)
-			if ThemePrefs.Get("RainbowMode") then self:diffuse(0,0,0,1) end
 			self:xy(_screen.cx-250, 50):horizalign(left):vertalign(top):vertspacing(0)
 		end
 	}

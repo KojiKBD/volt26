@@ -34,17 +34,6 @@ VOLT26_Prefs.Get = function()
 			Choices = { THEME:GetString("ThemePrefs", "Show"), THEME:GetString("ThemePrefs", "Hide") },
 			Values  = { false, true }
 		},
-		MusicWheelStyle =
-		{
-			Default = "ITG",
-			Choices = { "ITG", "IIDX" }
-		},
-		HideInactiveSeries =
-		{
-			Default = false,
-			Choices = { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
-			Values  = { true, false }
-		},
 		AllowDanceSolo =
 		{
 			Default = false,
@@ -76,14 +65,6 @@ VOLT26_Prefs.Get = function()
 			},
 			Values = { "none", "auto", "single", "versus", "double" }
 		},
-		AllowThemeVideos = {
-			Default = true,
-			Choices = {
-				THEME:GetString("ThemePrefs", "Yes"),
-				THEME:GetString("ThemePrefs", "No")
-			},
-			Values = { true, false }
-		},
 		PerformanceMode = {
 			Default = true,
 			Choices = {
@@ -96,14 +77,6 @@ VOLT26_Prefs.Get = function()
 			Default = false,
 			Choices = { true, false },
 			Values = { true, false }
-		},
-		RainbowMode = {
-			Default = false,
-			Choices = {
-				THEME:GetString("ThemePrefs", "On"),
-				THEME:GetString("ThemePrefs", "Off")
-			},
-			Values = { true , false }
 		},
 		WriteCustomScores = {
 			Default = false,
@@ -131,12 +104,6 @@ VOLT26_Prefs.Get = function()
 			Default = true,
 			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
 			Values	= { true, false }
-		},
-		AnimateBanners =
-		{
-			Default = true,
-			Choices = { THEME:GetString("ThemePrefs", "On"), THEME:GetString("ThemePrefs", "Off") },
-			Values  = { true, false }
 		},
 		-- - - - - - - - - - - - - - - - - - - -
 		-- Save the last seen song in Edit Mode to disk so that ScreenEditMenu
@@ -211,12 +178,6 @@ VOLT26_Prefs.Get = function()
 			Choices = { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
 			Values  = { true, false }
 		},
-		AllowScreenSelectPlayMode =
-		{
-			Default = true,
-			Choices = { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
-			Values  = { true, false }
-		},
 		AllowScreenSelectPlayMode2 =
 		{
 			Default = true,
@@ -241,19 +202,6 @@ VOLT26_Prefs.Get = function()
 			Choices = { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
 			Values  = { true, false }
 		},
-		-- - - - - - - - - - - - - - - - - - - -
-		-- nice meme
-		-- 0 is off, 1 is visuals only, 2 is visuals and sound.
-		nice = {
-			Default = 0,
-			Choices = { THEME:GetString("ThemePrefs","Off"), THEME:GetString("ThemePrefs","On"), THEME:GetString("ThemePrefs","OnWithSound") },
-			Values  = { 0, 1, 2 }
-		},
-		-- - - - - - - - - - - - - - - - - - - -
-		LastActiveEvent =
-		{
-			Default = "",
-		},
 		EnableTournamentMode = {
 			Default = false,
 			Choices =  { THEME:GetString("ThemePrefs","Yes"), THEME:GetString("ThemePrefs", "No") },
@@ -265,10 +213,6 @@ VOLT26_Prefs.Get = function()
 			Choices  = { "EX", "ITG" }
 		},
 
-		StepStats = {
-			Default = "Show",
-			Choices =  { "Show", "Hide" },
-		},
 
 		EnforceNoCmod = {
 			Default = true,

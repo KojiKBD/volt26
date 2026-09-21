@@ -444,9 +444,6 @@ local af = Def.ActorFrame {
 
 local textColor = Color.White
 local shadowLength = 0
-if ThemePrefs.Get("RainbowMode") then
-	textColor = Color.Black
-end
 
 af[#af+1] = LoadFont("Common Normal").. {
 	Name="P1SubmitText",

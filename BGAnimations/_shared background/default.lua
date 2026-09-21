@@ -7,7 +7,7 @@ local af = Def.ActorFrame{}
 
 -- a simple Quad to serve as the backdrop
 af[#af+1] = Def.Quad{
-	InitCommand=function(self) self:FullScreen():Center():diffuse( ThemePrefs.Get("RainbowMode") and Color.White or Color.Black ) end,
+	InitCommand=function(self) self:FullScreen():Center():diffuse( Color.Black ) end,
 }
 
 af[#af+1] = Def.Sprite{
@@ -16,6 +16,5 @@ af[#af+1] = Def.Sprite{
 		self:Center():scaletoclipped(_screen.w, _screen.h)
 	end,
 }
-af[#af+1] = LoadActor("./RainbowMode.lua", THEME:GetPathG("", "VOLT26/SharedBackground.png"))
 
 return af

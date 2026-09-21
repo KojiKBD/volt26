@@ -12,9 +12,6 @@ return Def.ActorFrame{
 
 			local textColor = Color.White
 			local shadowLength = 0
-			if ThemePrefs.Get("RainbowMode") and not HolidayCheer() then
-				textColor = Color.Black
-			end
 			self:diffuse(textColor)
 			self:shadowlength(shadowLength)
 
