@@ -21,7 +21,7 @@ The project is Lua/INI/theme assets, not a conventional compiled application. IT
 
 ## Architecture at a glance
 
-`metrics.ini` declares the screen flow. Screen-specific Lua under `BGAnimations/` builds actors and presentation. `Scripts/SL_Init.lua` owns the public `VOLT26.*` CORE APIs; `Scripts/06 VOLT26-Utilities.lua` provides utilities before that file loads. `Scripts/99 SL-ThemePrefs.lua` owns persistent theme preferences.
+`metrics.ini` declares the screen flow. Screen-specific Lua under `BGAnimations/` builds actors and presentation. `Scripts/SL_Init.lua` creates the `VOLT26` namespace and state, and each public `VOLT26.*` CORE domain lives in its own `Scripts/VOLT26_<Domain>.lua`; `Scripts/06 VOLT26-Utilities.lua` provides utilities before that file loads. `Scripts/99 SL-ThemePrefs.lua` owns persistent theme preferences.
 
 New behavior should use a narrow `VOLT26.*` API and must not load actors, read coordinates, or select graphics. Presentation code can consume that API and owns actors, layout, animation, assets, and visual input handling. Legacy `SL*` identifiers still exist as migration adapters only; do not expand their use.
 
@@ -30,7 +30,7 @@ Important paths:
 | Area | Primary locations |
 | --- | --- |
 | Boot and screen routing | `metrics.ini`, `BGAnimations/ScreenInit overlay/default.lua`, `Scripts/VOLT26_Navigation.lua` |
-| Core state and services | `Scripts/SL_Init.lua` |
+| Core state and services | `Scripts/SL_Init.lua`, `Scripts/VOLT26_<Domain>.lua` |
 | Preferences and options | `Scripts/99 SL-ThemePrefs.lua`, `Scripts/VOLT26_OperatorOptions.lua`, `metrics.ini` |
 | Title and music selection | `BGAnimations/ScreenTitleMenu underlay/`, `BGAnimations/ScreenSelectMusic overlay/` |
 | Gameplay and evaluation | `BGAnimations/ScreenGameplay*/`, `BGAnimations/ScreenEvaluation*/` |
@@ -53,6 +53,22 @@ The legacy visual-style removal and low-end presentation work previously tracked
 The stale `codex/remove-legacy-visual-styles` branch still exists locally and on `origin` after the merge; it can be deleted once confirmed fully superseded. Other topic branches from prior activities also remain in the repository — check `git branch -a` before assuming which slice is current.
 
 As of the CHANGELOG's `0.1.0-rc.4` entry, static Lua and metrics reference checks were completed for this work, but interactive verification on the target low-end arcade computer was recorded as pending. No later note in this repository confirms that arcade-hardware test occurred — treat `PerformanceMode` as **not** engine-verified on target hardware until the owner confirms otherwise.
+
+## 2026-09-22 cleanup stack
+
+A chain of focused branches sits on top of `codex/song-select-centered-wheel` (`53292459`), each based on the previous one; the owner will test the tip as a whole before accepting any of them:
+
+1. `codex/fix-live-bugs` — regressions found by the cleanup audit.
+2. `codex/performance-classic-title` — Performance mode uses the classic title; Enhanced keeps the 3D city.
+3. `codex/enable-online-features` — QR login, event downloads, online lobbies, and local ITL active again.
+4. `codex/remove-casual-mode` — last Casual branches.
+5. `codex/remove-inherited-song-select` — unused Simply Love Song Select modules.
+6. `codex/remove-orphan-assets` — about 48 MB of unreferenced assets.
+7. `codex/prune-prefs-and-strings` — hidden/unused preferences and dead strings.
+8. `codex/split-core-domains` and `codex/migrate-sl-alias` — per-domain CORE files and direct `VOLT26.*` reads.
+9. `codex/cleanup-docs` — this documentation pass.
+
+Only static checks have been run (Lua syntax, path/string/metric-row references, a split integrity check). Nothing has been launched in ITGmania yet. The Song Select footer legend (arrows for song vs difficulty) still needs an in-engine check.
 
 ## Safest next steps
 

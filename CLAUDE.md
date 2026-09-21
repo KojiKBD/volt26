@@ -27,7 +27,7 @@ Start with:
 
 - `metrics.ini`: screen graph and initial screen (`ScreenVOLT26Warmup`).
 - `Scripts/06 VOLT26-Utilities.lua`: early bootstrap utilities.
-- `Scripts/SL_Init.lua`: public VOLT26 CORE domains and compatibility bridge.
+- `Scripts/SL_Init.lua`: VOLT26 namespace, default state, and the `SL` compatibility alias; each CORE domain lives in `Scripts/VOLT26_<Domain>.lua`.
 - `Scripts/99 SL-ThemePrefs.lua`: persistent theme preferences, including `PerformanceMode`.
 - `BGAnimations/`: per-screen implementation.
 - `ThemeInfo.ini`: theme metadata.

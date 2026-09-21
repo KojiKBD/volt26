@@ -164,7 +164,8 @@ Keep this map current whenever directories are added, removed, or given a materi
 
 ## Scripts File Index
 
-- `SL_Init.lua`: shared initialization entry point.
+- `SL_Init.lua`: shared initialization entry point: the `VOLT26` namespace, default player/global state, compatibility checks, theme-preference access, title and menu-timer policy, and session reset.
+- `VOLT26_<Domain>.lua`: one file per CORE domain (Charts, Performance, GrooveStats, Profile, MusicSelection, Gameplay, Session, Scoring, Results, Evaluation, InputDiagnostics, Tournament, Options), loaded after `SL_Init.lua`.
 - `99 SL-ThemePrefs.lua`: theme preference definitions and persistence.
 - `SL-Colors.lua`, `SL-Layout.lua`: shared colors and layout constants/helpers.
 - `SL-Helpers.lua`, `SL-Helpers-GrooveStats.lua`, `06 VOLT26-Utilities.lua`: general and integration-specific utilities.
