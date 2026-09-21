@@ -25,6 +25,7 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ### Removed
 
+- About 48 MB of assets nothing loads any more: the `City_bg` frame sequences (four menu entries, 360 frames), the four 3D title banner movies replaced by the live star banners, the retired title clouds, the unused calendar day/time-of-day artwork, duplicate train overlays, `Star_straight.png`, `Select_B.png`, the old `SongSelection/1backdrop.png`, and the leftover `ScreenSelectColor` actors and music redirect.
 - The Simply Love Song Select pieces that the VOLT26 layout replaced and no longer loads: `PaneDisplay`, `PerPlayer/` (except the `arrow.png` still used by the evaluation graph), `StepsDisplayList/`, `SongDescription/`, `banner.lua`, `MusicWheelAnimation.lua`, the unused Sort Menu `WheelItemMT`/`Panel`/`Row`/`Chrome` modules, the hidden Simply Love shells inside the `MusicWheelItem * NormalPart` actors, and the leftover `ScreenSelectMusicCasual` redirect.
 - The last Casual Mode compatibility branches. VOLT26 always plays ITG mode, so 34 unreachable Casual checks across gameplay, evaluation, layout, and options, the Casual judgment/preference/metric tables, `VOLT26.Gameplay.IsCasual()`, the Casual help text, and the Casual play-mode description are gone.
 - The unused ScreenInit-to-title red handoff (`_volt26 init handoff.lua`, `_G.Volt26InitHandoff`), the empty `UserContentText.lua`, and star frames `star_00001`–`star_00029` (only the animated Enhanced classic title used them).
