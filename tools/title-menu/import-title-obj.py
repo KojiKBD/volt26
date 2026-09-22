@@ -13,7 +13,7 @@ args = parser.parse_args()
 source = args.obj.resolve()
 if not args.asset_name.isidentifier():
     raise ValueError('Asset name must be a single identifier')
-out = Path(__file__).resolve().parents[1] / 'Graphics/VOLT26' / args.asset_name
+out = Path(__file__).resolve().parents[2] / 'Graphics/VOLT26' / args.asset_name
 out.mkdir(parents=True, exist_ok=True)
 vertices, normals, faces, objects = [], [], [], {}
 material, name, mtl = None, 'default', None

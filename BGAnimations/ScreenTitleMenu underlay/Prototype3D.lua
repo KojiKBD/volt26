@@ -1,5 +1,5 @@
 -- Full-screen city. Native ScreenTitleMenu owns selection and action routes.
-local modelUnits = 35 -- baked into the meshes by tools/import-title-obj.py
+local modelUnits = 35 -- baked into the meshes by tools/title-menu/import-title-obj.py
 local modelParts = 4  -- must match `model_parts` in import-info.json
 local fov = 65
 local duration = 1.1
@@ -129,7 +129,7 @@ local countdownSurface = {
 
 -- These are genuine world-space sprites rather than a screen overlay.  At every
 -- earlier stop the portrait is foreshortened into the distant road; only the final
--- overhead pose makes it legible.  Both PNGs have transparent backgrounds, so the
+-- overhead pose makes it legible.  The PNG has a transparent background, so the
 -- asphalt backing hides the crosswalk underneath them.  This small group is drawn
 -- without depth testing after the city: that makes the road decal deterministic
 -- instead of depending on the four model chunks' depth precision.
@@ -140,7 +140,6 @@ local thanksSurface = {
 
 local function CreateThanksRoadElement()
     local seriousWidth, seriousHeight = 1578, 2169
-    local memeWidth, memeHeight = 1578, 2607
 
     return Def.ActorFrame{
         Name="VOLT26_ThanksRoadElement",
@@ -152,7 +151,7 @@ local function CreateThanksRoadElement()
         Def.Quad{
             Name="ThanksRoadBacking",
             InitCommand=function(self)
-                local height = thanksSurface.width * memeHeight / memeWidth + 0.3
+                local height = thanksSurface.width * seriousHeight / seriousWidth + 0.3
                 self:zoomto((thanksSurface.width + 0.3) * modelUnits, height * modelUnits)
                     :diffuse(color("#484A4D")):ztest(false):zwrite(false)
             end,
@@ -164,21 +163,6 @@ local function CreateThanksRoadElement()
                 local height = thanksSurface.width * seriousHeight / seriousWidth
                 self:zoomto(thanksSurface.width * modelUnits, height * modelUnits)
                     :ztest(false):zwrite(false)
-            end,
-            VOLT26_ThanksTextureMessageCommand=function(self, params)
-                self:visible(not params.showMeme)
-            end,
-        },
-        Def.Sprite{
-            Name="ThanksMeme",
-            Texture=THEME:GetPathG("", "VOLT26/Thanks_Meme.png"),
-            InitCommand=function(self)
-                local height = thanksSurface.width * memeHeight / memeWidth
-                self:zoomto(thanksSurface.width * modelUnits, height * modelUnits)
-                    :visible(false):ztest(false):zwrite(false)
-            end,
-            VOLT26_ThanksTextureMessageCommand=function(self, params)
-                self:visible(params.showMeme)
             end,
         },
     }
@@ -368,15 +352,10 @@ local bankDirection = 1
 local clock = 0
 local diving = false
 local restartingIntro = false
-local thanksMemeVisible = false
 
-local function InteractWithNavigationOnlyItem()
-    if diving then return end
-    if selected == 4 then
+local function InteractWithCountdown()
+    if selected == 4 and not diving then
         MESSAGEMAN:Broadcast("VOLT26_CountdownNextPhrase")
-    elseif selected == 5 then
-        thanksMemeVisible = not thanksMemeVisible
-        MESSAGEMAN:Broadcast("VOLT26_ThanksTexture", {showMeme=thanksMemeVisible})
     end
 end
 
@@ -519,8 +498,8 @@ return Def.ActorFrame{
         activeDuration, arrivalDelay = duration, 0
         introActive = false
     end,
-    MenuStartP1MessageCommand=InteractWithNavigationOnlyItem,
-    MenuStartP2MessageCommand=InteractWithNavigationOnlyItem,
+    MenuStartP1MessageCommand=InteractWithCountdown,
+    MenuStartP2MessageCommand=InteractWithCountdown,
     OnCommand=function(self)
         _G.Volt26CityIntroPlayed = true
         local screen = SCREENMAN:GetTopScreen()

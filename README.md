@@ -57,6 +57,8 @@ VOLT26 is designed specifically for a 16:9 display and this is the recommended a
 - [Standalone migration plan](docs/standalone-theme-migration-plan.md)
 - [Standalone architecture](docs/standalone-architecture.md)
 - [Simply Love functional inventory](docs/simply-love-functional-inventory.md)
+- [3D title menu handoff](docs/title-menu/3d-menu-handoff.md)
+- [3D title menu prototype history](docs/title-menu/prototype-history.md)
 
 ## Upstream and attribution
 

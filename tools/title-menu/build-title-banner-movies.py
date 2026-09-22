@@ -7,7 +7,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--ffmpeg", default="ffmpeg")
 parser.add_argument("--include-play", action="store_true")
 args = parser.parse_args()
-root = Path(__file__).resolve().parents[1] / "Graphics/VOLT26"
+root = Path(__file__).resolve().parents[2] / "Graphics/VOLT26"
 sequences = [("edit", "edit", "edit"), ("opt", "opt", "options"),
              ("exit", "exit", "exit")]
 if args.include_play:

@@ -70,7 +70,7 @@ at (713, 361), the mean placement across the four movies (each within about 12 p
 The star is upright and centered; the movies' exact star center was not recovered.
 
 Verification: static review only; not yet loaded in ITGmania. The AVI files and
-`tools/build-title-banner-movies.py` are no longer referenced by the theme.
+`tools/title-menu/build-title-banner-movies.py` are no longer referenced by the theme.
 
 ## Animated Edit, Options and Exit banners (2026-09-12)
 
@@ -86,7 +86,7 @@ Camera behavior and native menu routes are unchanged.
 The owner's `City_bg/edit`, `City_bg/opt`, and `City_bg/exit` JPG sequences are
 encoded to `TitleTravelCity/banner_edit.avi`, `banner_options.avi`, and
 `banner_exit.avi`: MPEG-4 Part 2 / DX50, yuv420p, 1408x512, 90 frames at 30 fps.
-Rebuild with `python tools/build-title-banner-movies.py --ffmpeg <ffmpeg-path>`;
+Rebuild with `python tools/title-menu/build-title-banner-movies.py --ffmpeg <ffmpeg-path>`;
 `--include-play` also rebuilds Play. Source images and source models are preserved.
 
 Verification: Lua 5.1 syntax passed. ITGmania loaded all four movie textures and
@@ -98,7 +98,7 @@ reversing its X rotation.
 Manual navigation, action activation, and sustained performance remain for owner
 review. No merge into main has been performed.
 
-Current handoff and final tuning values are in the repository-root `3d_menu.md`.
+Current handoff and final tuning values are in `docs/title-menu/3d-menu-handoff.md`.
 The latest iteration uses wider oblique views and a once-per-runtime opening
 flight. The notes below retain the history of earlier prototypes and camera values.
 
@@ -133,7 +133,7 @@ Full route and rapid-input review remains with the owner.
 
 The active asset is now `Graphics/VOLT26/TitleTravelCity/`, imported from the
 user-provided `persona_city_travel_menu.obj` and sibling MTL. Both source files
-are preserved by name. Reproduce with `tools/import-title-obj.py <obj-path>
+are preserved by name. Reproduce with `tools/title-menu/import-title-obj.py <obj-path>
 --asset-name TitleTravelCity`.
 
 This export contains 88 objects and 72,552 triangles, spanning a long street.
@@ -163,7 +163,7 @@ below document earlier iterations and may no longer exist.
 
 The active scene now uses the user-provided `test.obj` and sibling `test.mtl`.
 Original files are copied unchanged into `Graphics/VOLT26/TitleCity/`; the user's
-source files are not modified. `tools/import-title-obj.py` converts the OBJ to
+source files are not modified. `tools/title-menu/import-title-obj.py` converts the OBJ to
 `city.txt`, triangulating polygons with ear clipping, and converts the five MTL
 diffuse colors from linear values to an sRGB palette (`palette.png`, 64x8).
 This converter targets untextured, opaque, Y-up Blender OBJ geometry. It does not

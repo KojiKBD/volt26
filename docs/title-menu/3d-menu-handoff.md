@@ -50,7 +50,7 @@ expanding concentric-shape, and caption layers (`Graphics/VOLT26/<caption>_text.
 placed where the movies showed it) that `Prototype3D.lua` draws directly on each
 banner surface, one 0.02 m lift apart. Banner bounds, speed, colors, captions, and
 camera are unchanged. No render targets are used. The geometric variants are not
-yet verified in ITGmania. The AVI files and `tools/build-title-banner-movies.py`
+yet verified in ITGmania. The AVI files and `tools/title-menu/build-title-banner-movies.py`
 are no longer referenced.
 
 ## All four animated banners (2026-09-12, Codex follow-up)
@@ -58,11 +58,11 @@ are no longer referenced.
 On `codex/title-3d-remaining-banners`, the Play movie-sprite approach now also
 covers Edit (`Banner_continue`), Options (`Banner_options`), and Exit
 (`Banner_extras`). The three new AVI files are built from the owner's 90-frame
-JPG sequences with `tools/build-title-banner-movies.py`. Camera tuning is unchanged.
+JPG sequences with `tools/title-menu/build-title-banner-movies.py`. Camera tuning is unchanged.
 All three new surfaces were visually checked in ITGmania at 1920x1080; Options
 uses rotationx(-90) to read upright from above. Engine logs confirm repeated
 three-second loops for all four movies, with no Lua errors. Manual navigation
-and action activation remain for owner review. See `docs/title-3d-prototype.md`
+and action activation remain for owner review. See `docs/title-menu/prototype-history.md`
 for conversion details. The older sections below describe previous iterations.
 
 ## Rebuilt model, generic camera (2026-09-12, latest)
@@ -161,7 +161,7 @@ is hand-repainted from white (231,231,231) to the P5_INK value (13,13,18). The q
 sits a couple of centimeters behind the sprite, so at an angle its edge shows past
 the sprite no matter how the sprite is sized, and white read as a bright sliver
 against the black frame. `usemtl gameplay` appears exactly once in the OBJ, on
-`Banner_play`, so nothing else is affected. Re-running `tools/import-title-obj.py`
+`Banner_play`, so nothing else is affected. Re-running `tools/title-menu/import-title-obj.py`
 regenerates the palette from the MTL and restores the white: repaint the sixth 8x8
 block (x 40 to 47, materials are sorted so `gameplay` lands last) or change `Kd`
 for that material first.
@@ -204,12 +204,12 @@ and must be preserved.
   names Continue/Extras are visual anchor names, not new menu routes.
 - `Graphics/VOLT26/TitleTravelCity/`: active converted scene and preserved original
   `persona_city_travel_menu.obj` / `.mtl`.
-- `tools/import-title-obj.py`: importer, triangulation, palette and model splitting.
-  Rebuild with Python + Pillow: `tools/import-title-obj.py <source.obj>
+- `tools/title-menu/import-title-obj.py`: importer, triangulation, palette and model splitting.
+  Rebuild with Python + Pillow: `tools/title-menu/import-title-obj.py <source.obj>
   --asset-name TitleTravelCity`.
 - Previous city assets (`TitleCity`), the unused `Prototype3D-1.lua` copy, and
   `tools/generate-title-room.py` were removed with owner approval on 2026-09-13.
-- `docs/title-3d-prototype.md`: chronological technical notes; older values there
+- `docs/title-menu/prototype-history.md`: chronological technical notes; older values there
   describe earlier iterations. This file and the active Lua describe current work.
 
 ## Model facts and limitations
@@ -243,12 +243,12 @@ countdown. `Serious_Thanks.png` is mounted as a world-space plane on the final
 stretch of road at Blender Y=82.5 m, 0.08 m above the surface. It is deliberately
 too distant and foreshortened to read from the earlier menu stops. Selecting the
 entry moves the camera to a 21 m overhead pose that frames the portrait artwork.
-Each press of Start while parked there toggles between `Serious_Thanks.png` and
-`Thanks_Meme.png`; it does not leave `ScreenTitleMenu` or trigger a banner dive.
-The transparent PNGs render over an asphalt-coloured backing plane. This three-layer
-road decal is drawn after the city without depth testing, preventing the crosswalk
+`Serious_Thanks.png` remains static and the entry has no Start interaction; it does
+not leave `ScreenTitleMenu` or trigger a banner dive. The transparent PNG renders
+over an asphalt-coloured backing plane. This two-layer road decal is drawn after
+the city without depth testing, preventing the crosswalk
 from cutting through the text. Its 7.4 m width and earlier road position also keep
-the taller meme artwork in front of the terminal building.
+the artwork in front of the terminal building.
 
 ## Coordinates and projection
 

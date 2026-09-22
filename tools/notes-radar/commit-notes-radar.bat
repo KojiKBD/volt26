@@ -1,6 +1,6 @@
 @echo off
 setlocal
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 
 echo ==========================================================
 echo   VOLT26 - commit the notes radar work on its own branch

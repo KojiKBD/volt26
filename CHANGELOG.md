@@ -7,7 +7,7 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 ### Added
 
 - Two red road arrows (`Graphics/VOLT26/arrow3d.png`) flank the Options banner on the 3D title street: the far one points up, the near one down. Both lie flat on the road as world-space sprites, like painted markings.
-- The 3D title menu has a hidden sixth `Special Thanks` stop at the end of the road. Its serious credits artwork becomes readable only from the selected overhead camera pose; pressing Start there toggles between the serious and meme artwork without leaving the title screen.
+- The 3D title menu has a hidden sixth `Special Thanks` stop at the end of the road. Its static `Serious_Thanks.png` artwork becomes readable only from the selected overhead camera pose; the entry has no Start interaction and does not leave the title screen.
 - The 3D title menu plays the new 18.093-second `Sounds/intro.ogg` exclusively during the opening vow, then starts `menuost.ogg` only after the camera has landed in the interactive menu. The closing beat fades the VOLT26 logo in and back out. The `afk.mp4` idle presentation remains available outside paid play; the train audio remains excluded, the idle timer begins after the opening cinematic, and the dismissal input cannot also activate a menu action.
 
 ### Removed

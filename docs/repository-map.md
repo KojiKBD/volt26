@@ -29,7 +29,7 @@ Keep this map current whenever directories are added, removed, or given a materi
 | Change results/evaluation | `BGAnimations/ScreenEvaluation common/` | `ScreenEvaluationStage...`, `ScreenEvaluationSummary overlay/`, `Graphics/VOLT26/Eval/` |
 | Change player or operator options | `BGAnimations/ScreenPlayerOptions...` or `ScreenOptionsService...` | `Scripts/SL-PlayerOptions.lua`, `Scripts/VOLT26_OperatorOptions.lua`, `metrics.ini` |
 | Change profiles or name entry | `BGAnimations/ScreenSelectProfile...` or `ScreenNameEntryTraditional...` | `Scripts/SL-PlayerProfiles.lua` |
-| Change title/menu presentation | `BGAnimations/ScreenTitleMenu...` | `Graphics/_logos/`, `Graphics/VOLT26/TransMenu*/` |
+| Change title/menu presentation | `BGAnimations/ScreenTitleMenu...` | `Graphics/_logos/`, `Graphics/VOLT26/TransMenu*/`, and `docs/title-menu/` |
 | Change translations | `Languages/<locale>.ini` | `Languages/en.ini` as the reference key set |
 | Change fonts | `Fonts/` | Font `.ini` definitions, redirects, and source/licence notes |
 | Change images or actor graphics | `Graphics/` | The Lua actor sharing the same StepMania element name |
@@ -42,7 +42,7 @@ Keep this map current whenever directories are added, removed, or given a materi
 - `.agents/`: authoritative instruction modules incorporated by `AGENTS.md`.
 - `BGAnimations/`: screen actors, transitions, overlays, underlays, backgrounds, input handlers, and reusable actor modules. This is the main UI and screen-behavior tree.
 - `dist/`: generated release/package output; do not treat it as source.
-- `docs/`: developer-facing architecture, migration, integration, handoff, and repository-map documentation.
+- `docs/`: developer-facing architecture, migration, integration, handoff, and repository-map documentation. Feature-specific notes are grouped in subdirectories such as `docs/title-menu/`.
 - `Fonts/`: bitmap/font definitions, redirects, bundled font families, character maps, and licence information.
 - `Graphics/`: theme graphics and Lua-based graphical actors, including judgments, grades, cursors, wheel items, logos, and VOLT26 assets.
 - `Languages/`: localized theme strings (`en`, `de`, `es`, `fr`, `it`, `ja`, `pl`, `pt-br`, and `ru`).
@@ -50,7 +50,7 @@ Keep this map current whenever directories are added, removed, or given a materi
 - `Other/`: ancillary files that do not participate directly in theme lookup.
 - `Scripts/`: globally loaded Lua runtime, preferences, helpers, navigation, online integrations, chart parsing, scoring, text/UTF-8 support, and VOLT26 utilities.
 - `Sounds/`: screen music, sound effects, redirects, silence targets, and Lua sound selectors.
-- `tools/`: maintainer tooling; currently release packaging.
+- `tools/`: maintainer tooling. General release packaging stays at the root; title-menu asset builders and the notes-radar helper are grouped by responsibility.
 
 ## BGAnimations Directory Index
 
@@ -258,6 +258,7 @@ BGAnimations/
   ScreenVOLT26Warmup overlay/
 dist/
 docs/
+  title-menu/
 Fonts/
   _Combo Fonts/
     Arial Rounded/
@@ -313,4 +314,6 @@ Sounds/
   ScreenEvaluationMusic/
   VOLT26/
 tools/
+  notes-radar/
+  title-menu/
 ```
