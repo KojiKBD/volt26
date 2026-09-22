@@ -118,6 +118,8 @@ local input = function(event)
 				-- if the overlay starts with "Category"
 				elseif focus.new_overlay:match("^Category") then
 					sortmenu:playcommand("ToggleCategory", { Category = focus.new_overlay })
+				elseif focus.new_overlay == "QuickMods" then
+					sortmenu:queuecommand("DirectInputToQuickMods")
 				elseif focus.new_overlay == "TestInput" then
 					sortmenu:queuecommand("DirectInputToTestInput")
 				elseif focus.new_overlay == "Leaderboard" then

@@ -1,7 +1,10 @@
 -- Restores the recycled scrolling preview from ef389ebd, in the current
 -- Song Select design space and palette. Only cached still thumbnails scroll.
 local H = ...
-local width = H.RowsW
+-- The preview takes the right column: while a pack is hovered no song is
+-- selected, so neither column belongs to a player.
+local area = H.PreviewArea()
+local width = area.Width
 local height = H.InnerBottom-H.InnerTop
 local pad = 18
 local headerH = 104
@@ -89,7 +92,7 @@ end
 local af = Def.ActorFrame{
 	Name="GroupPreview",
 	InitCommand=function(self)
-		self:xy(H.RowsX,H.InnerTop):visible(false)
+		self:xy(area.X,area.Y):visible(false)
 		self.songs = {}
 		self:SetUpdateFunction(function(frame,delta)
 			if not frame:GetVisible() then return end
