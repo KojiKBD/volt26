@@ -46,9 +46,8 @@ local banners = {
     {x =  6.615, y = 72.000, z = 21.157, nx = -1, ny =  0, nz = 0, tx = 0, ty = -1, side =  1, roll =  3},
     -- Navigation-only countdown on the central building at the end of the street.
     {x =  0.000, y = 91.875, z = 20.000, nx =  0, ny = -1, nz = 0, tx = 1, ty =  0, side = -1, roll = -3},
-    -- A final navigation-only stop reveals the credits laid flat on the road.  The
-    -- higher, tighter overhead pose is local to this stop so both portrait textures
-    -- fit in frame without changing the established banner camera language.
+    -- A final navigation-only stop reveals the date laid flat on the road. The
+    -- overhead pose is local to this stop and keeps the street artwork in frame.
     {x =  0.000, y = 82.500, z =  0.080, nx =  0, ny =  0, nz = 1, tx = 0, ty =  1,
      side = -1, roll = 3, standOff = 21, streetOffset = 2.5},
 }
@@ -127,41 +126,38 @@ local countdownSurface = {
     width = 7.5, lift = 0.03,
 }
 
--- These are genuine world-space sprites rather than a screen overlay.  At every
--- earlier stop the portrait is foreshortened into the distant road; only the final
--- overhead pose makes it legible.  The PNG has a transparent background, so the
--- asphalt backing hides the crosswalk underneath them.  This small group is drawn
--- without depth testing after the city: that makes the road decal deterministic
--- instead of depending on the four model chunks' depth precision.
-local thanksSurface = {
+-- The date is a world-space road sprite rather than a screen overlay. It stays
+-- foreshortened at earlier stops and becomes legible from the final overhead pose.
+-- Draw it after the city without depth testing to avoid road-mesh precision issues.
+local dateSurface = {
     x = 0.0, y = 0.08, z = -82.5,
     width = 7.4,
 }
 
-local function CreateThanksRoadElement()
-    local seriousWidth, seriousHeight = 1578, 2169
+local function CreateDateRoadElement()
+    local imageWidth, imageHeight = 2212, 289
 
     return Def.ActorFrame{
-        Name="VOLT26_ThanksRoadElement",
+        Name="VOLT26_DateRoadElement",
         InitCommand=function(self)
-            self:xy(thanksSurface.x * modelUnits, -thanksSurface.y * modelUnits)
-                :z(thanksSurface.z * modelUnits)
+            self:xy(dateSurface.x * modelUnits, -dateSurface.y * modelUnits)
+                :z(dateSurface.z * modelUnits)
                 :rotationx(-90)
         end,
         Def.Quad{
-            Name="ThanksRoadBacking",
+            Name="DateRoadBacking",
             InitCommand=function(self)
-                local height = thanksSurface.width * seriousHeight / seriousWidth + 0.3
-                self:zoomto((thanksSurface.width + 0.3) * modelUnits, height * modelUnits)
+                local height = dateSurface.width * imageHeight / imageWidth + 0.3
+                self:zoomto((dateSurface.width + 0.3) * modelUnits, height * modelUnits)
                     :diffuse(color("#484A4D")):ztest(false):zwrite(false)
             end,
         },
         Def.Sprite{
-            Name="SeriousThanks",
-            Texture=THEME:GetPathG("", "VOLT26/Serious_Thanks.png"),
+            Name="EventDate",
+            Texture=THEME:GetPathG("", "VOLT26/date.png"),
             InitCommand=function(self)
-                local height = thanksSurface.width * seriousHeight / seriousWidth
-                self:zoomto(thanksSurface.width * modelUnits, height * modelUnits)
+                local height = dateSurface.width * imageHeight / imageWidth
+                self:zoomto(dateSurface.width * modelUnits, height * modelUnits)
                     :ztest(false):zwrite(false)
             end,
         },
@@ -460,7 +456,7 @@ do
     }
 end
 room[#room+1] = CreateCountdownBillboard()
-room[#room+1] = CreateThanksRoadElement()
+room[#room+1] = CreateDateRoadElement()
 room[#room+1] = CreateRoadArrows()
 local starBannerPath = THEME:GetPathB("ScreenTitleMenu", "underlay/StarBanner.lua")
 for _, banner in ipairs(bannerSurfaces) do
