@@ -30,12 +30,11 @@ local function chartInfo()
 	return ToEnumShortString(steps:GetDifficulty()):upper() .. "  /  " .. tostring(steps:GetMeter())
 end
 
-local function textAt(value, x, y, zoom, width)
-	return LoadFont("Common Normal")..{
+local function textAt(value, x, y, size, width)
+	return LoadFont(VOLT26.Type.Label)..{
 		InitCommand=function(self)
-			self:xy(x * sx, y * sy):horizalign("left")
-				:zoom(zoom * sy):maxwidth(width * sx):diffuse(color("#140505"))
-			self:settext(value)
+			self:xy(x * sx, y * sy):horizalign("left"):diffuse(color("#140505"))
+			VOLT26.Type.SetLabel(self, value:upper(), size * sy, width * sx)
 		end,
 	}
 end
@@ -88,10 +87,10 @@ local songInfo = Def.ActorFrame{
 			cropToSquare(self, 350 * sy)
 		end,
 	},
-	textAt(title, -130, 215, 1.12, 235),
-	textAt(artist, -130, 258, 0.76, 290),
-	textAt(info, -130, 307, 0.7, 295),
-	textAt(bpm ~= "" and (bpm .. " BPM") or "", 105, 225, 0.72, 115),
+	textAt(title, -130, 215, 40, 350),
+	textAt(artist, -130, 270, 25, 225),
+	textAt(info, -130, 320, 22, 295),
+	textAt(bpm ~= "" and (bpm .. " BPM") or "", 115, 270, 22, 125),
 }
 
 return Def.ActorFrame{
