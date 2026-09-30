@@ -1,10 +1,7 @@
-local af = Def.ActorFrame{
-	-- the content
-	LoadActor( THEME:GetPathB("ScreenEvaluation","common") )
+-- Keep evaluation state and input handling active while hiding its temporary UI.
+return Def.ActorFrame{
+	InitCommand=function(self)
+		self:visible(false)
+	end,
+	LoadActor(THEME:GetPathB("ScreenEvaluation", "common")),
 }
-
-if VOLT26.Evaluation.AllPlayersFailed() then
-	af[#af+1] = LoadActor(THEME:GetPathB("ScreenEvaluation", "common/Shared/VOLT26FailureSpinner.lua"))
-end
-
-return af

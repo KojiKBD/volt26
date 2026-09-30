@@ -116,7 +116,7 @@ Keep this map current whenever directories are added, removed, or given a materi
   - `PerPlayer/Upper/`: grade, records, difficulty, step artist, stream breakdown, event progress, and player composition.
   - `PerPlayer/Storage.lua`: per-player evaluation state.
   - `Shared/`: score submission, favorites, screenshots, global storage, diagnostics, events, song features, banner/title, and help text.
-- `ScreenEvaluationStage in/`: STANDARD/VOLT26 evaluation entry variants.
+- `ScreenEvaluationStage in/`: empty entry actor for the temporary visual-only stage screen.
 - `ScreenEvaluationSummary overlay/`: summary rows, player stats, and grades.
 - Adjacent `ScreenEvaluation...` files cover stage, nonstop, background, decorations, and exit.
 - `ScreenGameOver overlay/`: game-over profile avatars and player statistics; adjacent file provides background.
@@ -141,7 +141,8 @@ Keep this map current whenever directories are added, removed, or given a materi
 - `Graphics/MusicWheelItem Song NormalPart/`: normal song wheel item plus favorites/unlock indicators.
 - `Graphics/VOLT26/`: VOLT26-specific visual assets.
   - `Calendar/Days/` and `Calendar/ToD/`: calendar and time-of-day assets.
-  - `Eval/`: evaluation artwork; `defeat_animation_res/`, `tyt_res/`, and `victory_animation_res/` contain animation resources.
+  - `Eval/`: retained evaluation audio, title artwork, and `tyt_res/` resources.
+  - `evaluation/`: 65-frame stage animation and its background image.
   - `Fonts/Helvetica Bold/`: graphics-local font assets.
   - `Song_Select_Animation/`: song-selection animation resources.
   - `SongSelection/`: native/custom music-wheel actor implementations and song-selection assets.
@@ -294,9 +295,8 @@ Graphics/
       Days/
       ToD/
     Eval/
-      defeat_animation_res/
       tyt_res/
-      victory_animation_res/
+    evaluation/
     Fonts/
       Helvetica Bold/
     Song_Select_Animation/
