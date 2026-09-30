@@ -7,12 +7,10 @@ local function framePath(index)
 end
 
 local animation = Def.Sprite{
+	Name="Animation",
 	Texture=framePath(firstFrame),
 	InitCommand=function(self)
 		self:Center():zoomto(SCREEN_WIDTH, SCREEN_HEIGHT)
-	end,
-	OnCommand=function(self)
-		self:sleep(frameDelay):queuecommand("Frame" .. (firstFrame + 1))
 	end,
 }
 
@@ -27,6 +25,13 @@ for index = firstFrame + 1, lastFrame do
 end
 
 return Def.ActorFrame{
+	OnCommand=function(self)
+		self:GetChild("SequenceAudio"):play()
+		self:GetChild("Animation"):sleep(frameDelay):queuecommand("Frame" .. (firstFrame + 1))
+	end,
+	OffCommand=function(self)
+		self:GetChild("SequenceAudio"):stop()
+	end,
 	Def.Sprite{
 		Texture=THEME:GetPathG("", "VOLT26/evaluation/bg_ss.png"),
 		InitCommand=function(self)
@@ -34,4 +39,8 @@ return Def.ActorFrame{
 		end,
 	},
 	animation,
+	Def.Sound{
+		Name="SequenceAudio",
+		File=THEME:GetPathS("", "VOLT26/evaluation/result_sequence.ogg"),
+	},
 }

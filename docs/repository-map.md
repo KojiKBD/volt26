@@ -183,6 +183,7 @@ Keep this map current whenever directories are added, removed, or given a materi
 - `Sounds/_common menu music/`: default common menu-music selector.
 - `Sounds/ScreenEvaluationMusic/`: evaluation-music configuration and instructions.
 - `Sounds/VOLT26/`: VOLT26-specific audio assets.
+  - `evaluation/`: audio excerpt synchronized with the stage result animation.
 - Root `Sounds/` files are StepMania screen/element sound lookups. Most `.redir` files point to shared audio; `.lua` files choose or generate sound behavior.
 
 ## Maintenance Notes
