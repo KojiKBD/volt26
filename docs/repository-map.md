@@ -118,7 +118,8 @@ Keep this map current whenever directories are added, removed, or given a materi
   - `Shared/`: score submission, favorites, screenshots, global storage, diagnostics, events, song features, banner/title, and help text.
 - `ScreenEvaluationStage in/`: empty entry actor for the temporary visual-only stage screen.
 - `ScreenEvaluationSummary overlay/`: summary rows, player stats, and grades.
-- Adjacent `ScreenEvaluation...` files cover stage, nonstop, background, decorations, and exit.
+- `ScreenEvaluationStage background.lua`: plays the stage frame sequence and reveals the song jacket, title, artist, chart difficulty/meter, and BPM on the final frame.
+- Adjacent `ScreenEvaluation...` files cover stage, nonstop, decorations, and exit.
 - `ScreenGameOver overlay/`: game-over profile avatars and player statistics; adjacent file provides background.
 - `ScreenPlayAgain...`: replay/continue screen.
 - `ScreenProfileLoad...` and `ScreenProfileSave...`: profile lifecycle feedback.
