@@ -3,6 +3,10 @@
 
 local t = Def.ActorFrame{}
 
+-- Menu-only glitch bursts. First child, so credits and system messages stay on
+-- top of it. See Scripts/VOLT26_Glitch.lua for where it is allowed to appear.
+t[#t+1] = VOLT26.Glitch.CreateLayer()
+
 -- -----------------------------------------------------------------------
 
 local function CreditsText( player )

@@ -3081,7 +3081,7 @@ local OperatorMenuLines = {
 }
 
 local ThemeOptionLines = {
-	"PerformanceMode", "MusicWheelSpeed", "PreferredStyle", "AllowFailingOutOfSet", "NumberOfContinuesAllowed",
+	"PerformanceMode", "GlitchIntensity", "MusicWheelSpeed", "PreferredStyle", "AllowFailingOutOfSet", "NumberOfContinuesAllowed",
 	"SelectProfile", "SelectPlayMode", "SelectPlayMode2", "EvalSummary",
 	"NameEntry", "GameOver", "HideStockNoteSksins", "DanceSolo", "WriteCustomScores",
 	"KeyboardFeatures", "SampleMusicLoops", "SampleMusicStartsImmediately", "RescoreEarlyHits",

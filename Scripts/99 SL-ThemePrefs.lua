@@ -92,6 +92,15 @@ VOLT26_Prefs.Get = function()
 			},
 			Values = { true, false }
 		},
+		GlitchIntensity = {
+			Default = "Light",
+			Choices = {
+				THEME:GetString("ThemePrefs", "Off"),
+				THEME:GetString("ThemePrefs", "Light"),
+				THEME:GetString("ThemePrefs", "Full")
+			},
+			Values = { "Off", "Light", "Full" }
+		},
 		PerformanceModeConfigured = {
 			Default = false,
 			Choices = { true, false },
