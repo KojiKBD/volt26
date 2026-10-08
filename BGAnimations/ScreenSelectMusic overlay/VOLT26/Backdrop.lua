@@ -90,6 +90,16 @@ return Def.ActorFrame{
 			self:align(0,0):xy(0,0):zoomto(W, H)
 		end,
 	},
+	Def.Sprite{
+		Name="Halftone",
+		Texture=THEME:GetPathG("", "VOLT26/halftone_ss.png"),
+		InitCommand=function(self)
+			-- Authored at 16:9 with its own half alpha.  It sits under the art
+			-- veil like the artwork, so it reads as texture rather than as a
+			-- red wash over the whole screen.
+			self:align(0,0):xy(0,0):zoomto(W, H)
+		end,
+	},
 	Def.Quad{
 		Name="ArtVeil",
 		InitCommand=function(self)

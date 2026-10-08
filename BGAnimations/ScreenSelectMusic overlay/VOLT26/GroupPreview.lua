@@ -5,7 +5,7 @@ local H = ...
 -- selected, so neither column belongs to a player.
 local area = H.PreviewArea()
 local width = area.Width
-local height = H.InnerBottom-H.InnerTop
+local height = area.Height
 local pad = 18
 local headerH = 104
 local footerH = 34

@@ -128,12 +128,20 @@ end
 
 -- Vertical bands.
 H.Pad         = 32
-H.TopBarH     = 62
+-- The old footer no longer draws, so give its former 62-pixel reservation to
+-- the top bar.  Everything below it, including the song header, moves down as
+-- one block and lands against the bottom edge.
+H.TopBarH     = 124
 H.HeaderH     = 132
-H.FooterH     = 62
+H.FooterH     = 0
 H.ContentTop  = H.TopBarH + H.HeaderH
 H.InnerTop    = H.ContentTop + 20
 H.InnerBottom = H.H - H.FooterH - 20
+-- The player columns stop short of the wheel's bottom edge so they sit wholly
+-- inside the angular frames drawn around them (PanelFrames.lua): the frames'
+-- bottom line slopes down across the screen, and at the column's outer corner
+-- it stands this high.
+H.ColumnBottom = H.InnerBottom - 24
 
 -- Content columns.  The songwheel's figures are shared with the wheel row
 -- graphic through VOLT26.MusicSelection, so the rail cannot drift from the rows.
@@ -382,7 +390,7 @@ function H.IsSolo()
 end
 
 function H.Band()
-	return H.InnerTop, H.InnerBottom - H.InnerTop
+	return H.InnerTop, H.ColumnBottom - H.InnerTop
 end
 
 -- P1 reads the left of the wheel and P2 the right, alone as in versus, so a
@@ -545,6 +553,9 @@ local function componentPath(file)
 	return THEME:GetPathB("ScreenSelectMusic", "overlay/VOLT26/"..file)
 end
 
+-- The column frames' top tabs reach up into the song header band, so they draw
+-- before everything else in the overlay and stay behind the header's text.
+af[#af+1] = LoadActor(componentPath("PanelFrames.lua"), {H=H, Part="Tab"})
 af[#af+1] = LoadActor(componentPath("TopBar.lua"), H)
 af[#af+1] = LoadActor(componentPath("SongHeader.lua"), H)
 af[#af+1] = LoadActor(componentPath("Songwheel.lua"), H)
@@ -565,8 +576,9 @@ columnLayer[#columnLayer+1] = LoadActor(componentPath("Leaderboards.lua"), {H=H,
 columnLayer[#columnLayer+1] = LoadActor(componentPath("Leaderboards.lua"), {H=H, Player=PLAYER_2})
 columnLayer[#columnLayer+1] = LoadActor(componentPath("GroupPreview.lua"), H)
 af[#af+1] = columnLayer
-
-af[#af+1] = LoadActor(componentPath("Footer.lua"), H)
+-- The frames themselves go over the columns: their edges overlap the panel
+-- borders, as in the mockup.
+af[#af+1] = LoadActor(componentPath("PanelFrames.lua"), {H=H, Part="Frame"})
 
 -- Use Song Select idle time to prepare the small shared gameplay/evaluation
 -- textures before the player confirms a chart.

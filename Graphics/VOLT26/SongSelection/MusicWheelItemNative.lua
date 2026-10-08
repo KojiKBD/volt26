@@ -240,16 +240,15 @@ local af = Def.ActorFrame{
 		self:GetChild("Dot")
 			:SetNumVertices(18):SetVertices(circleVertices(on and 6 or 4, tint))
 
-		local highlight = self:GetChild("Highlight")
-		local bar = self:GetChild("Bar")
-		highlight:visible(on)
-		bar:visible(on)
+		self:GetChild("Highlight"):visible(on)
 
 		if self.song or self.course then
 			local row = self:GetChild("SongRow")
-			row:GetChild("Artist"):diffuse(on and accent or dim)
+			-- The focused row sits on the red plate, so its text goes to ink;
+			-- accent-on-accent would disappear.
+			row:GetChild("Artist"):diffuse(on and ink or dim)
 			row:GetChild("Title"):diffuse(ink)
-			row:GetChild("Meter"):diffuse(on and accent or mute)
+			row:GetChild("Meter"):diffuse(on and ink or mute)
 
 			local art = row:GetChild("Jacket")
 			local fallback = row:GetChild("JacketFallback")
@@ -296,8 +295,8 @@ local af = Def.ActorFrame{
 			if loaded then centerCrop(art, jacketX, -jacketSize/2, jacketSize, jacketSize) end
 		else
 			local row = self:GetChild("PackRow")
-			row:GetChild("Name"):diffuse(on and accent or ink)
-			row:GetChild("Count"):diffuse(on and accent or dim)
+			row:GetChild("Name"):diffuse(ink)
+			row:GetChild("Count"):diffuse(on and ink or dim)
 		end
 	end,
 	StartMovieArtCommand=function(self)
@@ -322,17 +321,14 @@ af[#af+1] = Def.Quad{
 		self:align(0.5,0.5):zoomto(1, G.Pitch):diffuse(rail)
 	end,
 }
-af[#af+1] = Def.Quad{
+-- The focused row's slanted plate.  The artwork carries its own red-to-clear
+-- gradient, so it is only stretched across the row body; its 69-unit height is
+-- kept so the slant reads as authored, one unit past the wheel pitch.
+af[#af+1] = Def.Sprite{
 	Name="Highlight",
+	Texture=THEME:GetPathG("", "VOLT26/hover_ss.png"),
 	InitCommand=function(self)
-		self:align(0,0.5):x(itemLeft):zoomto(itemWidth, itemHeight)
-			:diffuse(accent):diffusealpha(0.22):diffuserightedge(color("0,0,0,0")):visible(false)
-	end,
-}
-af[#af+1] = Def.Quad{
-	Name="Bar",
-	InitCommand=function(self)
-		self:align(0,0.5):x(itemLeft):zoomto(3, itemHeight):diffuse(accent):visible(false)
+		self:align(0,0.5):x(itemLeft):zoomto(itemWidth, 69):visible(false)
 	end,
 }
 
