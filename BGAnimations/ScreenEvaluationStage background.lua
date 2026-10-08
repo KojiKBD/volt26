@@ -30,10 +30,45 @@ local function chartInfo()
 	return ToEnumShortString(steps:GetDifficulty()):upper() .. "  /  " .. tostring(steps:GetMeter())
 end
 
-local function textAt(value, x, y, size, width)
+-- The card in the last sequence frame is drawn in perspective, so it is not a
+-- plain rotated rectangle.  Its corners are measured on eval_00064.png (1920x1080)
+-- and content is laid out in flat card pixels, then mapped onto that quad: each
+-- actor takes the position and the tilt of the card at its own height.
+local card = {
+	topLeft = {259, 367}, topRight = {692, 281},
+	bottomLeft = {397, 976}, bottomRight = {813, 860},
+	width = 437, height = 608,
+}
+
+local function between(a, b, t)
+	return a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t
+end
+
+local function placeOnCard(actor, x, y)
+	local u, v = x / card.width, y / card.height
+	local leftX, leftY = between(card.topLeft, card.bottomLeft, v)
+	local rightX, rightY = between(card.topRight, card.bottomRight, v)
+	local dx, dy = (rightX - leftX) * sx, (rightY - leftY) * sy
+	actor:xy(leftX * sx + dx * u, leftY * sy + dy * u)
+	actor:rotationz(math.deg(math.atan2(dy, dx)))
+end
+
+-- Flat card layout, in card pixels from its top-left corner.
+local layout = {
+	margin = 37,
+	artSize = 350, artBorder = 6, artCenterY = 218,
+	titleY = 447, titleSize = 40,
+	artistY = 499, artistSize = 25,
+	infoY = 541, infoSize = 22,
+	bpmWidth = 135, columnGap = 16,
+}
+layout.contentWidth = card.width - layout.margin * 2
+
+local function textAt(value, x, y, size, width, align)
 	return LoadFont(VOLT26.Type.Label)..{
 		InitCommand=function(self)
-			self:xy(x * sx, y * sy):horizalign("left"):diffuse(color("#140505"))
+			placeOnCard(self, x, y)
+			self:horizalign(align or "left"):diffuse(color("#140505"))
 			VOLT26.Type.SetLabel(self, value:upper(), size * sy, width * sx)
 		end,
 	}
@@ -68,29 +103,38 @@ local artist = song and song:GetDisplayArtist() or ""
 local info = course and "COURSE" or chartInfo()
 local bpm = song and StringifyDisplayBPMs() or ""
 
+local outerArt = layout.artSize + layout.artBorder * 2
+local rightEdge = card.width - layout.margin
+
 local songInfo = Def.ActorFrame{
-	InitCommand=function(self)
-		self:xy(SCREEN_LEFT + 518 * sx, SCREEN_TOP + 530 * sy):rotationz(-10):visible(false)
-	end,
+	InitCommand=function(self) self:visible(false) end,
 	OnCommand=function(self)
 		self:sleep((lastFrame + 1) * frameDelay):queuecommand("Reveal")
 	end,
-	RevealCommand=function(self) self:visible(true) end,
+	RevealCommand=function(self)
+		self:visible(true)
+		-- The result panels wait for this before they appear and accept input.
+		MESSAGEMAN:Broadcast("VOLT26EvaluationSequenceFinished")
+	end,
 	Def.Quad{
 		InitCommand=function(self)
-			self:zoomto(362 * sx, 362 * sy):diffuse(color("#140505"))
+			placeOnCard(self, card.width / 2, layout.artCenterY)
+			self:zoomto(outerArt * sx, outerArt * sy):diffuse(color("#140505"))
 		end,
 	},
 	Def.Sprite{
 		Texture=artworkPath(song),
 		InitCommand=function(self)
-			cropToSquare(self, 350 * sy)
+			placeOnCard(self, card.width / 2, layout.artCenterY)
+			cropToSquare(self, layout.artSize * sy)
 		end,
 	},
-	textAt(title, -130, 215, 40, 350),
-	textAt(artist, -130, 270, 25, 225),
-	textAt(info, -130, 320, 22, 295),
-	textAt(bpm ~= "" and (bpm .. " BPM") or "", 115, 270, 22, 125),
+	textAt(title, layout.margin, layout.titleY, layout.titleSize, layout.contentWidth),
+	textAt(artist, layout.margin, layout.artistY, layout.artistSize,
+		layout.contentWidth - layout.bpmWidth - layout.columnGap),
+	textAt(bpm ~= "" and (bpm .. " BPM") or "", rightEdge, layout.artistY, layout.infoSize,
+		layout.bpmWidth, "right"),
+	textAt(info, layout.margin, layout.infoY, layout.infoSize, layout.contentWidth),
 }
 
 return Def.ActorFrame{
