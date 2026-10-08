@@ -7,6 +7,33 @@ local t = Def.ActorFrame{}
 -- top of it. See Scripts/VOLT26_Glitch.lua for where it is allowed to appear.
 t[#t+1] = VOLT26.Glitch.CreateLayer()
 
+-- Cutout lettering (Scripts/VOLT26_Cutout.lua) for the credit texts on the
+-- screens listed in VOLT26.Cutout.Screens.  The plain BitmapTexts below still
+-- decide what to say and whether to show it; on those screens they are made
+-- transparent and their text is mirrored into a cutout slot.
+local cutoutSlots = {}
+local function MirrorToCutout(actor, key)
+	local slot = cutoutSlots[key]
+	if not slot then return end
+	local screen = SCREENMAN:GetTopScreen()
+	if screen and VOLT26.Cutout.IsEnabledOn(screen:GetName()) then
+		local text = actor:GetText()
+		slot:visible(actor:GetVisible() and text ~= "")
+		slot:playcommand("CutoutSet", {text = text})
+		actor:diffusealpha(0)
+	else
+		slot:visible(false)
+	end
+end
+
+local function CutoutSlot(key, params)
+	params.onInit = function(slot)
+		cutoutSlots[key] = slot
+		slot:visible(false)
+	end
+	return VOLT26.Cutout.CreateSlot(params)
+end
+
 -- -----------------------------------------------------------------------
 
 local function CreditsText( player )
@@ -25,11 +52,13 @@ local function CreditsText( player )
 			end
 
 			self:settext(str)
+			MirrorToCutout(self, player)
 		end,
 		SetCreditsTextMessageCommand=function(self, params)
 			if params.pn == ToEnumShortString(player) then
 				self:settext(params.username)
 				self:visible(true)
+				MirrorToCutout(self, player)
 			end
 		end,
 		UpdateVisibleCommand=function(self)
@@ -64,6 +93,7 @@ local function CreditsText( player )
 			self:visible( bShow )
 			self:diffuse(textColor)
 			self:shadowlength(shadowLength)
+			MirrorToCutout(self, player)
 		end,
 		VOLT26_TitleIntroCompleteMessageCommand=function(self)
 			self:playcommand("UpdateVisible")
@@ -125,6 +155,22 @@ t[#t+1] = Def.ActorFrame {
 	CreditsText( PLAYER_2 )
 }
 
+-- Cutout counterparts of the credit texts and of the centre footer text.
+t[#t+1] = Def.ActorFrame{
+	CutoutSlot(PLAYER_1, {
+		x = SCREEN_LEFT + WideScale(38, 45), y = _screen.h - 4,
+		maxW = 260, maxH = 44, halign = 0, valign = 1, opts = {base = 22},
+	}),
+	CutoutSlot(PLAYER_2, {
+		x = SCREEN_RIGHT - WideScale(38, 45), y = _screen.h - 4,
+		maxW = 260, maxH = 44, halign = 1, valign = 1, opts = {base = 22},
+	}),
+	CutoutSlot("Footer", {
+		x = _screen.cx, y = _screen.h - 3,
+		maxW = 300, maxH = 50, halign = 0.5, valign = 1, opts = {base = 26},
+	}),
+}
+
 -- "Event Mode" or CreditText at lower-center of screen
 t[#t+1] = LoadFont("Common Footer")..{
 	InitCommand=function(self) self:xy(_screen.cx, _screen.h-16):zoom(0.5):horizalign(center) end,
@@ -181,6 +227,7 @@ t[#t+1] = LoadFont("Common Footer")..{
 		end
 
 		self:diffuse(Color.White)
+		MirrorToCutout(self, "Footer")
 	end
 }
 
