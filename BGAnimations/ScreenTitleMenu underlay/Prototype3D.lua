@@ -348,6 +348,9 @@ local bankDirection = 1
 local clock = 0
 local diving = false
 local restartingIntro = false
+-- Start skips the opening vow: rather than cutting, the camera glides from
+-- wherever it has got to down onto the parked menu pose.
+local skipGlideDuration = 0.55
 
 local function InteractWithCountdown()
     if selected == 4 and not diving then
@@ -496,11 +499,32 @@ return Def.ActorFrame{
     end,
     MenuStartP1MessageCommand=InteractWithCountdown,
     MenuStartP2MessageCommand=InteractWithCountdown,
+    ReleaseIntroInputCommand=function(self)
+        RedirectIntroInput(false)
+    end,
     OnCommand=function(self)
         _G.Volt26CityIntroPlayed = true
         local screen = SCREENMAN:GetTopScreen()
         if screen then
             screen:AddInputCallback(function(event)
+                if event and event.type == "InputEventType_FirstPress"
+                and introActive and event.GameButton == "Start" then
+                    -- Skip the vow. Everything that waits on the opening listens
+                    -- for VOLT26_TitleIntroComplete, so the broadcast is all the
+                    -- rest of the screen needs; the camera finishes the descent
+                    -- on the ordinary transition path.
+                    introActive = false
+                    _G.Volt26TitleIntroActive = false
+                    start, target, elapsed = current, positions[1], 0
+                    activeDuration, arrivalDelay = skipGlideDuration, 0
+                    bankDirection = 0
+                    MESSAGEMAN:Broadcast("VOLT26_TitleIntroComplete")
+                    -- Consume the skip press and release redirected input on the
+                    -- next actor command, once this event has finished.
+                    self:queuecommand("ReleaseIntroInput")
+                    Trace("[VOLT26 3D] Opening vow skipped")
+                    return true
+                end
                 if event and event.type == "InputEventType_FirstPress"
                 and event.GameButton == "Back" then
                     restartingIntro = true
@@ -523,6 +547,20 @@ return Def.ActorFrame{
         local yaw = pitch:GetChild("CameraYaw")
         local place = yaw:GetChild("Room")
         self:SetUpdateFunction(function(frame, dt)
+            -- ScreenSelectMaster::BeginScreen ends with
+            --     m_fLockInputSecs = this->GetTweenTimeLeft();
+            -- so the engine locks input for as long as the longest tween queued
+            -- by any actor on this screen - which, during the opening vow, is the
+            -- vow's own 18-second timeline. That lock is checked by both
+            -- Screen::PassInputToLua and ScreenSelectMaster's menu handlers, so
+            -- it made the cinematic unskippable by construction: no Lua input
+            -- callback could ever see the Start press. BeginScreen sets it after
+            -- the actors' On commands have run, so it can only be cleared from
+            -- here, on the first update. The vow still holds the menu itself
+            -- through RedirectIntroInput; this only restores Lua input.
+            if introActive and screen and screen.lockinput then
+                screen:lockinput(0)
+            end
             if arrivalDelay > 0 then
                 local consumed = math.min(arrivalDelay, dt)
                 arrivalDelay, dt = arrivalDelay-consumed, dt-consumed
