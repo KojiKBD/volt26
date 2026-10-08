@@ -73,11 +73,11 @@ t[#t+1] = LoadActor("./Shared/ScreenshotHandler.lua")
 t[#t+1] = LoadActor("./Shared/FavoriteHandler.lua")
 
 -- the title of the song and its graphical banner, if there is one
-t[#t+1] = LoadActor("./Shared/TitleAndBanner.lua")
+t[#t+1] = LoadActor("./Shared/TitleAndBanner.lua")..{ Name="TitleAndBanner" }
 
 -- text to display BPM range (and ratemod if ~= 1.0) and song length immediately
 -- under the banner
-t[#t+1] = LoadActor("./Shared/SongFeatures.lua")
+t[#t+1] = LoadActor("./Shared/SongFeatures.lua")..{ Name="SongFeatures" }
 
 -- store some attributes of this playthrough of this song in the global SL table
 -- for later retrieval on ScreenEvaluationSummary

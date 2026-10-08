@@ -233,8 +233,11 @@ local slotCount = 0
 --   x, y         optional position
 --   onInit       optional function(slot) called from the slot's InitCommand
 --                (a caller's own InitCommand would replace the slot's)
+--   held         start held: the string is rendered but not shown until
+--                "CutoutHold" releases it, so it can be prepared off-stage
 --
--- Commands: "CutoutSet" with {text=...} draws a string (no-op when unchanged).
+-- Commands: "CutoutSet" with {text=...} draws a string (no-op when unchanged);
+-- "CutoutHold" with {held=true|false} hides or shows the finished lettering.
 function Cutout.CreateSlot(params)
 	params = params or {}
 	slotCount = slotCount + 1
@@ -257,7 +260,7 @@ function Cutout.CreateSlot(params)
 	local texH = math.ceil(maxH * scale) + margin * 2
 
 	local state = {
-		text = nil, layout = nil, passes = nil, pass = 0,
+		text = nil, layout = nil, passes = nil, pass = 0, held = params.held == true,
 		stamps = {}, -- stamps[face][k] = {frame, quad, text}
 	}
 
@@ -317,7 +320,8 @@ function Cutout.CreateSlot(params)
 		state.sprite:visible(false)
 		state.aft:visible(false)
 		state.passes = nil
-		state.plain:visible(true):settext(text or "")
+		state.layout = nil
+		state.plain:visible(not state.held):settext(text or "")
 	end
 
 	local function update(slot)
@@ -328,7 +332,7 @@ function Cutout.CreateSlot(params)
 		if not pass then
 			state.passes = nil
 			state.aft:visible(false)
-			state.sprite:visible(true)
+			state.sprite:visible(not state.held)
 			return
 		end
 		-- The first pass starts from an empty texture; later passes add to it.
@@ -371,6 +375,14 @@ function Cutout.CreateSlot(params)
 			if params.x then self:xy(params.x, params.y or 0) end
 			self:SetUpdateFunction(update)
 			if params.onInit then params.onInit(self) end
+		end,
+		CutoutHoldCommand=function(self, p)
+			state.held = p and p.held == true
+			if state.layout and not state.passes then
+				state.sprite:visible(not state.held)
+			elseif not state.layout and state.text then
+				state.plain:visible(not state.held)
+			end
 		end,
 		CutoutSetCommand=function(self, p)
 			local text = p and p.text or ""

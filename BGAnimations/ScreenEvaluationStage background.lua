@@ -57,7 +57,7 @@ end
 local layout = {
 	margin = 37,
 	artSize = 350, artBorder = 6, artCenterY = 218,
-	titleY = 447, titleSize = 40,
+	titleY = 447, titleSize = 40, titleHeight = 84,
 	artistY = 499, artistSize = 25,
 	infoY = 541, infoSize = 22,
 	bpmWidth = 135, columnGap = 16,
@@ -113,7 +113,7 @@ local songInfo = Def.ActorFrame{
 	end,
 	RevealCommand=function(self)
 		self:visible(true)
-		-- The result panels wait for this before they appear and accept input.
+		-- The inherited results (overlay) and the cutout title wait for this.
 		MESSAGEMAN:Broadcast("VOLT26EvaluationSequenceFinished")
 	end,
 	Def.Quad{
@@ -129,13 +129,38 @@ local songInfo = Def.ActorFrame{
 			cropToSquare(self, layout.artSize * sy)
 		end,
 	},
-	textAt(title, layout.margin, layout.titleY, layout.titleSize, layout.contentWidth),
 	textAt(artist, layout.margin, layout.artistY, layout.artistSize,
 		layout.contentWidth - layout.bpmWidth - layout.columnGap),
 	textAt(bpm ~= "" and (bpm .. " BPM") or "", rightEdge, layout.artistY, layout.infoSize,
 		layout.bpmWidth, "right"),
 	textAt(info, layout.margin, layout.infoY, layout.infoSize, layout.contentWidth),
 }
+
+-- The title is set in cutout lettering when the cutout faces can draw it and it
+-- is short enough to stay legible across the card; otherwise it keeps the label
+-- face.  The cutout slot sits outside songInfo so it can render while the
+-- sequence plays (a hidden actor is not drawn), and is held until the reveal.
+local titleMaxChars = 28
+local titleChars = select(2, title:gsub("[^\128-\191]", ""))
+local titleInCutout = titleChars > 0 and titleChars <= titleMaxChars
+	and VOLT26.Cutout.Layout(title) ~= nil
+
+local titleCutout = Def.ActorFrame{}
+if titleInCutout then
+	titleCutout = VOLT26.Cutout.CreateSlot{
+		maxW = layout.contentWidth * sx, maxH = layout.titleHeight * sy,
+		halign = 0, valign = 0.5, maxChars = titleMaxChars, held = true,
+		opts = { base = layout.titleSize * sy * 1.15, tiltDeg = 0 },
+		onInit = function(slot) placeOnCard(slot, layout.margin, layout.titleY) end,
+	}..{
+		OnCommand=function(self) self:playcommand("CutoutSet", {text = title}) end,
+		VOLT26EvaluationSequenceFinishedMessageCommand=function(self)
+			self:playcommand("CutoutHold", {held = false})
+		end,
+	}
+else
+	songInfo[#songInfo+1] = textAt(title, layout.margin, layout.titleY, layout.titleSize, layout.contentWidth)
+end
 
 return Def.ActorFrame{
 	OnCommand=function(self)
@@ -157,4 +182,5 @@ return Def.ActorFrame{
 		File=THEME:GetPathS("", "VOLT26/evaluation/result_sequence.ogg"),
 	},
 	songInfo,
+	titleCutout,
 }
