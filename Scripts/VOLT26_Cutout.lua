@@ -324,9 +324,19 @@ function Cutout.CreateSlot(params)
 		state.plain:visible(not state.held):settext(text or "")
 	end
 
+	-- A pass only lands in the texture if the slot is actually drawn, and a
+	-- parent's alpha would be baked into the stamps, so passes wait until the
+	-- slot and every ancestor are visible and fully opaque.
+	local function drawnOpaque(actor)
+		while actor do
+			if not actor:GetVisible() or actor:GetDiffuseAlpha() < 1 then return false end
+			actor = actor:GetParent()
+		end
+		return true
+	end
+
 	local function update(slot)
-		-- A hidden slot is not drawn, so a pass would be lost: wait until shown.
-		if not state.passes or not slot:GetVisible() then return end
+		if not state.passes or not drawnOpaque(slot) then return end
 		state.pass = state.pass + 1
 		local pass = state.passes[state.pass]
 		if not pass then
