@@ -331,6 +331,8 @@ function Cutout.CreateSlot(params)
 			state.sprite:visible(true)
 			return
 		end
+		-- The first pass starts from an empty texture; later passes add to it.
+		state.aft:EnablePreserveTexture(state.pass > 1)
 		state.clear:visible(state.pass == 1)
 		place(state.layout, pass.offset)
 		state.aft:visible(true)
@@ -398,7 +400,8 @@ function Cutout.CreateSlot(params)
 				self:setsize(texW, texH)
 				self:SetTextureName(textureName)
 				self:EnableAlphaBuffer(true)
-				-- Each pass adds a stamp; the first pass clears the texture.
+				-- Each pass adds a stamp; the first pass clears the texture
+				-- (see update()).
 				self:EnablePreserveTexture(true)
 				self:Create()
 				self:visible(false)
@@ -406,8 +409,12 @@ function Cutout.CreateSlot(params)
 			Def.Quad{
 				InitCommand=function(self)
 					state.clear = self
+					-- Belt and braces for the first pass: CopySrc overwrites the
+					-- texture with this colour.  The engine skips actors whose
+					-- alpha is exactly 0, so it carries an alpha that still
+					-- rounds to 0 in an 8-bit target.
 					self:halign(0):valign(0):zoomto(texW, texH)
-						:diffuse(0, 0, 0, 0):blend("BlendMode_CopySrc"):visible(false)
+						:diffuse(0, 0, 0, 0.001):blend("BlendMode_CopySrc"):visible(false)
 				end,
 			},
 			Def.ActorFrame{
