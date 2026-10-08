@@ -12,7 +12,7 @@ return Def.ActorFrame{
 
 	Def.Quad{
 		InitCommand=function(self)
-			self:diffuse(color("#1E282F")):zoomto(width, 26)
+			self:diffuse(color(VOLT26.Brand.Surfaces.Panel)):zoomto(width, 26)
 			if #GAMESTATE:GetHumanPlayers()==1 then
 				-- not quite an even 0.25 because we need to accomodate the extra 10px
 				-- that would normally be between the left and right panes

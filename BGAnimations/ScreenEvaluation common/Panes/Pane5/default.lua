@@ -83,7 +83,7 @@ pane[#pane+1] = Def.Quad{
 		self:vertalign(top)
 			:zoomto(pane_width, bottombar_height )
 			:xy(pane_width/2, 0)
-			:diffuse(color("#101519"))
+			:diffuse(color(VOLT26.Brand.Surfaces.Well))
 	end,
 }
 
@@ -159,7 +159,7 @@ pane[#pane+1] = Def.Quad{
 		self:vertalign(top)
 			:zoomto(pane_width, topbar_height )
 			:xy(pane_width/2, -pane_height + topbar_height/2)
-			:diffuse(color("#101519"))
+			:diffuse(color(VOLT26.Brand.Surfaces.Well))
 	end,
 }
 

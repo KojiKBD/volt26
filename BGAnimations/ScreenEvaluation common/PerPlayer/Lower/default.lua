@@ -37,7 +37,7 @@ local af = Def.ActorFrame{
 af[#af+1] = Def.Quad{
 	Name="LowerQuad",
 	InitCommand=function(self)
-		self:diffuse(color("#1E282F")):horizalign(left)
+		self:diffuse(color(VOLT26.Brand.Surfaces.Panel)):horizalign(left)
 		self:xy(-small_pane_w * 0.5, _screen.cy+34)
 		self:zoomto( pane_width, pane_height )
 

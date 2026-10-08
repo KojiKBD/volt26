@@ -21,7 +21,7 @@ local af = Def.ActorFrame{
 	-- Draw a Quad behind the GraphDisplay (lifebar graph) and Judgment ScatterPlot
 	Def.Quad{
 		InitCommand=function(self)
-			self:zoomto(GraphWidth, GraphHeight):diffuse(color("#101519")):vertalign(top)
+			self:zoomto(GraphWidth, GraphHeight):diffuse(color(VOLT26.Brand.Surfaces.Well)):vertalign(top)
 		end
 	},
 }

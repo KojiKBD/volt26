@@ -11,6 +11,15 @@ VOLT26.Brand = {
 	},
 	TextColor = "#ffffff",
 
+	-- Panel surfaces, darkest to lightest: Ink is a panel body, Panel a block
+	-- inside it, Well a recessed area (graphs, percentage boxes).  They replace
+	-- Simply Love's slate greys so inherited panels sit in the theme's palette.
+	Surfaces = {
+		Ink = "#140505",
+		Panel = "#2A0B0B",
+		Well = "#0B0202",
+	},
+
 	-- The theme accent is fixed: ScreenSelectColor and the per-profile colour
 	-- choice were removed.  Player 1 (and every shared/global element) uses
 	-- Phantom Red; Player 2 is differentiated with Phantom White.

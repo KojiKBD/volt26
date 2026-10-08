@@ -34,7 +34,7 @@ if GAMESTATE:IsCourseMode() and timeline.lastSecond > 0 then
 			af[#af + 1] = Def.Quad{
 				InitCommand=function(self)
 					self:x(startX):zoomto(segmentWidth, graphHeight)
-						:diffuse(LightenColor(LightenColor(color("#101519"))))
+						:diffuse(LightenColor(LightenColor(color(VOLT26.Brand.Surfaces.Well))))
 						:diffusealpha(0.5):vertalign(top):horizalign(left)
 				end,
 			}
