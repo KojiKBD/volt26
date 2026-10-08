@@ -41,10 +41,10 @@ slot is created; the lettering is scaled down to fit and never up.
   for letter (Lua 5.1 has no bit operations, so the PRNG differs).
 * `VOLT26.Cutout.CreateSlot(params)` renders a layout once into an
   `ActorFrameTexture` and shows it as a sprite drawn at display resolution.
-  The backing is built by stamping the black letters around a circle (8
+  The backing is built by stamping the black letters around a circle (16
   directions plus centre, for the letter and for the drop shadow): one texture
-  pass per stamp, 19 passes in total, about a third of a second the first time
-  a string appears and nothing afterwards. The texture is redrawn only when the
+  pass per stamp, 35 passes in total, about 0.6 s the first time a string
+  appears and nothing afterwards. Eight directions left serrated edges. The texture is redrawn only when the
   slot receives a different string.
 * A string with a character no face has, or longer than `maxChars` (16), falls
   back to plain text.
@@ -61,8 +61,9 @@ regenerated with the pages.
 
 ## Verification status
 
-Static only: Lua syntax checked with `luac 5.1`, the layout run outside the
-engine, and an offline preview rendered from the generated font pages. Not yet
-run in ITGmania. Points to check in the engine: the baseline of the letters
+Static checks (Lua syntax with `luac 5.1`, the layout run outside the engine,
+an offline preview from the generated font pages), plus a first owner run in
+ITGmania on the title screen: lettering renders; the 8-direction backing was
+serrated and was raised to 16 directions (not yet re-tested in the engine). Points to check in the engine: the baseline of the letters
 (BitmapText bottom alignment), the `ActorFrameTexture` preserve/clear passes,
 edge quality of the backing, and the slot positions on 16:9 and 16:10.

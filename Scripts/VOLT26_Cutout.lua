@@ -203,8 +203,10 @@ end
 -- The backing is drawn by stamping each black letter around a circle of radius
 -- `outline`, once around the letter and once around the drop-shadow offset.
 -- Each stamp is one frame of the texture's render, so a string costs one
--- ActorFrameTexture pass per offset, once, and nothing afterwards.
-local RING = 8
+-- ActorFrameTexture pass per offset, once, and nothing afterwards.  Eight
+-- directions left visibly serrated edges in the engine; sixteen keep the
+-- outline's deviation from a true circle under a tenth of its radius.
+local RING = 16
 
 local function backingOffsets(outline)
 	local list = {}
