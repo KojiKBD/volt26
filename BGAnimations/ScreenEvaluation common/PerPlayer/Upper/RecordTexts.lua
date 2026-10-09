@@ -4,6 +4,9 @@ local player = ...
 
 local record = VOLT26.Results.ApplyNameEntryEligibility(player)
 
+-- The strings are named by screen explicitly: ScreenString() reads the loading
+-- screen, which is no longer known when these OnCommands run.
+
 -- We always want to return this actor frame in case we need to "hijack" it for GrooveStats functionality.
 local t = Def.ActorFrame{
 	Name="RecordTexts",
@@ -19,7 +22,7 @@ t[#t+1] = LoadFont("Common Bold")..{
 	InitCommand=function(self) self:xy(-110,-18):diffuse(PlayerColor(player)) end,
 	OnCommand=function(self)
 		if record.earnedMachine and record.machineIndex+1 > 0 then
-			self:settext(ScreenString("MachineRecord"):format(record.machineIndex+1))
+			self:settext(THEME:GetString("ScreenEvaluation", "MachineRecord"):format(record.machineIndex+1))
 		end
 	end,
 }
@@ -29,7 +32,7 @@ t[#t+1] = LoadFont("Common Bold")..{
 	InitCommand=function(self) self:xy(-110,24):diffuse(PlayerColor(player)) end,
 	OnCommand=function(self)
 		if record.earnedPersonal and record.personalIndex+1 > 0 then
-			self:settext(ScreenString("PersonalRecord"):format(record.personalIndex+1))
+			self:settext(THEME:GetString("ScreenEvaluation", "PersonalRecord"):format(record.personalIndex+1))
 		end
 	end,
 }
