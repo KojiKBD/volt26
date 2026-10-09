@@ -1,15 +1,16 @@
--- The inherited Simply Love results: letter grade, difficulty, records and the
--- two pane columns the players page through with MenuLeft / MenuRight.
+-- The inherited Simply Love results, kept as the evaluation's detail view:
+-- letter grade, difficulty, records and the two pane columns the players page
+-- through with MenuLeft / MenuRight.  The VOLT26 summary (Summary.lua) is shown
+-- first; the first page turn swaps it for this view (see default.lua).
 --
 -- Their actors keep the screen coordinates Simply Love lays them out in; once
 -- the evaluation sequence has finished, the frames that draw them are scaled,
 -- tilted and centred as one block in the space to the right of the song card.
 -- Behind them sits a VOLT26 slab per column in the title screen's language: a
 -- slanted ink body with a white edge over an offset red plate, a slanted red
--- header, and the player's name in cutout lettering.  Input and score state
--- are live from the start.  The song title, banner and BPM line stay hidden
--- because the card shows them; the event overlay, screenshot flash and
--- favourite toast stay full screen.
+-- header, and the player's name in cutout lettering.
+--
+-- Returns {Backdrop = actor, Fit = function(common), SetVisible = function(common, shown)}.
 
 local players = GAMESTATE:GetHumanPlayers()
 local ink = color(VOLT26.Brand.Surfaces.Ink)
@@ -141,35 +142,35 @@ for _, column in ipairs(columns()) do
 	backdrop[#backdrop+1] = VOLT26.Cutout.CreateSlot(params)
 end
 
-local hidden = { TitleAndBanner = true, SongFeatures = true }
+backdrop.OnCommand = function(self)
+	for _, entry in ipairs(nameSlots) do
+		entry.slot:playcommand("CutoutSet", {text = entry.name})
+	end
+end
 
-return Def.ActorFrame{
-	InitCommand=function(self)
-		self:visible(false)
+-- The inherited frames that make up this view inside "ScreenEval Common".
+local function inheritedFrames(common)
+	local frames = { common:GetChild("Panes") }
+	for player in ivalues(players) do
+		local pn = ToEnumShortString(player)
+		frames[#frames+1] = common:GetChild(pn .. "_AF_Upper")
+		frames[#frames+1] = common:GetChild(pn .. "_AF_Lower")
+	end
+	return frames
+end
+
+return {
+	Backdrop = backdrop,
+	-- Called once, when the sequence has finished and coordinates are final.
+	Fit = function(overlay, common)
+		fit(overlay:GetChild("VOLT26Backdrop"))
+		for _, frame in ipairs(inheritedFrames(common)) do fit(frame) end
 	end,
-	OnCommand=function(self)
-		for _, entry in ipairs(nameSlots) do
-			entry.slot:playcommand("CutoutSet", {text = entry.name})
+	-- No fade: a parent's alpha would be baked into the cutout name's texture.
+	SetVisible = function(overlay, common, shown)
+		overlay:GetChild("VOLT26Backdrop"):visible(shown)
+		for _, frame in ipairs(inheritedFrames(common)) do
+			if frame then frame:visible(shown) end
 		end
 	end,
-	VOLT26EvaluationSequenceFinishedMessageCommand=function(self)
-		fit(self:GetChild("VOLT26Backdrop"))
-		local common = self:GetChild("ScreenEval Common")
-		if common then
-			for name in pairs(hidden) do
-				local child = common:GetChild(name)
-				if child then child:visible(false) end
-			end
-			fit(common:GetChild("Panes"))
-			for player in ivalues(players) do
-				local pn = ToEnumShortString(player)
-				fit(common:GetChild(pn .. "_AF_Upper"))
-				fit(common:GetChild(pn .. "_AF_Lower"))
-			end
-		end
-		-- No fade: a parent's alpha would be baked into the cutout name's texture.
-		self:visible(true)
-	end,
-	backdrop,
-	LoadActor(THEME:GetPathB("ScreenEvaluation", "common")),
 }

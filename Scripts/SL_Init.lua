@@ -2216,6 +2216,49 @@ function VOLT26.Results.ApplyNameEntryEligibility(player)
 	return status
 end
 
+-- Personal-best comparison for the current play.  Returns nil when there is no
+-- persistent profile to compare against; otherwise `isNew` says whether this
+-- play is now the profile's best and `delta` is the difference in percent
+-- points against the previous best (nil on a first ever play of the chart).
+function VOLT26.Results.GetPersonalBestDelta(player)
+	if VOLT26.Gameplay.IsCasual() or not PROFILEMAN:IsPersistentProfile(player) then return nil end
+	local profile = PROFILEMAN:GetProfile(player)
+	local songOrCourse = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentCourse() or GAMESTATE:GetCurrentSong()
+	local stepsOrTrail = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentTrail(player) or GAMESTATE:GetCurrentSteps(player)
+	if not (profile and songOrCourse and stepsOrTrail) then return nil end
+	local scores = profile:GetHighScoreList(songOrCourse, stepsOrTrail):GetHighScores()
+	local stats = VOLT26.Results.GetStageStats(player)
+	local current = stats:GetPercentDancePoints()
+	if stats:GetPersonalHighScoreIndex() == 0 then
+		local previous = scores[2]
+		return {isNew = true, delta = previous and (current - previous:GetPercentDP()) * 100 or nil}
+	end
+	local best = scores[1]
+	if not best then return {isNew = true, delta = nil} end
+	return {isNew = false, delta = (current - best:GetPercentDP()) * 100}
+end
+
+-- Everything the evaluation summary shows for one player, as plain data.
+function VOLT26.Results.GetSummary(player)
+	local result = VOLT26.Results.GetCurrent(player)
+	local stats = VOLT26.Results.GetStageStats(player)
+	local modifiers = VOLT26.Options.GetPlayerModifiers(player)
+	result.maxCombo = stats:MaxCombo()
+	result.personalBest = VOLT26.Results.GetPersonalBestDelta(player)
+	result.splitFantastic = VOLT26.Gameplay.GetMode() == "ITG"
+		and modifiers.ShowFaPlusWindow == true and modifiers.ShowFaPlusPane == true
+	result.speedModType = modifiers.SpeedModType
+	result.speedMod = modifiers.SpeedMod
+	result.musicRate = VOLT26.MusicSelection.GetMusicRate()
+	local total = result.exJudgments.totalSteps
+	if not total or total <= 0 then
+		total = 0
+		for _, count in pairs(result.judgments) do total = total + count end
+	end
+	result.totalSteps = total
+	return result
+end
+
 VOLT26.Analysis = {
 	MaxScatterVerticesPerBatch = 16000,
 }
@@ -2289,6 +2332,26 @@ function VOLT26.Analysis.SmoothDistribution(distribution, worstWindow)
 		smoothed[round(millisecond / 1000, 3)] = value
 	end
 	return {values=smoothed, highestCount=highestCount}
+end
+
+-- Counts timing offsets into `binCount` equal bins spanning
+-- [-worstWindow, worstWindow] seconds.  Misses and auto-hits are skipped.
+function VOLT26.Analysis.BuildHistogram(offsets, worstWindow, binCount)
+	local bins, peak = {}, 0
+	local width = worstWindow * 2 / binCount
+	for index = 1, binCount do
+		bins[index] = {center = -worstWindow + (index - 0.5) * width, count = 0}
+	end
+	for _, sample in ipairs(offsets or {}) do
+		local value = sample.offset
+		if value ~= "Miss" and not sample.is_autohit then
+			local index = clamp(math.floor((value + worstWindow) / width) + 1, 1, binCount)
+			local bin = bins[index]
+			bin.count = bin.count + 1
+			peak = math.max(peak, bin.count)
+		end
+	end
+	return {bins = bins, peak = peak}
 end
 
 function VOLT26.Analysis.GetTimeline(player)
