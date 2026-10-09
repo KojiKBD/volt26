@@ -24,7 +24,14 @@ local labels = {
 	versus = {x = 98,  y = 561, w = 796, h = 399},
 	double = {x = 216, y = 671, w = 633, h = 277},
 }
+-- Art that overlaps the label is drawn in front of it (Double's cat holds its
+-- cigar over the lettering).  Boxes are on the 1920x1080 face.
+local fronts = {
+	double = {x = 701, y = 0, w = 1219, h = 1080},
+}
+
 local face = labels[choiceName] and choiceName or "single"
+local front = fronts[face]
 local label = labels[face]
 local labelX, labelY = (label.x + label.w / 2) * sx, (label.y + label.h / 2) * sy
 
@@ -100,6 +107,10 @@ return Def.ActorFrame{
 		self:finishtweening():visible(true):diffusealpha(1)
 		local art, lab = self:GetChild("Art"), self:GetChild("Label")
 		art:finishtweening():x(SCREEN_WIDTH / 2 + dir * slide * 2):decelerate(0.25):x(SCREEN_WIDTH / 2)
+		if front then
+			local x = (front.x + front.w / 2) * sx
+			self:GetChild("Front"):finishtweening():x(x + dir * slide * 2):decelerate(0.25):x(x)
+		end
 		lab:finishtweening():zoom(1.35):rotationz(-dir * 8):diffusealpha(0)
 			:sleep(0.08):decelerate(0.16):zoom(1):rotationz(0):diffusealpha(1)
 	end,
@@ -108,6 +119,9 @@ return Def.ActorFrame{
 		local dir = shared.direction or 1
 		self:finishtweening():linear(0.18):diffusealpha(0):queuecommand("Hide")
 		self:GetChild("Art"):finishtweening():linear(0.18):x(SCREEN_WIDTH / 2 - dir * slide)
+		if front then
+			self:GetChild("Front"):finishtweening():linear(0.18):addx(-dir * slide)
+		end
 	end,
 	HideCommand=function(self) self:visible(false) end,
 
@@ -129,4 +143,12 @@ return Def.ActorFrame{
 	arrow(arrows[1]),
 	arrow(arrows[2]),
 	labelActor,
+	front and Def.Sprite{
+		Name="Front",
+		Texture=asset("front_" .. face),
+		InitCommand=function(self)
+			self:xy((front.x + front.w / 2) * sx, (front.y + front.h / 2) * sy)
+				:zoomto(front.w * sx, front.h * sy)
+		end,
+	} or Def.Actor{},
 }
