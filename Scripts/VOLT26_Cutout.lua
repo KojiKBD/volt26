@@ -39,6 +39,10 @@ Cutout.Defaults = {
 -- Screens that show the cutout lettering in place of plain text.
 Cutout.Screens = {
 	ScreenTitleMenu = true,
+	-- The menus between the title and song selection share its footer.
+	ScreenSelectStyle = true,
+	ScreenSelectPlayMode = true,
+	ScreenSelectPlayMode2 = true,
 }
 
 function Cutout.IsEnabledOn(screenName)
