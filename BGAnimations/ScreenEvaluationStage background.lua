@@ -192,28 +192,53 @@ songInfo[#songInfo+1] = Def.ActorFrame{
 		color("#000000"), color("#FFFFFF"), layout.tagHeight, 22, tagWidths),
 }
 
--- The title is set in cutout lettering when the cutout faces can draw it and it
--- is short enough to stay legible across the card; otherwise it keeps the label
--- face.  The cutout slot sits outside songInfo so it can render while the
--- sequence plays (a hidden actor is not drawn), and is held until the reveal.
-local titleMaxChars = 28
-local titleChars = select(2, title:gsub("[^\128-\191]", ""))
-local titleInCutout = titleChars > 0 and titleChars <= titleMaxChars
-	and VOLT26.Cutout.Layout(title) ~= nil
+-- The title is set in cutout lettering when the cutout faces can draw it.  A
+-- title too long for one legible line is split at the space nearest its middle
+-- into two lines; only a title that is still too long per line, or that uses
+-- characters the faces lack, keeps the label face.  The cutout slots sit
+-- outside songInfo so they can render while the sequence plays (a hidden actor
+-- is not drawn), and are held until the reveal.
+local lineMaxChars = 32
+local singleLineChars = 22
+
+local function charCount(text)
+	return select(2, text:gsub("[^\128-\191]", ""))
+end
+
+local function titleLines(text)
+	if charCount(text) <= singleLineChars then return { text } end
+	local middle, best = #text / 2, nil
+	for position in text:gmatch("() ") do
+		if not best or math.abs(position - middle) < math.abs(best - middle) then best = position end
+	end
+	if not best then return { text } end
+	return { text:sub(1, best - 1), text:sub(best + 1) }
+end
+
+local lines = titleLines(title)
+local titleInCutout = charCount(title) > 0
+for _, line in ipairs(lines) do
+	if charCount(line) > lineMaxChars or VOLT26.Cutout.Layout(line) == nil then titleInCutout = false end
+end
 
 local titleCutout = Def.ActorFrame{}
 if titleInCutout then
-	titleCutout = VOLT26.Cutout.CreateSlot{
-		maxW = layout.contentWidth * sx, maxH = layout.titleHeight * sy,
-		halign = 0, valign = 0.5, maxChars = titleMaxChars, held = true,
-		opts = { base = layout.titleSize * sy * 1.15, tiltDeg = 0 },
-		onInit = function(slot) placeOnCard(slot, layout.margin, layout.titleY) end,
-	}..{
-		OnCommand=function(self) self:playcommand("CutoutSet", {text = title}) end,
-		VOLT26EvaluationSequenceFinishedMessageCommand=function(self)
-			self:playcommand("CutoutHold", {held = false})
-		end,
-	}
+	local lineHeight = layout.titleHeight / #lines
+	local base = layout.titleSize * (#lines == 1 and 1.15 or 0.7)
+	for index, line in ipairs(lines) do
+		local y = layout.titleY + (index - (#lines + 1) / 2) * lineHeight
+		titleCutout[#titleCutout+1] = VOLT26.Cutout.CreateSlot{
+			maxW = layout.contentWidth * sx, maxH = lineHeight * sy,
+			halign = 0, valign = 0.5, maxChars = lineMaxChars, held = true,
+			opts = { base = base * sy, tiltDeg = 0 },
+			onInit = function(slot) placeOnCard(slot, layout.margin, y) end,
+		}..{
+			OnCommand=function(self) self:playcommand("CutoutSet", {text = line}) end,
+			VOLT26EvaluationSequenceFinishedMessageCommand=function(self)
+				self:playcommand("CutoutHold", {held = false})
+			end,
+		}
+	end
 else
 	songInfo[#songInfo+1] = textAt(title, layout.margin, layout.titleY, layout.titleSize, layout.contentWidth)
 end

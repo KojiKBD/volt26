@@ -6,8 +6,11 @@
 --
 --   * Summary.lua -- the VOLT26 results (score panels, judgment table, timing),
 --     shown first;
---   * Details.lua -- the inherited panes, fitted beside the card, shown once a
---     player turns a page with MenuLeft / MenuRight.
+--   * Details.lua -- the inherited panes (GrooveStats QR, high scores,
+--     scatter plot...), fitted beside the card.
+--
+-- MenuLeft / MenuRight toggle between the two views; while the inherited view
+-- is open each press also turns its page, as in Simply Love.
 --
 -- Nothing is shown until the evaluation sequence has finished.  The song title,
 -- banner and BPM line stay hidden because the card shows them.
@@ -46,9 +49,9 @@ return Def.ActorFrame{
 		applyView(self)
 		self:visible(true)
 	end,
-	VOLT26EvaluationShowDetailsMessageCommand=function(self)
-		if detailsShown then return end
-		detailsShown = true
+	VOLT26EvaluationToggleDetailsMessageCommand=function(self)
+		if casual then return end
+		detailsShown = not detailsShown
 		if ready then applyView(self) end
 	end,
 	summary,
@@ -56,7 +59,7 @@ return Def.ActorFrame{
 	LoadActor(THEME:GetPathB("ScreenEvaluation", "common"))..{
 		-- Queued by the inherited input handler after every page turn.
 		PaneSwitchCommand=function(self)
-			MESSAGEMAN:Broadcast("VOLT26EvaluationShowDetails")
+			MESSAGEMAN:Broadcast("VOLT26EvaluationToggleDetails")
 		end,
 	},
 }
