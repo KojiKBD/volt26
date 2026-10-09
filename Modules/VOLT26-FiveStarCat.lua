@@ -1,13 +1,13 @@
--- Easter egg: a five-star result (Grade_Tier00, 100% EX) brings the Double
--- face's cat, cigar and all, up from the bottom-right corner of the stage
--- evaluation once its sequence has finished; it sways for a few seconds and
--- ducks back down so the results stay readable.
+-- Easter egg: a five-star result (Grade_Tier00, 100% EX) brings the cat from
+-- the Double face -- whole, uncropped, cigar and all -- up into the
+-- bottom-right corner of the stage evaluation once its sequence has finished;
+-- it sways for a few seconds and ducks back down so the results stay readable.
 --
 -- A module (see Modules/README.md), so it draws in ScreenSystemLayer above the
 -- evaluation's own layers without touching their files.
 
-local catPath = THEME:GetPathG("", "VOLT26/StyleSelect/front_double.png")
-local catW, catH = 1219, 1080        -- the art's size on its 1920x1080 face
+local catPath = THEME:GetPathG("", "VOLT26/five_star_cat.png")
+local catW, catH = 1172, 1270        -- the image's own size
 local height = SCREEN_HEIGHT * 0.62  -- how tall it stands on the results
 local width = height * catW / catH
 local stay = 4.5                     -- seconds on screen before it ducks
@@ -34,7 +34,7 @@ local function Cat()
 			cat:finishtweening():visible(true)
 				:xy(SCREEN_RIGHT + 10, SCREEN_BOTTOM + height):rotationz(-14)
 				:sleep(0.5)
-				:decelerate(0.35):xy(SCREEN_RIGHT + 10, SCREEN_BOTTOM + 12):rotationz(3)
+				:decelerate(0.35):xy(SCREEN_RIGHT - 16, SCREEN_BOTTOM - 8):rotationz(3)
 				:bounceend(0.25):rotationz(0)
 				:queuecommand("Sway")
 		end,
