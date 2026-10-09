@@ -233,6 +233,9 @@ local slotCount = 0
 --   x, y         optional position
 --   onInit       optional function(slot) called from the slot's InitCommand
 --                (a caller's own InitCommand would replace the slot's)
+--   onReady      optional function(slot) called when a string has finished
+--                rendering (or fallen back to plain text), e.g. to swap two
+--                slots so a name never disappears while its successor renders
 --   held         start held: the string is rendered but not shown until
 --                "CutoutHold" releases it, so it can be prepared off-stage
 --
@@ -322,6 +325,7 @@ function Cutout.CreateSlot(params)
 		state.passes = nil
 		state.layout = nil
 		state.plain:visible(not state.held):settext(text or "")
+		if params.onReady then params.onReady(state.self) end
 	end
 
 	-- A pass only lands in the texture if the slot is actually drawn, and a
@@ -343,6 +347,7 @@ function Cutout.CreateSlot(params)
 			state.passes = nil
 			state.aft:visible(false)
 			state.sprite:visible(not state.held)
+			if params.onReady then params.onReady(slot) end
 			return
 		end
 		-- The first pass starts from an empty texture; later passes add to it.
@@ -396,7 +401,11 @@ function Cutout.CreateSlot(params)
 		end,
 		CutoutSetCommand=function(self, p)
 			local text = p and p.text or ""
-			if text == state.text then return end
+			if text == state.text then
+				-- Already drawn (or drawing): a finished slot still reports ready.
+				if not state.passes and params.onReady then params.onReady(self) end
+				return
+			end
 			state.text = text
 			local chars = select(2, text:gsub("[^\128-\191]", ""))
 			local layout = chars <= maxChars and Cutout.Layout(text, opts) or nil

@@ -1,19 +1,18 @@
 -- ScreenSelectProfile.
 --
--- Who is playing, asked as a strip of cards: [ GUEST ] first, then every local
--- profile, with a panel beside it describing whichever card the cursor is on.
+-- Who is playing, asked as a "WANTED" poster: each side shows one card with the
+-- focused profile's avatar and name, and MenuLeft/MenuRight step through
+-- [ GUEST ] and then every local profile.
 -- The engine still owns joining, unjoining, memory cards and the profile
 -- assignment itself; this screen owns the cursor and the presentation, and
 -- hands the engine an index when it finishes.
 --
 -- The pieces:
 --   Selection.lua          the cursor, the window, and who has committed
---   PlayerFrame.lua        one player's strip and panel
+--   PlayerFrame.lua        one player's "WANTED" card (avatar, cutout name)
 --   Input.lua              buttons
 --   PlayerProfileData.lua  what is known about each local profile
---   _volt26 select chrome  the frame this screen shares with the play-mode screen
-
-local Chrome = LoadActor(THEME:GetPathB("", "_volt26 select chrome"))
+--   ../ScreenSelectProfile background.lua  the WANTED backdrop
 
 -- PreferredStyle is a VOLT26 preference that can allow players to always
 -- automatically have one of [single, double, versus] chosen for them.
@@ -290,28 +289,8 @@ if VOLT26.Profile.IsFastSwitchInProgress() then
 end
 
 -- ----------------------------------------------------------------------------
--- chrome
-
-t[#t+1] = Chrome.TitleBlock{
-	title = THEME:GetString("ScreenSelectProfile", "TitleProfile"),
-	tabs = { "Profile", "Mode" },
-	active = "Profile",
-}
-
-t[#t+1] = Chrome.SectionLabel( THEME:GetString("ScreenSelectProfile", "SectionWhoIsPlaying") )
-
-t[#t+1] = Chrome.Hints{
-	button = THEME:GetString("ScreenSelectProfile", "HintButton"),
-	action = THEME:GetString("ScreenSelectProfile", "HintConfirm"),
-	center = Chrome.CabinetText,
-}
-
--- a quiet note under the strip: the choice lasts the whole session
-t[#t+1] = Chrome.Label{
-	text = THEME:GetString("ScreenSelectProfile", "SessionNote"), px=9,
-	x = Chrome.Metrics.Margin, y = single and 324 or 284,
-	color = Chrome.Color.Faint,
-}
+-- The screen has no chrome of its own: the "WANTED" backdrop (background.lua)
+-- and the player cards are the whole layout.
 
 -- ----------------------------------------------------------------------------
 -- player frames
@@ -322,7 +301,6 @@ for player in ivalues(players) do
 		Selection = Selection,
 		ProfileData = profile_data,
 		Avatars = avatars,
-		Chrome = Chrome,
 		Layout = single and "full" or "split",
 	})
 end
