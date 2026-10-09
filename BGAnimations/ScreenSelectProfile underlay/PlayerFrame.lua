@@ -4,8 +4,9 @@
 -- wings come from the Illustrator layout (Graphics/VOLT26/ProfileSelect, a
 -- 1920x1080 artboard); every position below is in artboard pixels.  On the card
 -- sits the focused profile's avatar -- the profile's own picture when it has one
--- (VOLT26.Profile.GetAvatarPath), the stock avatar otherwise -- and beneath it
--- the profile's name in cutout lettering (VOLT26.Cutout).
+-- (VOLT26.Profile.GetAvatarPath); without one the card shows only its stripes
+-- until a base avatar is chosen -- and beneath it the profile's name in cutout
+-- lettering (VOLT26.Cutout).
 --
 -- The wings are the browse arrows: each shows only while there is a profile in
 -- its direction.  Nothing here decides anything: the cursor lives in
@@ -22,7 +23,6 @@ local sx, sy = SCREEN_WIDTH / 1920, SCREEN_HEIGHT / 1080
 local function asset(name)
 	return THEME:GetPathG("", "VOLT26/ProfileSelect/" .. name .. ".png")
 end
-local stockAvatar = asset("avatar_stock")
 
 -- Artboard geometry.  The P1 card is the left one in the design; P2's avatar,
 -- PRESS START and name positions are the P1 ones carried through each card's
@@ -109,10 +109,18 @@ local function wing(points)
 	}
 end
 
+-- The path last loaded into the avatar sprite, so a redraw on the same
+-- profile does not reload the file.
+local avatarPath = nil
+
 local function SetAvatar(avatar, path)
-	path = path or stockAvatar
-	if avatar.path ~= path then
-		avatar.path = path
+	if not path then
+		avatar:visible(false)
+		return
+	end
+	avatar:visible(true)
+	if avatarPath ~= path then
+		avatarPath = path
 		avatar:Load(path)
 	end
 	avatar:align(0, 0):xy(L.avatar.x * sx, L.avatar.y * sy):rotationz(L.avatar.rot)
@@ -125,7 +133,6 @@ local function Render(frame)
 	local cursor, count = Selection.Cursor(player), Selection.Count()
 
 	local avatar = frame:GetChild("Avatar")
-	avatar:visible(true)
 	SetAvatar(avatar, item and item.index and avatars[item.index] or nil)
 	avatar:finishtweening():zoom(1.04):decelerate(0.12):zoom(1)
 
@@ -203,7 +210,6 @@ return Def.ActorFrame{
 			end
 		elseif state == "card" then
 			press:visible(false)
-			avatar:visible(true)
 			SetAvatar(avatar, nil)
 			SetName(MEMCARDMAN:GetName(player))
 		else

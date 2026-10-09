@@ -16,8 +16,7 @@
 
 -- PreferredStyle is a VOLT26 preference that can allow players to always
 -- automatically have one of [single, double, versus] chosen for them.
--- If PreferredStyle is either "single" or "double", we don't want to load
--- frames for both PLAYER_1 and PLAYER_2, but only the MasterPlayerNumber
+-- Both cards are always drawn: a side nobody has joined shows PRESS START.
 local PreferredStyle = VOLT26.Profile.GetPreferredStyle()
 
 -- a table of profile data (display name, songs played, mods, etc.)
@@ -25,10 +24,8 @@ local profile_data = LoadActor("./PlayerProfileData.lua")
 
 local Selection = LoadActor("./Selection.lua", {ProfileData=profile_data})
 
--- Whether the screen is showing one player across the full width or two
--- players either side of the centre line.
-local single = (PreferredStyle=="single" or PreferredStyle=="double") and #GAMESTATE:GetHumanPlayers() <= 1
-local players = single and { GAMESTATE:GetMasterPlayerNumber() } or { PLAYER_1, PLAYER_2 }
+-- Both sides always have a card.
+local players = { PLAYER_1, PLAYER_2 }
 
 -- ----------------------------------------------------------------------------
 -- Which of the three states each side is in.  A side is either waiting to be
@@ -230,12 +227,8 @@ local t = Def.ActorFrame {
 			return
 		end
 
-		if single then
-			HandleStateChange(self, GAMESTATE:GetMasterPlayerNumber())
-		else
-			HandleStateChange(self, PLAYER_1)
-			HandleStateChange(self, PLAYER_2)
-		end
+		HandleStateChange(self, PLAYER_1)
+		HandleStateChange(self, PLAYER_2)
 	end,
 
 	-- sounds
@@ -301,7 +294,6 @@ for player in ivalues(players) do
 		Selection = Selection,
 		ProfileData = profile_data,
 		Avatars = avatars,
-		Layout = single and "full" or "split",
 	})
 end
 

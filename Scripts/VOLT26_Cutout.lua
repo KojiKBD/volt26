@@ -330,10 +330,13 @@ function Cutout.CreateSlot(params)
 
 	-- A pass only lands in the texture if the slot is actually drawn, and a
 	-- parent's alpha would be baked into the stamps, so passes wait until the
-	-- slot and every ancestor are visible and fully opaque.
+	-- slot and every ancestor are visible, fully opaque and not tweening.
+	-- GetDiffuseAlpha reports where a tween is heading, not where it is, so a
+	-- fade in progress is caught by its remaining tween time instead.
 	local function drawnOpaque(actor)
 		while actor do
-			if not actor:GetVisible() or actor:GetDiffuseAlpha() < 1 then return false end
+			if not actor:GetVisible() or actor:GetDiffuseAlpha() < 1
+			or actor:GetTweenTimeLeft() > 0 then return false end
 			actor = actor:GetParent()
 		end
 		return true
