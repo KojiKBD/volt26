@@ -255,6 +255,12 @@ local card = Def.ActorFrame{
 	Name="Card",
 	InitCommand=function(self)
 		self:xy(L.center.x * sx, L.center.y * sy):rotationz(L.rot)
+		-- Only ActorFrames take an update function, so the card moves its rings.
+		local rings = self:GetChild("WaveTexture"):GetChild("Rings")
+		self:SetUpdateFunction(function(_, delta)
+			wavePhase = (wavePhase + delta / waves.period) % 1
+			MoveRings(rings, wavePhase)
+		end)
 	end,
 	Def.ActorFrameTexture{
 		Name="WaveTexture",
@@ -270,13 +276,10 @@ local card = Def.ActorFrame{
 			end,
 		},
 		Def.ActorMultiVertex{
+			Name="Rings",
 			InitCommand=function(self)
 				self:SetDrawState{Mode="DrawMode_Quads"}
 				MoveRings(self, 0)
-				self:SetUpdateFunction(function(amv, delta)
-					wavePhase = (wavePhase + delta / waves.period) % 1
-					MoveRings(amv, wavePhase)
-				end)
 			end,
 		},
 	},
