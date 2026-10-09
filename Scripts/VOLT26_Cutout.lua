@@ -43,6 +43,7 @@ Cutout.Screens = {
 	ScreenSelectStyle = true,
 	ScreenSelectPlayMode = true,
 	ScreenSelectPlayMode2 = true,
+	ScreenVOLT26SelectMode = true,
 }
 
 function Cutout.IsEnabledOn(screenName)
