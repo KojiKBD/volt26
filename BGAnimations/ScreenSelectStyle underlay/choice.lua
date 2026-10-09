@@ -61,27 +61,31 @@ end
 
 local slide = 120 * sx
 
-local labelActor
+-- The label sits in its own frame, which carries the animation: zoom() on the
+-- sprite itself would undo the size zoomto() gave it.
+local labelContent
 if labels[choiceName] then
-	labelActor = Def.Sprite{
-		Name="Label",
+	labelContent = Def.Sprite{
 		Texture=asset("label_" .. face),
-		InitCommand=function(self)
-			self:xy(labelX, labelY):zoomto(label.w * sx, label.h * sy)
-		end,
+		InitCommand=function(self) self:zoomto(label.w * sx, label.h * sy) end,
 	}
 else
-	labelActor = VOLT26.Cutout.CreateSlot{
-		x = labelX, y = labelY, maxW = label.w * sx, maxH = label.h * sy,
+	labelContent = VOLT26.Cutout.CreateSlot{
+		maxW = label.w * sx, maxH = label.h * sy,
 		halign = 0.5, valign = 0.5, opts = { base = 120 * sy, tiltDeg = -12 },
 	}..{
-		Name="Label",
 		OnCommand=function(self)
 			self:playcommand("CutoutSet", {text = THEME:GetString("ScreenSelectStyle",
 				choiceName:gsub("^%l", string.upper))})
 		end,
 	}
 end
+
+local labelActor = Def.ActorFrame{
+	Name="Label",
+	InitCommand=function(self) self:xy(labelX, labelY) end,
+	labelContent,
+}
 
 return Def.ActorFrame{
 	InitCommand=function(self)
