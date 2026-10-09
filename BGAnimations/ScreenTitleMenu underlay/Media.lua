@@ -46,8 +46,32 @@ local function MenuTheme(name, path, startImmediately)
     return Def.ActorFrame{
         Name=name,
         OnCommand=function(self)
-            if startImmediately then Start(self) end
+            if startImmediately then
+                Start(self)
+            else
+                -- The opening vow has its own music (intro.ogg, an actor sound).
+                -- Engine music can still be running when the title opens: the
+                -- menu theme carried over from a later screen, or the title's
+                -- own music path, which the engine resolves once and caches, so
+                -- it can name the menu theme after Back restarts the vow.
+                -- Keep it silenced for as long as the vow runs, whenever the
+                -- screen starts its own music, so the two never overlap.
+                SOUND:StopMusic()
+                local elapsed = 0
+                self:SetUpdateFunction(function(frame, delta)
+                    if not waitForIntro then
+                        frame:SetUpdateFunction(nil)
+                        return
+                    end
+                    elapsed = elapsed + (delta or 0)
+                    if elapsed >= 0.25 then
+                        elapsed = 0
+                        SOUND:StopMusic()
+                    end
+                end)
+            end
         end,
+        OffCommand=function(self) self:SetUpdateFunction(nil) end,
         VOLT26_StartMenuAudioMessageCommand=function(self) Start(self) end,
         VOLT26_StopMenuAudioMessageCommand=function(self) SOUND:StopMusic() end,
         -- Only measured, never played: PlayMusicPart needs the length to loop.
