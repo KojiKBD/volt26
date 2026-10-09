@@ -20,6 +20,8 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ### Changed
 
+- The title's menu theme (menuost.ogg) now plays as the engine's music and carries on, without restarting, through profile, style and play-mode selection and profile load, until song selection. Simply Love's "_common menu music" is removed, including on the song wheel's Random item.
+- With the AllowScreenSelectPlayMode theme preference on, players choose ITG or FA+ on ScreenSelectPlayMode before Regular/Marathon; the screen describes FA+ in its panel.
 - Profile selection is a "WANTED" poster from the owner's Illustrator layout: red star field with a lightning bolt, WANTED lettering, and one tilted card per side (both always shown) carrying the focused profile's avatar with the name in cutout lettering beneath, flanked by arrows that show where more profiles are. An unjoined side shows PRESS START, and the other player can join there even when the preferred style is single or double (two joined sides then play versus). Changing profile slides the new name in from the side the cursor moved towards. The rings behind the avatar pulse outward like radio waves, and profiles without their own picture show the VOLT26 stock avatar. The detail panel and select-screen chrome are no longer shown there.
 - The title menu music (`Graphics/VOLT26/menuost.ogg`) is now "Royal Days".
 - The stage evaluation song card lays its artwork and text out on the card's measured perspective shape, so they follow its tilt and keep even margins and line spacing; the BPM is right-aligned inside the card.

@@ -8,8 +8,8 @@
 --
 -- Both screens share this file.  ScreenSelectPlayMode2 asks how a set is played
 -- (Regular or Marathon) and is the one players actually reach.
--- ScreenSelectPlayMode asks which rule set is in force; VOLT26 exposes only
--- ITG, so Navigation skips it, but the screen still exists and still works.
+-- ScreenSelectPlayMode asks which rule set is in force (ITG or FA+); Navigation
+-- shows it when the AllowScreenSelectPlayMode theme preference is on.
 
 local Chrome = LoadActor(THEME:GetPathB("", "_volt26 select chrome"))
 
@@ -89,6 +89,19 @@ local function Describe(choice)
 				{ value = String("NoFail", "No fail"),  caption = String("CaptionLife", "Life") },
 				{ value = String("Percent", "Percent"), caption = String("CaptionGrading", "Grading") },
 				{ value = PlayerCount(),                caption = String("CaptionPlayers", "Players") },
+			},
+		}
+	end
+
+	if choice == "FA+" then
+		return {
+			blurb = String("FA+Blurb", "ITG rules with a split Fantastic window. Tighter timing for players chasing precision and ITL events."),
+			meter = { caption = String("MeterJudgment", "Judgment"), value = String("Strict", "Strict"), fraction = 1 },
+			tiles = {
+				{ value = String("FAPlusWindows", "FA+"), caption = String("CaptionTiming", "Timing") },
+				{ value = String("NormalBar", "Normal"),  caption = String("CaptionLife", "Life") },
+				{ value = String("ExScore", "EX"),        caption = String("CaptionGrading", "Grading") },
+				{ value = PlayerCount(),                  caption = String("CaptionPlayers", "Players") },
 			},
 		}
 	end

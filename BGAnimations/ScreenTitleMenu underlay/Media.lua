@@ -19,55 +19,6 @@ local function RedirectMenuInput(redirected)
     end
 end
 
-local function LoopingSound(name, path, startImmediately)
-    local elapsed = 0
-    local length = 0
-
-    local function StartPlayback(frame)
-        local sound = frame:GetChild("Playback")
-        if not sound then return end
-        frame:SetUpdateFunction(nil)
-        sound:stop()
-        length = sound:get():get_length()
-        elapsed = 0
-        sound:play()
-        if length and length > 0 then
-            frame:SetUpdateFunction(function(actor, delta)
-                elapsed = elapsed + (delta or 0)
-                if elapsed >= length then
-                    elapsed = elapsed - length
-                    local playback = actor:GetChild("Playback")
-                    if not playback then return end
-                    playback:stop()
-                    playback:play()
-                end
-            end)
-        end
-    end
-
-    return Def.ActorFrame{
-        Name=name,
-        OnCommand=function(self)
-            if startImmediately then StartPlayback(self) end
-        end,
-        VOLT26_StartMenuAudioMessageCommand=function(self) StartPlayback(self) end,
-        VOLT26_StopMenuAudioMessageCommand=function(self)
-            self:SetUpdateFunction(nil)
-            local sound = self:GetChild("Playback")
-            if sound then sound:stop() end
-        end,
-        OffCommand=function(self)
-            self:SetUpdateFunction(nil)
-            local sound = self:GetChild("Playback")
-            if sound then sound:stop() end
-        end,
-        Def.Sound{
-            Name="Playback",
-            File=path,
-        },
-    }
-end
-
 local media = Def.ActorFrame{
     Name="VOLT26_TitleMedia",
     InitCommand=function(self)
@@ -75,8 +26,37 @@ local media = Def.ActorFrame{
     end,
 }
 
+-- The menu theme plays as the engine's music, not as an actor sound, so the
+-- screens after the title (profile, style, play mode, profile load), whose
+-- music is the same file, carry it on instead of restarting it (see
+-- Sounds/_volt26 menu theme).  The engine does not restart a file that is
+-- already playing, so starting it here on a later visit is harmless.
+local function MenuTheme(name, path, startImmediately)
+    local length = nil
+    local function Start(frame)
+        if not length then
+            local probe = frame:GetChild("Probe")
+            length = probe and probe:get():get_length() or 0
+        end
+        if length > 0 then
+            SOUND:PlayMusicPart(path, 0, length, 0, 0, true, false, false)
+        end
+    end
+
+    return Def.ActorFrame{
+        Name=name,
+        OnCommand=function(self)
+            if startImmediately then Start(self) end
+        end,
+        VOLT26_StartMenuAudioMessageCommand=function(self) Start(self) end,
+        VOLT26_StopMenuAudioMessageCommand=function(self) SOUND:StopMusic() end,
+        -- Only measured, never played: PlayMusicPart needs the length to loop.
+        Def.Sound{ Name="Probe", File=path },
+    }
+end
+
 if FILEMAN:DoesFileExist(menuMusicPath) then
-    media[#media+1] = LoopingSound(
+    media[#media+1] = MenuTheme(
         "VOLT26_MenuOSTLoop", menuMusicPath, not waitForIntro
     )
 end

@@ -66,8 +66,13 @@ function Navigation.AfterSelectProfile()
 	return "ScreenSelectStyle"
 end
 
+-- ITG is the default rule set.  With the AllowScreenSelectPlayMode theme
+-- preference on, ScreenSelectPlayMode asks for it (ITG or FA+) first.
 function Navigation.AllowScreenSelectPlayMode()
 	VOLT26.State.Global.GameMode = "ITG"
+	if VOLT26.ThemePrefs.Get("AllowScreenSelectPlayMode") then
+		return "ScreenSelectPlayMode"
+	end
 	return Navigation.AllowScreenSelectPlayMode2()
 end
 
