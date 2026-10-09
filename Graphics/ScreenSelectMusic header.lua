@@ -117,7 +117,7 @@ af[#af+1] = LoadFont("Helvetica Bold")..{
 }
 
 -- P1 pad
-af[#af+1] = LoadActor( THEME:GetPathB("ScreenSelectStyle", "underlay/pad.lua"), {nil, nil, 1, nil} )..{
+af[#af+1] = LoadActor( THEME:GetPathG("", "VOLT26/HeaderPad/pad.lua"), {nil, nil, 1, nil} )..{
 	InitCommand=function(self)
 		self:x(_screen.w - (VOLT26.MenuTimer.IsEnabled() and SL_WideScale(90, 105) or SL_WideScale(35, 41)))
 		self:y( SL_WideScale(22, 23.5) ):zoom(0.24)
@@ -131,7 +131,7 @@ af[#af+1] = LoadActor( THEME:GetPathB("ScreenSelectStyle", "underlay/pad.lua"), 
 }
 
 -- P2 pad
-af[#af+1] = LoadActor( THEME:GetPathB("ScreenSelectStyle", "underlay/pad.lua"), {nil, nil, 2, nil} )..{
+af[#af+1] = LoadActor( THEME:GetPathG("", "VOLT26/HeaderPad/pad.lua"), {nil, nil, 2, nil} )..{
 	InitCommand=function(self)
 		self:x(_screen.w - (VOLT26.MenuTimer.IsEnabled() and SL_WideScale(70, 81) or SL_WideScale(15, 17)))
 		self:y( SL_WideScale(22, 23.5) ):zoom(0.24)
