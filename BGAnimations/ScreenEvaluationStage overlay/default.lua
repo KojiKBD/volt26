@@ -9,8 +9,9 @@
 --   * Details.lua -- the inherited panes (GrooveStats QR, high scores,
 --     scatter plot...), fitted beside the card.
 --
--- MenuLeft / MenuRight toggle between the two views; while the inherited view
--- is open each press also turns its page, as in Simply Love.
+-- The summary is the only view players see; MenuLeft / MenuRight do not switch
+-- to the inherited one.  The inherited view is shown only when the summary
+-- cannot be built (casual play, or helpers missing after a hot reload).
 --
 -- Nothing is shown until the evaluation sequence has finished.  The song title,
 -- banner and BPM line stay hidden because the card shows them.
@@ -24,7 +25,7 @@ local summary = summaryAvailable and LoadActor("./Summary.lua") or Def.ActorFram
 local casual = VOLT26.Gameplay.IsCasual() or not summaryAvailable
 
 local alwaysHidden = { "TitleAndBanner", "SongFeatures" }
-local ready, detailsShown = false, casual
+local detailsShown = casual
 
 local function applyView(overlay)
 	local common = overlay:GetChild("ScreenEval Common")
@@ -45,21 +46,10 @@ return Def.ActorFrame{
 			end
 			details.Fit(self, common)
 		end
-		ready = true
 		applyView(self)
 		self:visible(true)
 	end,
-	VOLT26EvaluationToggleDetailsMessageCommand=function(self)
-		if casual then return end
-		detailsShown = not detailsShown
-		if ready then applyView(self) end
-	end,
 	summary,
 	details.Backdrop,
-	LoadActor(THEME:GetPathB("ScreenEvaluation", "common"))..{
-		-- Queued by the inherited input handler after every page turn.
-		PaneSwitchCommand=function(self)
-			MESSAGEMAN:Broadcast("VOLT26EvaluationToggleDetails")
-		end,
-	},
+	LoadActor(THEME:GetPathB("ScreenEvaluation", "common")),
 }

@@ -1,7 +1,7 @@
--- The inherited Simply Love results, kept as the evaluation's detail view:
--- letter grade, difficulty, records and the two pane columns the players page
--- through with MenuLeft / MenuRight.  The VOLT26 summary (Summary.lua) is shown
--- first; the first page turn swaps it for this view (see default.lua).
+-- The inherited Simply Love results, kept as the evaluation's fallback view:
+-- letter grade, difficulty, records and the two pane columns.  Players see the
+-- VOLT26 summary (Summary.lua); this view is shown only when the summary cannot
+-- be built (see default.lua).
 --
 -- Their actors keep the screen coordinates Simply Love lays them out in; once
 -- the evaluation sequence has finished, the frames that draw them are scaled,
