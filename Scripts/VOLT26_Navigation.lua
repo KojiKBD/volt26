@@ -55,8 +55,10 @@ function Navigation.AfterSelectProfile()
 		if preferredStyle == "versus" then
 			GAMESTATE:JoinPlayer(PLAYER_1)
 			GAMESTATE:JoinPlayer(PLAYER_2)
-		elseif preferredStyle == "single" and GAMESTATE:GetNumSidesJoined() == 2 then
-			GAMESTATE:UnjoinPlayer(PLAYER_2)
+		elseif GAMESTATE:GetNumSidesJoined() == 2 then
+			-- Profile selection always offers both sides, so a second player
+			-- who joined there plays: single/double become versus.
+			preferredStyle = "versus"
 		end
 		GAMESTATE:SetCurrentStyle(preferredStyle)
 		return Navigation.AllowScreenSelectPlayMode()

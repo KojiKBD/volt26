@@ -228,7 +228,6 @@ Handle.Select = Handle.Back
 local InputHandler = function(event)
 	if finished then return false end
 	if not event or not event.button then return false end
-	if (((PreferredStyle=="single" or PreferredStyle=="double") and #GAMESTATE:GetHumanPlayers() == 1) and event.PlayerNumber ~= GAMESTATE:GetMasterPlayerNumber()) then return false	end
 
 	if IsOwnPress(event) and Handle[event.GameButton] then
 		Handle[event.GameButton](event)

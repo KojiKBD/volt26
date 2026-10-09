@@ -57,7 +57,23 @@ local pressSize = {w = 409, h = 114}
 -- The name: two cutout slots used alternately, so the name on screen stays
 -- until its successor has finished rendering (about half a second).
 
-local names = { slots = {}, active = 1, shown = nil, wanted = nil, pending = nil }
+local names = { slots = {}, active = 1, shown = nil, wanted = nil, pending = nil, direction = 0 }
+local nameX, nameY = L.name.x * sx, L.name.y * sy
+local slide = 40 * sx
+
+-- When a new name is ready it slams in from the side the cursor moved
+-- towards, and the old one flicks out the other way.  The old slot is reset
+-- once its fade ends, because a slot only renders while fully opaque and
+-- still.
+local function SwapNames(incoming, outgoing)
+	local dir = names.direction
+	incoming:finishtweening():playcommand("CutoutHold", {held = false})
+	incoming:xy(nameX + dir * slide, nameY):zoom(1.3):rotationz(L.name.rot - dir * 6)
+		:decelerate(0.18):xy(nameX, nameY):zoom(1):rotationz(L.name.rot)
+	outgoing:finishtweening():linear(0.12)
+		:xy(nameX - dir * slide, nameY):zoom(0.8):diffusealpha(0)
+		:queuecommand("Retire")
+end
 
 local function nameSlot(index)
 	return VOLT26.Cutout.CreateSlot{
@@ -72,10 +88,15 @@ local function nameSlot(index)
 		onReady = function(slot)
 			-- Only the slot being prepared, and only for the name still wanted.
 			if slot ~= names.slots[3 - names.active] or names.pending ~= names.wanted then return end
-			slot:playcommand("CutoutHold", {held = false})
-			names.slots[names.active]:playcommand("CutoutHold", {held = true})
+			local outgoing = names.slots[names.active]
 			names.active = 3 - names.active
 			names.shown = names.wanted
+			SwapNames(slot, outgoing)
+		end,
+	}..{
+		RetireCommand=function(self)
+			self:playcommand("CutoutHold", {held = true})
+			self:xy(nameX, nameY):zoom(1):rotationz(L.name.rot):diffusealpha(1)
 		end,
 	}
 end
@@ -127,10 +148,16 @@ local function SetAvatar(avatar, path)
 	avatar:scaletoclipped(L.avatar.w * sx, L.avatar.h * sy)
 end
 
+local lastCursor = nil
+
 local function Render(frame)
 	local item = Selection.Get(player)
 	local ready = Selection.IsReady(player)
 	local cursor, count = Selection.Cursor(player), Selection.Count()
+
+	-- Which way the name should travel: towards the side the cursor moved.
+	names.direction = (lastCursor and cursor ~= lastCursor) and (cursor > lastCursor and 1 or -1) or 0
+	lastCursor = cursor
 
 	local avatar = frame:GetChild("Avatar")
 	SetAvatar(avatar, item and item.index and avatars[item.index] or nil)
@@ -193,6 +220,7 @@ return Def.ActorFrame{
 	SetStateCommand=function(self, params)
 		local state = params and params.State or "join"
 		currentState = state
+		names.direction = 0
 
 		local avatar = self:GetChild("Avatar")
 		local press = self:GetChild("Press")
