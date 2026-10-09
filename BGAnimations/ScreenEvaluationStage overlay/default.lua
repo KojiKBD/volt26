@@ -13,8 +13,12 @@
 -- banner and BPM line stay hidden because the card shows them.
 
 local details = LoadActor("./Details.lua")
-local summary = LoadActor("./Summary.lua")
-local casual = VOLT26.Gameplay.IsCasual()
+-- Scripts/ are only read when ITGmania starts, so a screen reload after a theme
+-- update can run this file against older helpers.  Without the summary's data
+-- helpers, show the inherited view instead of raising an error.
+local summaryAvailable = VOLT26.Results.GetSummary ~= nil and VOLT26.Analysis.BuildHistogram ~= nil
+local summary = summaryAvailable and LoadActor("./Summary.lua") or Def.ActorFrame{ Name="VOLT26Summary" }
+local casual = VOLT26.Gameplay.IsCasual() or not summaryAvailable
 
 local alwaysHidden = { "TitleAndBanner", "SongFeatures" }
 local ready, detailsShown = false, casual
