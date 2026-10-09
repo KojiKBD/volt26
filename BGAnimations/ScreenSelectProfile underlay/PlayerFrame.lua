@@ -1,12 +1,14 @@
 -- One player's "WANTED" card on ScreenSelectProfile.
 --
--- The card, its concentric stripes, the PRESS START lettering and the arrow
+-- The card frame, the stock avatar, the PRESS START lettering and the arrow
 -- wings come from the Illustrator layout (Graphics/VOLT26/ProfileSelect, a
--- 1920x1080 artboard); every position below is in artboard pixels.  On the card
--- sits the focused profile's avatar -- the profile's own picture when it has one
--- (VOLT26.Profile.GetAvatarPath); without one the card shows only its stripes
--- until a base avatar is chosen -- and beneath it the profile's name in cutout
--- lettering (VOLT26.Cutout).
+-- 1920x1080 artboard); every position below is in artboard pixels.  The card is
+-- built upright in its own coordinates and turned by its tilt: a red field with
+-- concentric black rings drawn live as radio waves spreading from the bottom
+-- right corner, the focused profile's avatar over it -- the profile's own
+-- picture when it has one (VOLT26.Profile.GetAvatarPath), the stock avatar
+-- otherwise -- and the white frame on top.  Beneath the card is the profile's
+-- name in cutout lettering (VOLT26.Cutout).
 --
 -- The wings are the browse arrows: each shows only while there is a profile in
 -- its direction.  Nothing here decides anything: the cursor lives in
@@ -24,13 +26,12 @@ local function asset(name)
 	return THEME:GetPathG("", "VOLT26/ProfileSelect/" .. name .. ".png")
 end
 
--- Artboard geometry.  The P1 card is the left one in the design; P2's avatar,
+-- Artboard geometry.  The P1 card is the left one in the design; P2's
 -- PRESS START and name positions are the P1 ones carried through each card's
 -- own transform.
 local layout = {
 	P1 = {
-		card   = {x = 257, y = 389, w = 369, h = 461},
-		avatar = {x = 291.28, y = 533.49, w = 271.95, h = 266.4, rot = -8.46},
+		center = {x = 441.75, y = 619.27}, rot = -8.46,
 		press  = {x = 449.34, y = 629.24},
 		name   = {x = 440.99, y = 821.34, rot = 0.67},
 		-- right wing, left wing (triangle vertices)
@@ -40,8 +41,7 @@ local layout = {
 		},
 	},
 	P2 = {
-		card   = {x = 1323, y = 262, w = 336, h = 438},
-		avatar = {x = 1361.77, y = 365.62, w = 271.95, h = 266.4, rot = 3.64},
+		center = {x = 1490.91, y = 481.03}, rot = 3.64,
 		press  = {x = 1498.5, y = 491.0},
 		name   = {x = 1452.57, y = 681.94, rot = 3.64},
 		wings  = {
@@ -52,6 +52,24 @@ local layout = {
 }
 local L = layout[pn]
 local pressSize = {w = 409, h = 114}
+
+-- The card in its own upright coordinates (card pixels from its top-left).
+-- The frame and stock-avatar images carry an 8-pixel margin around the card.
+local cardW, cardH = 304.04, 413.15
+local imageMargin = 8
+local customAvatar = {x = 15.81, y = 99.59, w = 271.95, h = 266.4}
+
+-- Rings: radii and width from the design, spreading out from the corner.
+local waves = {
+	first = 43.6, step = 64.105, width = 30, count = 9, segments = 20,
+	period = 1.6,   -- seconds for the rings to travel one step
+	field = color("#E8002D"), ink = {0, 0, 0, 1},
+}
+
+-- Card-local point (card pixels from the top-left) to the card frame's
+-- coordinates, which are centred on the card.
+local function cx(u) return (u - cardW / 2) * sx end
+local function cy(v) return (v - cardH / 2) * sy end
 
 -- ----------------------------------------------------------------------------
 -- The name: two cutout slots used alternately, so the name on screen stays
@@ -134,18 +152,25 @@ end
 -- profile does not reload the file.
 local avatarPath = nil
 
-local function SetAvatar(avatar, path)
-	if not path then
-		avatar:visible(false)
+-- shown: false (no portrait, as on an unjoined card), or the profile's own
+-- avatar path, or nil for the stock avatar.
+local function SetAvatar(frame, path, shown)
+	local portrait = frame:GetChild("Card"):GetChild("Portrait")
+	local custom, stock = portrait:GetChild("Avatar"), portrait:GetChild("Stock")
+	if shown == false then
+		custom:visible(false); stock:visible(false)
 		return
 	end
-	avatar:visible(true)
-	if avatarPath ~= path then
-		avatarPath = path
-		avatar:Load(path)
+	stock:visible(path == nil)
+	custom:visible(path ~= nil)
+	if path then
+		if avatarPath ~= path then
+			avatarPath = path
+			custom:Load(path)
+		end
+		custom:align(0, 0):xy(cx(customAvatar.x), cy(customAvatar.y))
+		custom:scaletoclipped(customAvatar.w * sx, customAvatar.h * sy)
 	end
-	avatar:align(0, 0):xy(L.avatar.x * sx, L.avatar.y * sy):rotationz(L.avatar.rot)
-	avatar:scaletoclipped(L.avatar.w * sx, L.avatar.h * sy)
 end
 
 local lastCursor = nil
@@ -159,9 +184,8 @@ local function Render(frame)
 	names.direction = (lastCursor and cursor ~= lastCursor) and (cursor > lastCursor and 1 or -1) or 0
 	lastCursor = cursor
 
-	local avatar = frame:GetChild("Avatar")
-	SetAvatar(avatar, item and item.index and avatars[item.index] or nil)
-	avatar:finishtweening():zoom(1.04):decelerate(0.12):zoom(1)
+	SetAvatar(frame, item and item.index and avatars[item.index] or nil)
+	frame:GetChild("Card"):GetChild("Portrait"):finishtweening():zoom(1.04):decelerate(0.12):zoom(1)
 
 	SetName(item and item.displayname or "")
 
@@ -172,14 +196,106 @@ end
 
 local currentState = "join"
 
+-- ----------------------------------------------------------------------------
+-- The card.  The red field and its rings are drawn into a texture every frame
+-- (the texture's edge is the card's edge, so the rings are clipped for free)
+-- and shown upright inside the card frame, which carries the tilt.
+
+local displayScale = math.max(1, DISPLAY:GetDisplayHeight() / SCREEN_HEIGHT)
+local kx, ky = sx * displayScale, sy * displayScale   -- texture pixels per card pixel
+local texW, texH = math.ceil(cardW * kx), math.ceil(cardH * ky)
+
+-- One quad per ring segment, four vertices each, allocated once and moved in
+-- place every frame.  The rings only cover the quarter of the circle that
+-- faces into the card from its bottom-right corner.
+local ringVertices = {}
+for i = 1, waves.count * waves.segments * 4 do
+	ringVertices[i] = {{0, 0, 0}, waves.ink}
+end
+
+local function MoveRings(amv, phase)
+	local ox, oy = cardW * kx, cardH * ky
+	local n = 0
+	for ring = 0, waves.count - 1 do
+		local radius = waves.first + (ring - 1 + phase) * waves.step
+		local inner = math.max(0, radius - waves.width / 2)
+		local outer = math.max(0, radius + waves.width / 2)
+		for seg = 0, waves.segments - 1 do
+			local a0 = math.pi + (seg / waves.segments) * math.pi / 2
+			local a1 = math.pi + ((seg + 1) / waves.segments) * math.pi / 2
+			local c0, s0, c1, s1 = math.cos(a0), math.sin(a0), math.cos(a1), math.sin(a1)
+			local quad = {
+				{outer * c0, outer * s0}, {outer * c1, outer * s1},
+				{inner * c1, inner * s1}, {inner * c0, inner * s0},
+			}
+			for _, point in ipairs(quad) do
+				n = n + 1
+				local position = ringVertices[n][1]
+				position[1] = ox + point[1] * kx
+				position[2] = oy + point[2] * ky
+			end
+		end
+	end
+	amv:SetVertices(ringVertices)
+end
+
+local wavePhase = 0
+
+local function image(name)
+	return Def.Sprite{
+		Texture=asset(name),
+		InitCommand=function(self)
+			self:align(0, 0):xy(cx(-imageMargin), cy(-imageMargin))
+				:zoomto((cardW + imageMargin * 2) * sx, (cardH + imageMargin * 2) * sy)
+		end,
+	}
+end
+
 local card = Def.ActorFrame{
 	Name="Card",
-	Def.Sprite{
-		Texture=asset("card_" .. pn:lower()),
+	InitCommand=function(self)
+		self:xy(L.center.x * sx, L.center.y * sy):rotationz(L.rot)
+	end,
+	Def.ActorFrameTexture{
+		Name="WaveTexture",
 		InitCommand=function(self)
-			self:align(0, 0):xy(L.card.x * sx, L.card.y * sy):zoomto(L.card.w * sx, L.card.h * sy)
+			self:setsize(texW, texH)
+			self:SetTextureName("VOLT26ProfileWaves" .. pn)
+			self:EnableAlphaBuffer(false)
+			self:Create()
+		end,
+		Def.Quad{
+			InitCommand=function(self)
+				self:align(0, 0):zoomto(texW, texH):diffuse(waves.field)
+			end,
+		},
+		Def.ActorMultiVertex{
+			InitCommand=function(self)
+				self:SetDrawState{Mode="DrawMode_Quads"}
+				MoveRings(self, 0)
+				self:SetUpdateFunction(function(amv, delta)
+					wavePhase = (wavePhase + delta / waves.period) % 1
+					MoveRings(amv, wavePhase)
+				end)
+			end,
+		},
+	},
+	Def.Sprite{
+		InitCommand=function(self)
+			self:SetTexture(self:GetParent():GetChild("WaveTexture"):GetTexture())
+			self:align(0, 0):xy(cx(0), cy(0)):zoom(1 / displayScale)
 		end,
 	},
+	Def.ActorFrame{
+		Name="Portrait",
+		image("avatar_stock")..{ Name="Stock", InitCommand=function(self)
+			self:align(0, 0):xy(cx(-imageMargin), cy(-imageMargin))
+				:zoomto((cardW + imageMargin * 2) * sx, (cardH + imageMargin * 2) * sy)
+				:visible(false)
+		end },
+		Def.Sprite{ Name="Avatar", InitCommand=function(self) self:visible(false) end },
+	},
+	image("card_frame_" .. pn:lower()),
 }
 
 return Def.ActorFrame{
@@ -222,13 +338,12 @@ return Def.ActorFrame{
 		currentState = state
 		names.direction = 0
 
-		local avatar = self:GetChild("Avatar")
 		local press = self:GetChild("Press")
 		self:GetChild("WingRight"):visible(false)
 		self:GetChild("WingLeft"):visible(false)
 
 		if state == "join" then
-			avatar:visible(false)
+			SetAvatar(self, nil, false)
 			if IsArcade() and not GAMESTATE:EnoughCreditsToJoin() then
 				press:visible(false)
 				SetName(THEME:GetString("ScreenSelectProfile", "EnterCreditsToJoin"))
@@ -238,7 +353,7 @@ return Def.ActorFrame{
 			end
 		elseif state == "card" then
 			press:visible(false)
-			SetAvatar(avatar, nil)
+			SetAvatar(self, nil)
 			SetName(MEMCARDMAN:GetName(player))
 		else
 			Render(self)
@@ -246,10 +361,6 @@ return Def.ActorFrame{
 	end,
 
 	card,
-	Def.Sprite{
-		Name="Avatar",
-		InitCommand=function(self) self:visible(false) end,
-	},
 	Def.Sprite{
 		Name="Press",
 		Texture=asset("press_start"),
