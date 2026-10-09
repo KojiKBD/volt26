@@ -51,7 +51,8 @@ local function arrow(spec)
 		},
 		Def.ActorMultiVertex{
 			InitCommand=function(self)
-				self:SetDrawState{Mode="DrawMode_LineStrip"}:SetLineWidth(2)
+				self:SetDrawState{Mode="DrawMode_LineStrip"}
+				self:SetLineWidth(2)
 				self:SetVertices{ v(1, white), v(3, white), v(5, white), v(1, white) }
 			end,
 		},

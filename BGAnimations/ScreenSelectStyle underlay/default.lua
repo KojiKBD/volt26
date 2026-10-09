@@ -50,6 +50,10 @@ end
 -- either 1 (single) or 2 (versus)
 local current_index = #GAMESTATE:GetHumanPlayers()
 
+-- Which way the cursor last moved, read by choice.lua so a face slides in from
+-- that side.
+local shared = { direction = 1 }
+
 ------------------------------------------------------------------------------------
 
 local EnableChoices = function()
@@ -214,7 +218,8 @@ local function input(event)
 
 		if event.GameButton == "MenuRight" or event.GameButton == "MenuLeft" then
 			local prev_index = current_index
-			GetNextEnabledChoice(event.GameButton=="MenuRight" and 1 or -1)
+			shared.direction = event.GameButton=="MenuRight" and 1 or -1
+			GetNextEnabledChoice(shared.direction)
 
 			for i, child in ipairs( af:GetChild("") ) do
 				if i == current_index then
@@ -314,7 +319,7 @@ local t = Def.ActorFrame{
 }
 
 for i,choice in ipairs(choices) do
-	t[#t+1] = LoadActor("./choice.lua", {choice, i} )
+	t[#t+1] = LoadActor("./choice.lua", {choice, i, shared} )
 end
 
 t[#t+1] = LoadActor( THEME:GetPathS("ScreenSelectMaster", "change") )..{ Name="Change", IsAction=true, SupportPan=false }
