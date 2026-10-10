@@ -251,3 +251,19 @@ function PackSelection.Choose(group)
 	PackSelection.LastPack = group
 	return true
 end
+
+-- The two music selection screens are drawn to read as one: the chosen pack's
+-- jacket travels between the pack carousel and the song wheel's header while
+-- the screen underneath changes.  The screen being left records which way the
+-- players are going and the screen being entered takes it, once, to choose its
+-- entrance.  Values: "ToSongWheel" (a pack was opened) and "FromSongWheel"
+-- (Back from the song wheel).  Any other entry finds nil.
+function PackSelection.SetHandoff(direction)
+	PackSelection.handoff = direction
+end
+
+function PackSelection.TakeHandoff()
+	local direction = PackSelection.handoff
+	PackSelection.handoff = nil
+	return direction
+end

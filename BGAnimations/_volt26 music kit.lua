@@ -217,6 +217,58 @@ function K.Initials(name)
 	return table.concat(letters)
 end
 
+-- Shared screen furniture ---------------------------------------------------
+--
+-- Both screens wear the same header and footer bands, in the same places, so
+-- that moving between them only changes the words in them.  The chosen pack's
+-- jacket shrinks into the song wheel header as a badge and grows back out of
+-- it; K.Badge is that spot, and K.TileSize the jacket's full carousel size.
+K.HeaderHeight = 96
+K.FooterTop = 1004
+K.TileSize = 440
+K.Badge = { X = 1036, Y = 48, Size = 72 }
+-- Seconds of the shared hand-off motion.  The screens' out and cancel
+-- transitions hold for K.HandoffHold so the motion finishes before the next
+-- screen replaces this one.
+K.HandoffSeconds = 0.32
+K.HandoffHold = 0.36
+
+function K.ModeText()
+	local style = GAMESTATE:GetCurrentStyle()
+	local parts = { (style and style:GetName() or ""):upper() }
+	parts[#parts+1] = #GAMESTATE:GetHumanPlayers() > 1 and K.String("Versus") or K.String("Solo")
+	if GAMESTATE:IsCourseMode() then parts[#parts+1] = K.String("Marathon") end
+	return table.concat(parts, "   /   ")
+end
+
+-- Header and footer bands with the screen title, the play mode under it and
+-- the button hints.  t = {Title, Hints}.  The words fade in on "ChromeIn" and
+-- out on "ChromeOut"; the bands themselves never move.
+function K.Chrome(t)
+	local function words(def)
+		def.ChromeInCommand = function(self)
+			self:stoptweening():diffusealpha(0):sleep(0.08):linear(0.18):diffusealpha(1)
+		end
+		def.ChromeOutCommand = function(self)
+			self:stoptweening():linear(0.12):diffusealpha(0)
+		end
+		return def
+	end
+	local af = Def.ActorFrame{ Name="Chrome" }
+	af[#af+1] = K.Rule{ Name="HeaderBand", X=-K.W, Width=K.W*3, Height=K.HeaderHeight, Tint=K.Bg, Alpha=0.94 }
+	af[#af+1] = K.Rule{ Name="HeaderDivider", Y=K.HeaderHeight-1, Width=K.W, Height=1 }
+	af[#af+1] = K.Rule{ Name="Mark", X=40, Y=26, Width=6, Height=44, Tint=K.Accent }
+	af[#af+1] = words(K.Text{ Name="Title", Px=30, Tint=K.Ink, X=62, Y=38, Text=t.Title })
+	local mode = K.Text{ Name="Mode", Px=12, Tint=K.Dim, X=62, Y=72, Text=K.ModeText() }
+	mode.PlayerJoinedMessageCommand = function(self) K.SetLabel(self, K.ModeText(), 12) end
+	mode.PlayerUnjoinedMessageCommand = mode.PlayerJoinedMessageCommand
+	af[#af+1] = mode
+	af[#af+1] = K.Rule{ Name="FooterBand", X=-K.W, Y=K.FooterTop, Width=K.W*3, Height=K.H, Tint=K.Bg, Alpha=0.94 }
+	af[#af+1] = K.Rule{ Name="FooterDivider", Y=K.FooterTop, Width=K.W, Height=1 }
+	af[#af+1] = words(K.Text{ Name="Hints", Px=13, Tint=K.Mute, X=40, Y=K.FooterTop+38, Text=t.Hints })
+	return af
+end
+
 function K.Wheel()
 	local screen = SCREENMAN:GetTopScreen()
 	return screen and screen.GetMusicWheel and screen:GetMusicWheel() or nil

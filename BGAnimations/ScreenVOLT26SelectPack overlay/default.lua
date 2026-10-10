@@ -6,6 +6,13 @@
 -- Back has to be pressed twice, standing in for the exit prompt the song wheel
 -- used to show.
 --
+-- The pack step and the song wheel are two screens drawn to read as one: the
+-- same backdrop and header/footer bands (K.Chrome), and the chosen jacket
+-- travels between them.  Opening a pack shrinks the focused jacket into the
+-- song wheel's header badge (K.Badge) while the other jackets slide away;
+-- coming back grows it out of the badge into the carousel again.  The screen's
+-- out transition only holds (K.HandoffHold) so the motion is not covered.
+--
 -- Pack data comes from VOLT26.PackSelection; this file owns the actors, the
 -- carousel motion and the input.  The carousel recycles a fixed pool of tiles:
 -- each tile keeps an offset from the focused slot, and only a tile that wraps
@@ -22,18 +29,23 @@ local focus = PackSelection.InitialIndex(packs)
 
 local POOL = 9                 -- tiles in the pool: offsets -4 .. 4
 local HALF = (POOL - 1) / 2
-local FOCUS_SIZE = 440
+local FOCUS_SIZE = K.TileSize
 local SIDE_SIZE = 280
 local GAP = 28
 local SIDE_ZOOM = SIDE_SIZE / FOCUS_SIZE
 local CENTER_X = K.W / 2
-local CENTER_Y = 480
+local CENTER_Y = 500
 local MOVE_SECONDS = 0.14
 local JUMP = 5
 local ART_IDLE = 0.08          -- rest before artwork starts loading
 local DETAIL_IDLE = 0.12       -- rest before the pack summary is computed
 local LOAD_REACH = 3           -- tiles further out are off screen
 local EXIT_WINDOW = 2.0        -- event mode: seconds for the second Back
+
+-- The header badge, in the carousel's own coordinates.
+local BADGE_X = K.Badge.X
+local BADGE_Y = K.Badge.Y - CENTER_Y
+local BADGE_ZOOM = K.Badge.Size / FOCUS_SIZE
 
 local root
 local tiles = {}
@@ -43,6 +55,7 @@ local finished = false
 local exitArmedAt = nil
 local timerSeen = false
 local checkTimer = VOLT26.MenuTimer.IsEnabledForSongSelect()
+local handoff = PackSelection.TakeHandoff()
 
 local function wrap(index)
 	return ((index - 1) % count) + 1
@@ -69,55 +82,10 @@ end
 
 local function setContent(tile)
 	local entry = count > 0 and packs[wrap(focus + tile.offset)] or nil
-	tile.group = entry and entry.Name or nil
-	local body = tile:GetChild("Body")
-	K.SetLabel(body:GetChild("Plate"):GetChild("Name"), (tile.group or ""):upper(), 20, FOCUS_SIZE - 48)
-	body:GetChild("Initials"):settext(K.Initials(tile.group))
-	if tile.loadedGroup ~= tile.group then
-		body:GetChild("Art"):visible(false)
-		body:GetChild("Fill"):visible(false)
-		tile.loadedGroup = nil
-		tile.artPending = tile.group ~= nil
-	end
+	tile:playcommand("SetPack", { Group = entry and entry.Name or nil })
 end
 
-local function loadArt(tile)
-	tile.artPending = false
-	tile.loadedGroup = tile.group
-	local body = tile:GetChild("Body")
-	local art, fill = body:GetChild("Art"), body:GetChild("Fill")
-	art:visible(false)
-	fill:visible(false)
-	if not tile.group then return end
-
-	local info = PackSelection.Artwork(tile.group)
-	if not info then return end
-	if info.Kind == "Jacket" then
-		if K.LoadStill(art, info.Path) then
-			K.Cover(art, FOCUS_SIZE, FOCUS_SIZE)
-			art:visible(true)
-		end
-	else
-		if K.LoadStill(fill, info.Path, "Banner") then
-			K.Cover(fill, FOCUS_SIZE, FOCUS_SIZE)
-			fill:diffusealpha(0.28):visible(true)
-		end
-		if K.LoadStill(art, info.Path, "Banner") then
-			K.Contain(art, FOCUS_SIZE - 40, FOCUS_SIZE - 40)
-			art:visible(true)
-		end
-	end
-end
-
-local function placeTile(tile, animate)
-	local offset = tile.offset
-	local focused = offset == 0
-	tile:stoptweening()
-	if animate then tile:decelerate(MOVE_SECONDS) end
-	tile:x(CENTER_X + slotX(offset))
-		:zoom(focused and 1 or SIDE_ZOOM)
-		:diffusealpha(inWindow(offset) and slotAlpha(offset) or 0)
-
+local function setFocusLook(tile, focused, animate)
 	local body = tile:GetChild("Body")
 	local plate = body:GetChild("Plate")
 	plate:stoptweening()
@@ -126,18 +94,35 @@ local function placeTile(tile, animate)
 	body:GetChild("Frame"):visible(focused)
 end
 
+local function placeTile(tile, animate)
+	local offset = tile.offset
+	tile:stoptweening()
+	if animate then tile:decelerate(MOVE_SECONDS) end
+	tile:x(CENTER_X + slotX(offset)):y(0)
+		:zoom(offset == 0 and 1 or SIDE_ZOOM)
+		:diffusealpha(inWindow(offset) and slotAlpha(offset) or 0)
+	setFocusLook(tile, offset == 0, animate)
+end
+
+local function focusedTile()
+	for _, tile in ipairs(tiles) do
+		if tile.offset == 0 then return tile end
+	end
+	return nil
+end
+
 -- Details -------------------------------------------------------------------
 
 local function refreshName()
 	local name = root:GetChild("Details"):GetChild("Name")
-	local position = root:GetChild("Header"):GetChild("Position")
+	local position = root:GetChild("Position")
 	if count == 0 then
 		K.SetDisplay(name, "", 56)
-		K.SetLabel(position, "", 16)
+		K.SetLabel(position, "", 13)
 		return
 	end
 	K.SetDisplay(name, packs[focus].Name, 56, 1500)
-	K.SetLabel(position, string.format("%03d / %03d", focus, count), 16)
+	K.SetLabel(position, string.format("%03d / %03d", focus, count), 13)
 end
 
 local function refreshDetails()
@@ -158,6 +143,54 @@ local function refreshDetails()
 		end
 	end
 	K.SetLabel(info, table.concat(parts, "   /   "), 18, 1500)
+end
+
+-- Entrances and exits --------------------------------------------------------
+
+-- Coming back from the song wheel: the focused jacket grows out of the header
+-- badge into the middle and the rest of the carousel slides in around it.
+local function enterFromSongWheel()
+	for _, tile in ipairs(tiles) do
+		local offset = tile.offset
+		if offset == 0 then
+			tile:stoptweening():xy(BADGE_X, BADGE_Y):zoom(BADGE_ZOOM):diffusealpha(1)
+				:decelerate(K.HandoffSeconds):xy(CENTER_X, 0):zoom(1)
+		else
+			local side = offset > 0 and 1 or -1
+			tile:stoptweening():xy(CENTER_X + slotX(offset) + side * 360, 0)
+				:zoom(SIDE_ZOOM):diffusealpha(0)
+				:sleep(0.08):decelerate(K.HandoffSeconds)
+				:x(CENTER_X + slotX(offset))
+				:diffusealpha(inWindow(offset) and slotAlpha(offset) or 0)
+		end
+	end
+	local details = root:GetChild("Details")
+	details:stoptweening():diffusealpha(0):addy(16):sleep(0.16):decelerate(0.2):diffusealpha(1):addy(-16)
+	root:GetChild("Position"):stoptweening():diffusealpha(0):sleep(0.16):linear(0.2):diffusealpha(1)
+	root:GetChild("Chrome"):playcommand("ChromeIn")
+end
+
+local function enterFresh()
+	local carousel = root:GetChild("Carousel")
+	carousel:diffusealpha(0):addy(24):decelerate(0.25):diffusealpha(1):addy(-24)
+end
+
+-- Opening a pack: the focused jacket shrinks into the song wheel's header
+-- badge, the others slide out to their own side, and the words fade.
+local function leaveToSongWheel()
+	for _, tile in ipairs(tiles) do
+		local offset = tile.offset
+		if offset == 0 then
+			tile:GetChild("Body"):GetChild("Frame"):visible(false)
+			tile:stoptweening():decelerate(K.HandoffSeconds):xy(BADGE_X, BADGE_Y):zoom(BADGE_ZOOM)
+		else
+			local side = offset > 0 and 1 or -1
+			tile:stoptweening():accelerate(0.22):addx(side * 420):diffusealpha(0)
+		end
+	end
+	root:GetChild("Details"):stoptweening():linear(0.12):diffusealpha(0)
+	root:GetChild("Position"):stoptweening():linear(0.12):diffusealpha(0)
+	root:GetChild("Chrome"):playcommand("ChromeOut")
 end
 
 -- Actions -------------------------------------------------------------------
@@ -190,7 +223,7 @@ local function move(direction, steps)
 	idle = 0
 	detailsDirty = true
 	exitArmedAt = nil
-	root:GetChild("Footer"):GetChild("Notice"):stoptweening():diffusealpha(0)
+	root:GetChild("Notice"):stoptweening():diffusealpha(0)
 	refreshName()
 	play("Change")
 end
@@ -203,13 +236,12 @@ local function choose()
 	end
 	finished = true
 	play("Start")
-	for _, tile in ipairs(tiles) do
-		if tile.offset == 0 then
-			tile:stoptweening():decelerate(0.12):zoom(1.06)
-		else
-			tile:stoptweening():linear(0.18):diffusealpha(0)
-		end
-	end
+	-- The badge in the song wheel header shows the same artwork; make sure the
+	-- jacket that flies there already has it.
+	local tile = focusedTile()
+	if tile and tile.artPending then tile:playcommand("LoadPackArt") end
+	PackSelection.SetHandoff("ToSongWheel")
+	leaveToSongWheel()
 	local screen = SCREENMAN:GetTopScreen()
 	screen:SetNextScreenName("ScreenSelectMusic")
 	screen:StartTransitioningScreen("SM_GoToNextScreen")
@@ -237,7 +269,7 @@ local function back()
 	end
 	exitArmedAt = now
 	play("Invalid")
-	root:GetChild("Footer"):GetChild("Notice"):stoptweening():diffusealpha(1)
+	root:GetChild("Notice"):stoptweening():diffusealpha(1)
 		:sleep(EXIT_WINDOW):linear(0.2):diffusealpha(0)
 end
 
@@ -298,16 +330,21 @@ local af = Def.ActorFrame{
 			setContent(tile)
 			placeTile(tile, false)
 		end
+		-- The focused jacket is on screen from the first frame (and is the
+		-- one that may have just grown out of the header), so its artwork is
+		-- not deferred.
+		local focused = focusedTile()
+		if focused and focused.artPending then focused:playcommand("LoadPackArt") end
 		refreshName()
 		refreshDetails()
 		detailsDirty = false
-		carousel:diffusealpha(0):addy(24):decelerate(0.25):diffusealpha(1):addy(-24)
+		if handoff == "FromSongWheel" then enterFromSongWheel() else enterFresh() end
 
 		local elapsed = 0
 		self:SetUpdateFunction(function(frame, delta)
 			delta = delta or 0
 			idle = idle + delta
-			if idle >= ART_IDLE then
+			if idle >= ART_IDLE and not finished then
 				local best
 				for _, tile in ipairs(tiles) do
 					local reach = math.abs(tile.offset)
@@ -316,7 +353,7 @@ local af = Def.ActorFrame{
 						best = tile
 					end
 				end
-				if best then loadArt(best) end
+				if best then best:playcommand("LoadPackArt") end
 			end
 			if detailsDirty and idle >= DETAIL_IDLE then
 				detailsDirty = false
@@ -336,13 +373,29 @@ local af = Def.ActorFrame{
 	end,
 }
 
--- Header
-local header = Def.ActorFrame{ Name="Header" }
-header[#header+1] = K.Text{ Name="Kicker", Px=13, Tint=K.Accent, X=80, Y=52, Text=K.String("PackKicker") }
-header[#header+1] = K.Text{ Name="Title", Px=40, Tint=K.Ink, X=80, Y=96, Text=K.String("PackTitle") }
-header[#header+1] = K.Text{ Name="Position", Px=16, Tint=K.Mute, Align=right, X=K.W-80, Y=96 }
-header[#header+1] = K.Rule{ X=80, Y=136, Width=K.W-160, Height=1 }
-af[#af+1] = header
+-- The header and footer bands come first: the jacket flying to the header
+-- badge has to pass over them.
+af[#af+1] = K.Chrome{
+	Title = K.String("PackTitle"),
+	Hints = table.concat({ K.String("HintPack"), K.String("HintJump"), K.String("HintOpen"), K.String("HintExit") }, "        "),
+}
+-- Where the song wheel shows the song's place in its pack, the pack step shows
+-- the pack's place in the list.
+af[#af+1] = K.Text{ Name="Position", Px=13, Tint=K.Mute, X=K.Badge.X + K.Badge.Size/2 + 18, Y=72 }
+af[#af+1] = Def.BitmapText{
+	Name="Notice", Font=K.Label,
+	InitCommand=function(self)
+		self:xy(K.W-40, K.FooterTop+38):horizalign(right):shadowlength(0)
+			:zoom(VOLT26.Type.LabelZoom(13)):diffuse(K.Accent):diffusealpha(0)
+			:settext(K.String("PressBackAgain"))
+	end,
+}
+
+-- Focused pack details
+local details = Def.ActorFrame{ Name="Details" }
+details[#details+1] = K.Text{ Name="Name", Role="Display", Px=56, Tint=K.Ink, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 80 }
+details[#details+1] = K.Text{ Name="Info", Px=18, Tint=K.Mute, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 138 }
+af[#af+1] = details
 
 -- Carousel
 local carousel = Def.ActorFrame{
@@ -353,29 +406,6 @@ for i = 1, POOL do
 	carousel[#carousel+1] = LoadActor("./Tile.lua", { K=K, Size=FOCUS_SIZE, Name="Tile" .. i })
 end
 af[#af+1] = carousel
-
--- Focused pack details
-local details = Def.ActorFrame{ Name="Details" }
-details[#details+1] = K.Text{ Name="Name", Role="Display", Px=56, Tint=K.Ink, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 80 }
-details[#details+1] = K.Text{ Name="Info", Px=18, Tint=K.Mute, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 140 }
-af[#af+1] = details
-
--- Footer
-local footer = Def.ActorFrame{ Name="Footer" }
-footer[#footer+1] = K.Rule{ X=80, Y=990, Width=K.W-160, Height=1 }
-footer[#footer+1] = K.Text{
-	Name="Hints", Px=14, Tint=K.Mute, X=80, Y=1030,
-	Text=table.concat({ K.String("HintPack"), K.String("HintJump"), K.String("HintOpen"), K.String("HintExit") }, "        "),
-}
-footer[#footer+1] = Def.BitmapText{
-	Name="Notice", Font=K.Label,
-	InitCommand=function(self)
-		self:xy(K.W-80, 1030):horizalign(right):shadowlength(0)
-			:zoom(VOLT26.Type.LabelZoom(14)):diffuse(K.Accent):diffusealpha(0)
-			:settext(K.String("PressBackAgain"))
-	end,
-}
-af[#af+1] = footer
 
 af[#af+1] = LoadActor(THEME:GetPathS("MusicWheel", "change"))..{ Name="Change", IsAction=true, SupportPan=false }
 af[#af+1] = LoadActor(THEME:GetPathS("common", "start"))..{ Name="Start", IsAction=true, SupportPan=false }

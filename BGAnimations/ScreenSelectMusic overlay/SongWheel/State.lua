@@ -51,14 +51,6 @@ function S.Position()
 	return index + 1, total
 end
 
-function S.ModeText()
-	local style = GAMESTATE:GetCurrentStyle()
-	local parts = { (style and style:GetName() or ""):upper() }
-	parts[#parts+1] = #GAMESTATE:GetHumanPlayers() > 1 and K.String("Versus") or K.String("Solo")
-	if S.IsCourseMode() then parts[#parts+1] = K.String("Marathon") end
-	return table.concat(parts, "   /   ")
-end
-
 function S.BPMText(item)
 	if not item then return K.Dash end
 	local ok, random = pcall(function() return item.IsDisplayBpmRandom and item:IsDisplayBpmRandom() end)

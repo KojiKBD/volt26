@@ -11,26 +11,94 @@
 -- sample music and the flow to options and gameplay; this overlay presents
 -- them.  Everything is laid out in the 1920x1080 design space of the shared
 -- music kit and scaled to the real screen.
+--
+-- The pack step and this screen are drawn to read as one screen: the same
+-- backdrop and bands (K.Chrome), and the pack jacket that shrinks into this
+-- header's badge on the way in grows back out of it on the way out.  Arriving
+-- from the pack step the wheel slides in from the right and the details from
+-- the left; Back plays the reverse before the (motion-only) cancel transition
+-- hands over to the pack step.
 
 local K = LoadActor(THEME:GetPathB("", "_volt26 music kit.lua"))
 local S = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/State.lua"), K)
 local G = VOLT26.MusicSelection.Wheel
 
 local modalOpen = false
+local leaving = false
+local handoff = not GAMESTATE:IsCourseMode() and VOLT26.PackSelection.TakeHandoff() or nil
+local WHEEL_SLIDE = 920        -- design units the wheel travels in and out
+local DETAILS_SLIDE = 40
 
 local function part(file, params)
 	return LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/" .. file), params)
 end
 
+local overlay
+
+local function layoutPart(name)
+	return overlay and overlay:GetChild("SongWheelLayout"):GetChild(name) or nil
+end
+
 local function leaveMusicSelection()
 	local screen = SCREENMAN:GetTopScreen()
 	if not screen then return end
+	leaving = true
+	-- Leaving music selection altogether: no hand-off, everything fades.
+	local wheel = K.Wheel()
+	if wheel then wheel:stoptweening():linear(0.2):diffusealpha(0) end
+	if overlay then layoutPart("Details"):stoptweening():linear(0.2):diffusealpha(0) end
 	pcall(function() screen:SetPrevScreenName(VOLT26.Navigation.LeaveMusicSelection()) end)
 	screen:Cancel()
 end
 
+-- Arriving from the pack step: the badge is already in place (the jacket just
+-- shrank into it), so the wheel slides in under it and the details follow.
+local function enterFromPacks()
+	local wheel = K.Wheel()
+	if wheel then
+		wheel:stoptweening():addx(WHEEL_SLIDE * K.Scale):diffusealpha(0)
+			:decelerate(K.HandoffSeconds):addx(-WHEEL_SLIDE * K.Scale):diffusealpha(1)
+	end
+	layoutPart("Details"):stoptweening():addx(-DETAILS_SLIDE):diffusealpha(0)
+		:sleep(0.06):decelerate(K.HandoffSeconds):addx(DETAILS_SLIDE):diffusealpha(1)
+	layoutPart("Header"):playcommand("SongWheelIn")
+	layoutPart("Chrome"):playcommand("ChromeIn")
+end
+
+-- Back to the pack step: the reverse.  Everything but the badge leaves; the
+-- pack step then grows its jacket out of the badge.
+local function leaveToPacks()
+	if leaving or modalOpen or GAMESTATE:IsCourseMode() then return end
+	local screen = SCREENMAN:GetTopScreen()
+	if not screen then return end
+	leaving = true
+	VOLT26.PackSelection.SetHandoff("FromSongWheel")
+	local wheel = K.Wheel()
+	if wheel then
+		wheel:stoptweening():accelerate(0.24):addx(WHEEL_SLIDE * K.Scale):diffusealpha(0)
+	end
+	layoutPart("Details"):stoptweening():accelerate(0.2):addx(-DETAILS_SLIDE):diffusealpha(0)
+	layoutPart("Header"):playcommand("SongWheelOut")
+	layoutPart("Chrome"):playcommand("ChromeOut")
+	screen:Cancel()
+end
+
+-- Back is taken here rather than left to the engine so the motion and the
+-- screen change start together.  Whichever of the two reaches Cancel first
+-- wins; the other is ignored by the screen.
+local function input(event)
+	if not event or event.type ~= "InputEventType_FirstPress" then return false end
+	if event.GameButton ~= "Back" or not event.PlayerNumber then return false end
+	-- A modal overlay redirects input away from the engine; Back belongs to it.
+	local ok, redirected = pcall(function() return SCREENMAN:get_input_redirected(event.PlayerNumber) end)
+	if ok and redirected then return false end
+	leaveToPacks()
+	return false
+end
+
 local af = Def.ActorFrame{
 	InitCommand=function(self)
+		overlay = self
 		VOLT26.MusicSelection.PrepareScreen()
 	end,
 	OnCommand=function(self)
@@ -46,7 +114,17 @@ local af = Def.ActorFrame{
 			-- left edge of the rows, on the row the selection sits on.
 			wheel:xy(K.Left + G.X * K.Scale, K.Top + G.CenterY * K.Scale):zoom(K.Scale)
 		end
+		if handoff == "ToSongWheel" then enterFromPacks() end
+		if not GAMESTATE:IsCourseMode() then SCREENMAN:GetTopScreen():AddInputCallback(input) end
 	end,
+	OffCommand=function(self)
+		leaving = true
+		local screen = SCREENMAN:GetTopScreen()
+		if screen then screen:RemoveInputCallback(input) end
+	end,
+	-- The selection is final: Back no longer means "back to the packs".
+	SongChosenMessageCommand=function(self) leaving = true end,
+	ShowPressStartForOptionsCommand=function(self) leaving = true end,
 
 	PlayerProfileSetMessageCommand=function(self, params)
 		VOLT26.MusicSelection.RefreshPlayer(params.Player, true)
@@ -62,9 +140,7 @@ local af = Def.ActorFrame{
 		elseif params.Name == "EscapeFromEventMode" then
 			leaveMusicSelection()
 		elseif params.Name == "ClosePack" then
-			if not GAMESTATE:IsCourseMode() and not modalOpen then
-				SCREENMAN:GetTopScreen():Cancel()
-			end
+			leaveToPacks()
 		end
 	end,
 	ReloadScreenForMemoryCardsMessageCommand=function(self, params)
@@ -112,7 +188,9 @@ local layout = Def.ActorFrame{
 	Name="SongWheelLayout",
 	InitCommand=function(self) self:xy(K.Left, K.Top):zoom(K.Scale) end,
 	OnCommand=function(self)
-		self:queuecommand("Settled")
+		-- Refreshed at once rather than queued, so the header badge is in place
+		-- on the first frame, where the pack step's jacket just landed.
+		self:playcommand("Refresh")
 		-- A safety net for changes the engine does not announce: compare a
 		-- small key a few times a second and refresh when it moves.
 		local elapsed = 0
@@ -155,9 +233,18 @@ details[#details+1] = part("SongInfo.lua", { K=K, S=S })
 details[#details+1] = part("Charts.lua", { K=K, S=S })
 details[#details+1] = part("PlayerPane.lua", { K=K, S=S, Player=PLAYER_1 })
 details[#details+1] = part("PlayerPane.lua", { K=K, S=S, Player=PLAYER_2 })
+local hintKeys = GAMESTATE:IsCourseMode()
+	and { "HintPlay", "HintMenu", "HintExit" }
+	or { "HintPlay", "HintPacks", "HintMenu" }
+local hints = {}
+for _, key in ipairs(hintKeys) do hints[#hints+1] = K.String(key) end
+
 layout[#layout+1] = details
+layout[#layout+1] = K.Chrome{
+	Title = K.String(GAMESTATE:IsCourseMode() and "CourseTitle" or "SongTitle"),
+	Hints = table.concat(hints, "        "),
+}
 layout[#layout+1] = part("Header.lua", { K=K, S=S })
-layout[#layout+1] = part("Footer.lua", { K=K })
 af[#af+1] = layout
 
 -- Shared modal overlays, in their original draw order -----------------------
