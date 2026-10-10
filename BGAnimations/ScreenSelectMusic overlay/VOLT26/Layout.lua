@@ -536,7 +536,9 @@ local af = Def.ActorFrame{
 			local key = table.concat({
 				tostring(H.SelectedType()), tostring(H.SelectedSection()), tostring(H.Item()),
 				tostring(H.Chart(PLAYER_1)), tostring(H.Chart(PLAYER_2)),
-				tostring(#GAMESTATE:GetHumanPlayers())
+				tostring(#GAMESTATE:GetHumanPlayers()),
+				-- Quick Mods can change the rate; BPM and length depend on it.
+				tostring(VOLT26.MusicSelection.GetMusicRate())
 			}, "|")
 			if key ~= frame._refreshKey then
 				frame._refreshKey = key

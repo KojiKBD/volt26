@@ -838,7 +838,7 @@ for player in ivalues(PlayerNumber) do
 							self.PaneIndex = 1
 						end
 					elseif event.GameButton == "Select" then
-						MESSAGEMAN:Broadcast("Code", { Name="Screenshot", PlayerNumber=player })
+						MESSAGEMAN:Broadcast("CaptureScreenshot", { PlayerNumber=player })
 					end
 
 					if event.GameButton == "MenuLeft" or event.GameButton == "MenuRight" then

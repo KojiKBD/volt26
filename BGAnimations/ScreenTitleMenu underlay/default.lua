@@ -7,9 +7,15 @@ local USE_3D_PROTOTYPE = true
 if USE_3D_PROTOTYPE then
     local prototype = LoadActor(THEME:GetPathB("ScreenTitleMenu", "underlay/Prototype3D.lua"))
     local media = LoadActor(THEME:GetPathB("ScreenTitleMenu", "underlay/Media.lua"))
+    -- Prepare the profile/color/style flow and Song Select while the player is
+    -- idle on the title menu. This actor never renders visible content.
+    local warmup = VOLT26.Warmup.CreateActor("Selection", {
+        Delay=VOLT26.Performance.IsEnabled() and 0.75 or 0.35,
+        Interval=VOLT26.Performance.IsEnabled() and 0.16 or 0.10,
+    })
     -- Register the media input callback first so a key used to dismiss the AFK
     -- video cannot also activate the title menu or restart the sky intro.
-    return Def.ActorFrame{ media, prototype }
+    return Def.ActorFrame{ media, prototype, warmup }
 end
 
 -- -----------------------------------------------------------------------

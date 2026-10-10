@@ -16,6 +16,18 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 - The 3D title menu has a hidden sixth `Special Thanks` stop at the end of the road. Its static `Serious_Thanks.png` artwork becomes readable only from the selected overhead camera pose; the entry has no Start interaction and does not leave the title screen.
 - The 3D title menu plays the new 18.093-second `Sounds/intro.ogg` exclusively during the opening vow, then starts `menuost.ogg` only after the camera has landed in the interactive menu. The closing beat fades the VOLT26 logo in and back out. The `afk.mp4` idle presentation remains available outside paid play; the train audio remains excluded, the idle timer begins after the opening cinematic, and the dismissal input cannot also activate a menu action.
 
+### Fixed
+
+- Changing the style from the Song Select sort menu, loading new songs, or opening the download viewer no longer stops with a Lua error: the handler cancelled a score request on `PaneDisplayMaster`, an actor the VOLT26 Song Select never loads.
+- Name entry is no longer skipped at the end of a set when a record earned on an earlier stage is followed by a stage without one; eligibility now accumulates across the set as in Simply Love.
+- Pressing Select while the evaluation event overlay is open captures a screenshot again. The overlay still broadcast the removed `Screenshot` code instead of the `CaptureScreenshot` message the handler listens for.
+- Changing the music rate from Quick Mods refreshes the Song Select BPM and length for the new rate.
+- The title menu warms the Song Select textures again while the player is idle; the warm-up actor had only been created by the unused classic title layout.
+- The profile picker reflects best grade and top combo from the current session instead of the values cached when it first opened.
+- Returning from player options honours a music wheel locked by the menu timer (`MusicWheelLocked` was written as `WheelLocked`).
+- The default judgment graphic points to the shipped `Love 2x7 (doubleres).png`; `ApplyMods` no longer leaks a global `OptRow`.
+- The Theme Options `Select Play Mode` row, which had no effect because VOLT26 always plays ITG mode, is no longer shown.
+
 ### Removed
 
 - `ScreenSelectColor` and the per-session colour choice it drove. The screen is gone from the screen graph (`metrics.ini`), from navigation (`Navigation.AllowScreenSelectColor` / `AfterScreenSelectColor` are folded into `Navigation.AfterSelectProfile`), and from the Theme Options menu, along with the `AllowScreenSelectColor`, `VOLT26Color` and legacy `SimplyLoveColor` preferences and their strings in every shipped language. `VOLT26/SelectColor.png` is no longer warmed up.

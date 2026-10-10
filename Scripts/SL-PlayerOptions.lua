@@ -927,7 +927,7 @@ end
 
 function ApplyMods(player)
 	for name,value in pairs(Overrides) do
-		OptRow = CustomOptionRow( name )
+		local OptRow = CustomOptionRow( name )
 
 		-- LoadSelections() and SaveSelections() expect two arguments in addition to self (the OptionRow)
 		-- first, a table of true/false values corresponding to the OptionRow's Choices table

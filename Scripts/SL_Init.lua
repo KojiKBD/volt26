@@ -6,7 +6,7 @@ local PlayerDefaults = {
 			self.ActiveModifiers = {
 				SpeedModType = "M",
 				SpeedMod = 250,
-				JudgmentGraphic = "Love 2x6 (doubleres).png",
+				JudgmentGraphic = "Love 2x7 (doubleres).png",
 				ComboFont = "Wendy",
 				HoldJudgment = "Love 1x2 (doubleres).png",
 				NoteSkin = nil,
@@ -2212,7 +2212,10 @@ end
 
 function VOLT26.Results.ApplyNameEntryEligibility(player)
 	local status = VOLT26.Results.GetRecordStatus(player)
-	VOLT26.Core.GetPlayerState(player).HighScores.EnteringName = status.enteringName
+	-- Eligibility accumulates across the set: a later stage without a record must
+	-- not cancel a record earned earlier.  The flag resets with the player state.
+	local highScores = VOLT26.Core.GetPlayerState(player).HighScores
+	highScores.EnteringName = highScores.EnteringName or status.enteringName
 	return status
 end
 

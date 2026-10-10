@@ -25,7 +25,7 @@ local Update = function(self, dt)
 	if menuTimerEnabled then
 		SL.Global.MenuTimer.ScreenSelectMusic = topscreen:GetChild("Timer"):GetSeconds()
 	end
-	SL.Global.WheelLocked = topscreen:GetMusicWheel():IsLocked()
+	SL.Global.MusicWheelLocked = topscreen:GetMusicWheel():IsLocked()
 end
 
 return Def.ActorFrame{

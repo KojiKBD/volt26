@@ -197,6 +197,12 @@ local function writeIndex(directory, index)
 		Warn("VOLT26 score index: could not write '" .. path .. "': " .. tostring(errorMessage))
 		return false
 	end
+	-- The profile picker summarizes this same file; drop its stale copy.
+	-- Invalidate everything: the picker keys by a directory string that is
+	-- built through a different engine call than this one.
+	if VOLT26.ProfileSummary and VOLT26.ProfileSummary.InvalidateAll then
+		VOLT26.ProfileSummary.InvalidateAll()
+	end
 	return true
 end
 
