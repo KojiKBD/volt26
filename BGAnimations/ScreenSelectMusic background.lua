@@ -1,1 +1,1 @@
-return LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/VOLT26/Backdrop.lua"))
+return LoadActor(THEME:GetPathB("", "_volt26 music backdrop.lua"))

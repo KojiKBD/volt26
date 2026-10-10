@@ -15,7 +15,25 @@ end
 
 function Navigation.SelectMusicOrCourse()
 	if GAMESTATE:IsCourseMode() then return "ScreenSelectCourse" end
+	-- The song wheel opens on the pack of the current or preferred song.  With
+	-- neither (for example after switching back from course mode in the Sort
+	-- Menu) there is no pack to open, so the pack step comes first.
+	if not GAMESTATE:GetCurrentSong() then
+		local ok, preferred = pcall(function() return GAMESTATE:GetPreferredSong() end)
+		if not (ok and preferred) then return "ScreenVOLT26SelectPack" end
+	end
 	return "ScreenSelectMusic"
+end
+
+-- The first entry into music selection for a set.  Songs are chosen in two
+-- steps: ScreenVOLT26SelectPack picks the pack, then ScreenSelectMusic opens
+-- the wheel on that pack alone.  Courses have no pack step.  Every return to
+-- music selection within the set (after evaluation, options, reloads) still
+-- goes through SelectMusicOrCourse and lands on the song wheel of the pack the
+-- players were already in.
+function Navigation.EnterMusicSelection()
+	if GAMESTATE:IsCourseMode() then return "ScreenSelectCourse" end
+	return "ScreenVOLT26SelectPack"
 end
 
 function Navigation.AfterScreenRankingDouble()
@@ -92,7 +110,7 @@ function Navigation.AfterEvaluationStage()
 end
 
 function Navigation.AfterSelectPlayMode()
-	return Navigation.SelectMusicOrCourse()
+	return Navigation.EnterMusicSelection()
 end
 
 function Navigation.AfterGameplay()
@@ -119,7 +137,14 @@ function Navigation.AfterSelectMusic()
 	return Branch.GameplayScreen()
 end
 
+-- Backing out of the song wheel returns to the pack step; backing out of the
+-- pack step (or of the course wheel, which has none) leaves music selection.
 function Navigation.CancelMusicSelection()
+	if not GAMESTATE:IsCourseMode() then return "ScreenVOLT26SelectPack" end
+	return Navigation.LeaveMusicSelection()
+end
+
+function Navigation.LeaveMusicSelection()
 	if GAMESTATE:GetCurrentStageIndex() > 0 then return Navigation.AllowScreenEvalSummary() end
 	return Branch.TitleMenu()
 end

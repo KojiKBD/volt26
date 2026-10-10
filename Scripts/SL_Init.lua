@@ -1237,21 +1237,20 @@ end
 
 VOLT26.MusicSelection = {}
 
--- Song Select wheel geometry, in the screen's virtual 1920x1080 design space.
--- The Song Select composition positions the wheel from these figures and
--- Graphics/VOLT26/SongSelection/MusicWheelItemNative.lua draws each row from
--- them, so the rail, the rows and the sticky pack heading cannot drift apart.
--- X is the column's left edge; GuideOffset places the rail the dots sit on and
--- is the wheel's own origin; ItemOffset places the left edge of a row's body.
--- The column stands in the middle of the screen, so each player reads their own
--- side of it instead of looking across the other's.
+-- Song wheel geometry, in the screen's virtual 1920x1080 design space.  The
+-- Song Select overlay (BGAnimations/ScreenSelectMusic overlay/SongWheel/)
+-- positions the engine wheel from these figures and the row graphic
+-- (Graphics/VOLT26/SongWheel/Row.lua) draws each row from them, so rows, the
+-- highlight and the layout cannot drift apart.  X is the left edge of every
+-- row and the wheel's own origin; CenterY is the row the selection sits on.
+-- As in Simply Love, the wheel fills the right side of the screen top to
+-- bottom and the song details take the left side.
 VOLT26.MusicSelection.Wheel = {
-	X = 640,
-	Width = 640,
-	GuideOffset = 5,
-	ItemOffset = 22,
-	Pitch = 68,
-	ItemHeight = 62,
+	X = 1000,
+	Width = 880,
+	CenterY = 540,
+	Pitch = 72,
+	ItemHeight = 66,
 }
 
 -- Every row keeps the same pitch and the selection stays on the wheel's centre,
