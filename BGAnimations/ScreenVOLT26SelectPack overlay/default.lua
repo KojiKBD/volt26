@@ -140,7 +140,11 @@ local function nameSlot(index)
 		-- The slots stand in theme units (NameLayer undoes the design scale),
 		-- so their texture matches the screen's pixels.
 		maxW = 1600 * K.Scale, maxH = 130 * K.Scale, halign = 0.5, valign = 0.5,
-		maxChars = 48, held = true,
+		-- Pack names run long ("Anime Stamina Sessions for the Energetically
+		-- Slow" is 49 characters).  Every character of headroom costs stamp
+		-- actors in both slots, so the limit is generous but finite; longer
+		-- names fall back to plain text.
+		maxChars = 64, held = true,
 		opts = { base = 70 * K.Scale, tiltDeg = -2 },
 		fallbackZoom = VOLT26.Type.DisplayZoom(56 * K.Scale),
 		onInit = function(slot) names.slots[index] = slot end,
