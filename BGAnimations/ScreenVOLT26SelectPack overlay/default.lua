@@ -4,9 +4,7 @@
 -- moves one pack, Up/Down jumps five; holding a direction keeps moving at the
 -- operator's MusicWheel scroll speed (the MusicWheelSwitchSpeed preference,
 -- set in the VOLT26 options), the same speed the song wheel scrolls at.
--- Start turns the focused jacket over to show the pack's songs on its back
--- (SongList.lua); there Up/Down scroll the list, Start opens the pack on the
--- song wheel (ScreenSelectMusic) and Back turns the jacket face up again.
+-- Start opens the focused pack on the song wheel (ScreenSelectMusic).
 -- Back on the carousel leaves music selection; in event mode it has to be
 -- pressed twice, standing in for the exit prompt the song wheel used to show.
 -- The focused pack's name is drawn in the profile screen's cutout lettering
@@ -59,7 +57,6 @@ local SLOTS = {
 local MOVE_SECONDS = 0.14
 local JUMP = 5
 local HOLD_DELAY = 0.3         -- a held direction starts repeating after this
-local FLIP_SECONDS = 0.12      -- each half of the jacket's turn
 -- The words under the splash.  The bottom of the screen is left to the credit
 -- line (player names and EVENT MODE, drawn by ScreenSystemLayer as on the main
 -- menu; ShowCreditDisplay in metrics.ini).
@@ -85,7 +82,6 @@ local checkTimer = VOLT26.MenuTimer.IsEnabledForSongSelect()
 local handoff = PackSelection.TakeHandoff()
 local held = nil               -- the direction being held, see Hold()
 local moveSeconds = MOVE_SECONDS
-local flipped = false
 
 -- Packs per second while a direction is held: the operator's MusicWheel
 -- scroll speed (ScreenOptionsService, VOLT26.OperatorOptions.MusicWheelSpeed).
@@ -145,8 +141,6 @@ local function placeTile(tile, animate)
 	local offset = tile.offset
 	local x, y, zoom, tilt, bright, shown = slot(offset)
 	tile:stoptweening()
-	-- A jacket left turned over (or mid-turn) is put face up at once.
-	tile:GetChild("Body"):finishtweening():rotationy(0)
 	if animate then tile:decelerate(moveSeconds) end
 	tile:xy(x, y):zoom(zoom):rotationz(tilt)
 		:diffuse(bright, bright, bright, (shown and inWindow(offset)) and 1 or 0)
@@ -281,46 +275,6 @@ local function leaveToSongWheel()
 	MESSAGEMAN:Broadcast("VOLT26PackScene", { Phase = "Leave" })
 end
 
--- Turning the jacket over ---------------------------------------------------
---
--- The jacket's front turns edge-on, then the song list (a separate face drawn
--- over the focused slot) turns in from the other edge; turning back is the
--- reverse.  Each face only ever rotates between face-on and edge-on.
-
-local function songList()
-	return root:GetChild("SongList")
-end
-
-local function flipToSongs()
-	local tile = focusedTile()
-	if not tile or count == 0 then return end
-	-- A direction still held would turn the jacket straight back.
-	held = nil
-	moveSeconds = MOVE_SECONDS
-	flipped = true
-	songList():playcommand("SetSongs", { Group = packs[focus].Name })
-	tile:GetChild("Body"):stoptweening():linear(FLIP_SECONDS):rotationy(90)
-	songList():stoptweening():visible(true):rotationy(-90)
-		:sleep(FLIP_SECONDS):decelerate(FLIP_SECONDS):rotationy(0)
-end
-
-local function flipToJacket(instant)
-	if not flipped then return end
-	flipped = false
-	local tile = focusedTile()
-	local list = songList()
-	if instant then
-		list:stoptweening():rotationy(0):visible(false)
-		if tile then tile:GetChild("Body"):stoptweening():rotationy(0) end
-		return
-	end
-	list:stoptweening():linear(FLIP_SECONDS):rotationy(90):queuecommand("Hide")
-	if tile then
-		tile:GetChild("Body"):stoptweening():rotationy(-90)
-			:sleep(FLIP_SECONDS):decelerate(FLIP_SECONDS):rotationy(0)
-	end
-end
-
 -- Actions -------------------------------------------------------------------
 
 local function play(name)
@@ -330,7 +284,6 @@ end
 
 local function move(direction, steps)
 	if finished or count <= 1 then return end
-	flipToJacket(true)
 	steps = steps or 1
 	for _ = 1, steps do
 		focus = wrap(focus + direction)
@@ -369,10 +322,9 @@ local function choose()
 	held = nil
 	play("Start")
 	-- The badge in the song wheel header shows the same artwork; make sure the
-	-- jacket that flies there already has it, and turn it face up on the way.
+	-- jacket that flies there already has it.
 	local tile = focusedTile()
 	if tile and tile.artPending then tile:playcommand("LoadPackArt") end
-	flipToJacket(false)
 	PackSelection.SetHandoff("ToSongWheel")
 	leaveToSongWheel()
 	local screen = SCREENMAN:GetTopScreen()
@@ -431,25 +383,6 @@ local function updateHold(delta)
 	move(held.direction, moves * held.steps)
 end
 
-local function onFlippedSide(event, button, kind)
-	if button == "MenuUp" or button == "MenuDown" then
-		local list = songList()
-		list:playcommand("Scroll", { Delta = button == "MenuUp" and -1 or 1 })
-		if list.moved then play("Change") end
-	elseif kind == "InputEventType_FirstPress" then
-		if button == "MenuLeft" then
-			hold(event, -1, 1)
-		elseif button == "MenuRight" then
-			hold(event, 1, 1)
-		elseif button == "Start" then
-			choose()
-		elseif button == "Back" then
-			flipToJacket(false)
-			play("Change")
-		end
-	end
-end
-
 input = function(event)
 	if finished or not event or not event.PlayerNumber then return false end
 	if not GAMESTATE:IsHumanPlayer(event.PlayerNumber) then return false end
@@ -465,10 +398,6 @@ input = function(event)
 	end
 	if kind ~= "InputEventType_FirstPress" and kind ~= "InputEventType_Repeat" then return false end
 
-	if flipped then
-		onFlippedSide(event, button, kind)
-		return false
-	end
 	-- Carousel movement repeats on its own clock (updateHold), not on the
 	-- engine's repeat events.
 	if kind ~= "InputEventType_FirstPress" then return false end
@@ -481,7 +410,7 @@ input = function(event)
 	elseif button == "MenuDown" then
 		hold(event, 1, JUMP)
 	elseif button == "Start" then
-		if count == 0 then play("Invalid") else flipToSongs(); play("Change") end
+		choose()
 	elseif button == "Back" then
 		back()
 	end
@@ -581,12 +510,6 @@ for i = 1, POOL do
 	carousel[#carousel+1] = LoadActor("./Tile.lua", { K=K, Size=FOCUS_SIZE, Name="Tile" .. i })
 end
 af[#af+1] = carousel
-
--- The back of the focused jacket, over the focused slot.
-af[#af+1] = LoadActor("./SongList.lua", {
-	K=K, Size=FOCUS_SIZE, X=CENTER_X, Y=CENTER_Y,
-	Zoom=scene.Focus.ListSize / FOCUS_SIZE, Tilt=FOCUS_TILT,
-})
 
 af[#af+1] = scene.Front
 
