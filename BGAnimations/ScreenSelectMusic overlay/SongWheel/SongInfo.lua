@@ -4,9 +4,9 @@
 local p = ...
 local K, S = p.K, p.S
 
-local top = 120
+local infoTop = 120
 local artSize = 300
-local artX, artY = 40 + artSize/2, top + artSize/2
+local artX, artY = 40 + artSize/2, infoTop + artSize/2
 local textX = 40 + artSize + 32
 local textWidth = 960 - textX
 local artDelay = 0.10   -- the wheel must rest this long before artwork loads
@@ -67,18 +67,18 @@ af[#af+1] = K.Rule{ Name="ArtGround", AlignX=0.5, AlignY=0.5, X=artX, Y=artY, Wi
 af[#af+1] = K.Text{ Name="Initials", Role="Display", Px=110, Tint=K.Dim, Align=center, X=artX, Y=artY, Width=artSize-40 }
 af[#af+1] = Def.Sprite{ Name="Art", InitCommand=function(self) self:xy(artX, artY):visible(false) end }
 
-af[#af+1] = K.Text{ Name="Title", Role="Display", Px=46, Tint=K.Ink, X=textX, Y=top+34 }
-af[#af+1] = K.Text{ Name="Subtitle", Px=14, Tint=K.Mute, X=textX, Y=top+76 }
-af[#af+1] = K.Text{ Name="Placeholder", Px=14, Tint=K.Dim, X=textX, Y=top+34, Text=K.String("NoSong") }
+af[#af+1] = K.Text{ Name="Title", Role="Display", Px=46, Tint=K.Ink, X=textX, Y=infoTop+34 }
+af[#af+1] = K.Text{ Name="Subtitle", Px=14, Tint=K.Mute, X=textX, Y=infoTop+76 }
+af[#af+1] = K.Text{ Name="Placeholder", Px=14, Tint=K.Dim, X=textX, Y=infoTop+34, Text=K.String("NoSong") }
 
-af[#af+1] = K.Text{ Px=11, Tint=K.Dim, X=textX, Y=top+124, Text=K.String("Artist") }
-af[#af+1] = K.Text{ Name="Artist", Role="Display", Px=26, Tint=K.Ink, X=textX, Y=top+152 }
+af[#af+1] = K.Text{ Px=11, Tint=K.Dim, X=textX, Y=infoTop+124, Text=K.String("Artist") }
+af[#af+1] = K.Text{ Name="Artist", Role="Display", Px=26, Tint=K.Ink, X=textX, Y=infoTop+152 }
 
-af[#af+1] = K.Text{ Px=11, Tint=K.Dim, X=textX, Y=top+204, Text=K.String("Bpm") }
-af[#af+1] = K.Text{ Name="Bpm", Role="Display", Px=30, Tint=K.Ink, X=textX, Y=top+234 }
-af[#af+1] = K.Text{ Px=11, Tint=K.Dim, X=textX+240, Y=top+204, Text=K.String("Length") }
-af[#af+1] = K.Text{ Name="Length", Role="Display", Px=30, Tint=K.Ink, X=textX+240, Y=top+234 }
+af[#af+1] = K.Text{ Px=11, Tint=K.Dim, X=textX, Y=infoTop+204, Text=K.String("Bpm") }
+af[#af+1] = K.Text{ Name="Bpm", Role="Display", Px=30, Tint=K.Ink, X=textX, Y=infoTop+234 }
+af[#af+1] = K.Text{ Px=11, Tint=K.Dim, X=textX+240, Y=infoTop+204, Text=K.String("Length") }
+af[#af+1] = K.Text{ Name="Length", Role="Display", Px=30, Tint=K.Ink, X=textX+240, Y=infoTop+234 }
 
-af[#af+1] = K.Rule{ Name="Divider", X=40, Y=top+artSize+22, Width=920, Height=1 }
+af[#af+1] = K.Rule{ Name="Divider", X=40, Y=infoTop+artSize+22, Width=920, Height=1 }
 
 return af

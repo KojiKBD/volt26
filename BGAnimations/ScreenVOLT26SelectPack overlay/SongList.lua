@@ -16,12 +16,12 @@ local ROWS = 10
 local PITCH = 46
 local PAD = 26
 local HEADER = 64
-local top = -size/2
-local listTop = top + HEADER + 4
-local left = -size/2 + PAD
-local right = size/2 - PAD
-local titleX = left + 50
-local titleWidth = right - 70 - titleX
+local faceTop = -size/2
+local listTop = faceTop + HEADER + 4
+local colLeft = -size/2 + PAD
+local colRight = size/2 - PAD
+local titleX = colLeft + 50
+local titleWidth = colRight - 70 - titleX
 
 local function fill(self)
 	local songs = self.songs or {}
@@ -67,20 +67,20 @@ local af = Def.ActorFrame{
 
 af[#af+1] = K.Rule{ Name="Stroke", AlignX=0.5, AlignY=0.5, Width=size+4, Height=size+4, Tint=K.Line }
 af[#af+1] = K.Rule{ Name="Ground", AlignX=0.5, AlignY=0.5, Width=size, Height=size, Tint=K.Panel }
-af[#af+1] = K.Text{ Name="Heading", Px=13, Tint=K.Accent, X=left, Y=top + HEADER/2, Text=K.String("PackSongsHeading") }
-af[#af+1] = K.Text{ Name="Range", Px=13, Tint=K.Mute, Align=right, X=right, Y=top + HEADER/2 }
-af[#af+1] = K.Rule{ X=left, Y=top + HEADER, Width=size - PAD*2, Height=1 }
-af[#af+1] = K.Text{ Name="Empty", Px=14, Tint=K.Dim, X=left, Y=listTop + PITCH/2, Text=K.String("PackListEmpty") }
+af[#af+1] = K.Text{ Name="Heading", Px=13, Tint=K.Accent, X=colLeft, Y=faceTop + HEADER/2, Text=K.String("PackSongsHeading") }
+af[#af+1] = K.Text{ Name="Range", Px=13, Tint=K.Mute, Align=right, X=colRight, Y=faceTop + HEADER/2 }
+af[#af+1] = K.Rule{ X=colLeft, Y=faceTop + HEADER, Width=size - PAD*2, Height=1 }
+af[#af+1] = K.Text{ Name="Empty", Px=14, Tint=K.Dim, X=colLeft, Y=listTop + PITCH/2, Text=K.String("PackListEmpty") }
 
 for i = 1, ROWS do
 	local row = Def.ActorFrame{
 		Name="Row" .. i,
 		InitCommand=function(self) self:y(listTop + (i - 0.5) * PITCH) end,
 	}
-	row[#row+1] = K.Rule{ X=left, Y=PITCH/2 - 1, Width=size - PAD*2, Height=1, Alpha=0.5 }
-	row[#row+1] = K.Text{ Name="Index", Px=13, Tint=K.Dim, X=left }
+	row[#row+1] = K.Rule{ X=colLeft, Y=PITCH/2 - 1, Width=size - PAD*2, Height=1, Alpha=0.5 }
+	row[#row+1] = K.Text{ Name="Index", Px=13, Tint=K.Dim, X=colLeft }
 	row[#row+1] = K.Text{ Name="Title", Role="Display", Px=26, Tint=K.Ink, X=titleX }
-	row[#row+1] = K.Text{ Name="Meter", Px=15, Tint=K.Mute, Align=right, X=right }
+	row[#row+1] = K.Text{ Name="Meter", Px=15, Tint=K.Mute, Align=right, X=colRight }
 	af[#af+1] = row
 end
 

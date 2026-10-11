@@ -5,12 +5,12 @@
 local p = ...
 local K, S = p.K, p.S
 
-local top = 470
+local listTop = 470
 local rowCount = 6
 local pitch = 50
 local rowHeight = 44
-local left, width = 40, 920
-local bodyX, bodyWidth = left + 34, width - 68
+local listLeft, width = 40, 920
+local bodyX, bodyWidth = listLeft + 34, width - 68
 local blockCount = 12
 local blockWidth, blockHeight, blockGap = 30, 20, 6
 local blocksX = bodyX + 290
@@ -78,9 +78,9 @@ local af = Def.ActorFrame{
 	end,
 }
 
-af[#af+1] = K.Text{ Px=11, Tint=K.Dim, X=left, Y=top - 2, Text=K.String("Charts") }
-af[#af+1] = K.Text{ Name="Count", Px=11, Tint=K.Dim, Align=right, X=left + width, Y=top - 2 }
-af[#af+1] = K.Text{ Name="Empty", Px=14, Tint=K.Dim, X=bodyX + 16, Y=top + 40, Text=K.String("NoCharts") }
+af[#af+1] = K.Text{ Px=11, Tint=K.Dim, X=listLeft, Y=listTop - 2, Text=K.String("Charts") }
+af[#af+1] = K.Text{ Name="Count", Px=11, Tint=K.Dim, Align=right, X=listLeft + width, Y=listTop - 2 }
+af[#af+1] = K.Text{ Name="Empty", Px=14, Tint=K.Dim, X=bodyX + 16, Y=listTop + 40, Text=K.String("NoCharts") }
 
 local function marker(name, x, tint, text)
 	local frame = Def.ActorFrame{
@@ -95,7 +95,7 @@ end
 for i = 1, rowCount do
 	local row = Def.ActorFrame{
 		Name="Row" .. i,
-		InitCommand=function(self) self:y(top + 22 + (i - 0.5) * pitch):visible(false) end,
+		InitCommand=function(self) self:y(listTop + 22 + (i - 0.5) * pitch):visible(false) end,
 	}
 	row[#row+1] = K.Rule{ Name="Bg", X=bodyX, AlignY=0.5, Width=bodyWidth, Height=rowHeight, Tint=K.Panel }
 	row[#row+1] = K.Rule{ Name="Stripe", X=bodyX, AlignY=0.5, Width=6, Height=rowHeight }
@@ -110,12 +110,12 @@ for i = 1, rowCount do
 		}
 	end
 	row[#row+1] = blocks
-	row[#row+1] = marker("MarkerP1", left + 14, K.P1, "P1")
-	row[#row+1] = marker("MarkerP2", left + width - 14, K.P2, "P2")
+	row[#row+1] = marker("MarkerP1", listLeft + 14, K.P1, "P1")
+	row[#row+1] = marker("MarkerP2", listLeft + width - 14, K.P2, "P2")
 	af[#af+1] = row
 end
 
-af[#af+1] = K.Text{ Name="More", Px=11, Tint=K.Dim, Align=center, X=left + width/2,
-	Y=top + 22 + rowCount * pitch + 8, Text="v" }
+af[#af+1] = K.Text{ Name="More", Px=11, Tint=K.Dim, Align=center, X=listLeft + width/2,
+	Y=listTop + 22 + rowCount * pitch + 8, Text="v" }
 
 return af

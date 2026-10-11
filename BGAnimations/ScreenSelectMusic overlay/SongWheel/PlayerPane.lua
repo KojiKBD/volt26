@@ -5,7 +5,7 @@
 local p = ...
 local K, S, player = p.K, p.S, p.Player
 
-local top = 815
+local paneTop = 815
 local height = 180
 local width = 450
 local x = player == PLAYER_1 and 40 or 510
@@ -24,7 +24,7 @@ local stats = {
 
 local af = Def.ActorFrame{
 	Name="Pane" .. ToEnumShortString(player),
-	InitCommand=function(self) self:xy(x, top):visible(GAMESTATE:IsHumanPlayer(player)) end,
+	InitCommand=function(self) self:xy(x, paneTop):visible(GAMESTATE:IsHumanPlayer(player)) end,
 	RefreshCommand=function(self)
 		local joined = GAMESTATE:IsHumanPlayer(player)
 		self:visible(joined)
