@@ -2,8 +2,8 @@
 --
 -- The second step of music selection.  ScreenVOLT26SelectPack has already
 -- chosen the pack and made one of its songs current, and the [VOLT26SongWheel]
--- wheel lists that pack alone.  Back (or the close-folder buttons) returns to
--- the pack step through VOLT26.Navigation.
+-- wheel lists that pack alone.  Back, the close-folder buttons or the wheel's
+-- BACK TO PACK SELECTION row return to the pack step through VOLT26.Navigation.
 --
 -- The layout follows Simply Love's: the engine MusicWheel fills the right side
 -- of the screen and the left side shows the selected song, its charts and one
@@ -146,6 +146,8 @@ local af = Def.ActorFrame{
 			leaveToPacks()
 		end
 	end,
+	-- The wheel's BACK TO PACK SELECTION row (VOLT26.PackSelection.WheelBackToPacks).
+	VOLT26BackToPacksMessageCommand=function(self) leaveToPacks() end,
 	ReloadScreenForMemoryCardsMessageCommand=function(self, params)
 		-- Wait some time for the profile screen to finish transitioning
 		-- before reloading the screen.

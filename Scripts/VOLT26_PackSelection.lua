@@ -295,3 +295,12 @@ function PackSelection.TakeHandoff()
 	PackSelection.handoff = nil
 	return direction
 end
+
+-- The song wheel's BACK TO PACK SELECTION row ([VOLT26SongWheel]
+-- CustomWheelItemBackToPacks in metrics.ini).  The engine runs this once per
+-- joined player when the row is chosen; the song wheel overlay answers the
+-- message by returning to the pack step, and ignores repeats once it is
+-- leaving.
+function PackSelection.WheelBackToPacks()
+	MESSAGEMAN:Broadcast("VOLT26BackToPacks")
+end

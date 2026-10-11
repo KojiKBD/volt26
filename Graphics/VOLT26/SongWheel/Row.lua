@@ -5,7 +5,9 @@
 -- wheel's own (Graphics/MusicWheel highlight.lua).
 --
 -- Loaded by the MusicWheelItem NormalPart graphics with the kind of item the
--- part stands for: "Song", "Section" or "Course".  Rows are drawn from the
+-- part stands for: "Song", "Section", "Course" or "Custom" (the song wheel's
+-- BACK TO PACK SELECTION row, drawn in red so it stands apart from the songs;
+-- see [VOLT26SongWheel] in metrics.ini).  Rows are drawn from the
 -- wheel origin (the left edge of the row) in the design units of
 -- VOLT26.MusicSelection.Wheel; the wheel itself is scaled by the overlay.
 local kind = ... or "Song"
@@ -23,6 +25,7 @@ local line = color("#2c2c33")
 local ink = color("#f2f0ec")
 local mute = color("#8a8a94")
 local accent = color("#e03a2f")
+local custom = color("#e5001a")
 
 local function sectionSongCount(name)
 	if not name or name == "" then return 0 end
@@ -55,11 +58,23 @@ return Def.ActorFrame{
 	SetCommand=function(self, params)
 		local isSong = params.Song ~= nil
 		local isCourse = params.Course ~= nil
+		local isCustom = params.Type == "Custom"
 		local matches = (kind == "Song" and isSong)
 			or (kind == "Course" and isCourse)
-			or (kind == "Section" and not isSong and not isCourse)
+			or (kind == "Custom" and isCustom)
+			or (kind == "Section" and not isSong and not isCourse and not isCustom)
 		self:visible(matches and true or false)
 		if not matches then return end
+
+		if isCustom then
+			setText(self:GetChild("Title"), params.Label or "", 30, true, textWidth)
+			self:GetChild("Title"):y(0)
+			self:GetChild("Sub"):settext("")
+			self:GetChild("Right"):settext("")
+			self:GetChild("Bg"):diffuse(custom):diffusealpha(1)
+			self:GetChild("Stripe"):diffuse(Color.White)
+			return
+		end
 
 		local title, sub, right = "", "", ""
 		local rightTint = mute
