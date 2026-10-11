@@ -20,6 +20,10 @@ and size instead:
   text frames                            -> ignored (the theme draws the name)
 Anything else is reported and left out.
 
+slab.png (the song list's title slabs) is not in the mockup; it is drawn
+here: a white parallelogram with anti-aliased slanted sides, tinted per row
+by the theme.
+
 Usage: python build_pack_select_art.py [art_dir] [theme_root]
 """
 import json
@@ -68,6 +72,20 @@ def classify(entry):
     return "unknown"
 
 
+def make_slab():
+    # Drawn at 4x and reduced for clean slanted edges; a 2 px transparent
+    # margin keeps texture filtering from smearing the fill into the border.
+    scale, w, h, slant, m = 4, 256, 64, 14, 2
+    mask = Image.new("L", (w * scale, h * scale), 0)
+    ImageDraw.Draw(mask).polygon([
+        ((m + slant) * scale, m * scale), ((w - m) * scale, m * scale),
+        ((w - m - slant) * scale, (h - m) * scale), (m * scale, (h - m) * scale),
+    ], fill=255)
+    slab = Image.new("RGBA", (w, h), (255, 255, 255, 0))
+    slab.putalpha(mask.resize((w, h), Image.LANCZOS))
+    slab.save(os.path.join(OUT, "slab.png"), optimize=True)
+
+
 def main():
     with open(os.path.join(ART, "items.json"), encoding="utf-8") as f:
         items = json.load(f)
@@ -81,6 +99,7 @@ def main():
             sys.exit("no %s item found in items.json" % need)
 
     os.makedirs(OUT, exist_ok=True)
+    make_slab()
     layout = []
 
     bg = Image.new("RGBA", (W, H), (0, 0, 0, 255))

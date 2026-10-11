@@ -60,7 +60,10 @@ local MOVE_SECONDS = 0.14
 local JUMP = 5
 local HOLD_DELAY = 0.3         -- a held direction starts repeating after this
 local FLIP_SECONDS = 0.12      -- each half of the jacket's turn
-local NAME_Y = 895             -- the mockup's "pack name", under the splash
+-- The words under the splash.  The bottom of the screen is left to the credit
+-- line (player names and EVENT MODE, drawn by ScreenSystemLayer as on the main
+-- menu; ShowCreditDisplay in metrics.ini).
+local NAME_Y = 875
 local ART_IDLE = 0.08          -- rest before artwork starts loading
 local DETAIL_IDLE = 0.12       -- rest before the pack summary is computed
 local LOAD_REACH = 1           -- tiles further out are hidden
@@ -580,13 +583,10 @@ end
 af[#af+1] = carousel
 
 -- The back of the focused jacket, over the focused slot.
-af[#af+1] = LoadActor("./SongList.lua", { K=K, Size=FOCUS_SIZE })..{
-	InitCommand=function(self)
-		self.songs, self.offset, self.moved = {}, 0, false
-		self:xy(CENTER_X, CENTER_Y):zoom(scene.Focus.ListSize / FOCUS_SIZE):rotationz(FOCUS_TILT):visible(false)
-	end,
-	HideCommand=function(self) self:visible(false):rotationy(0) end,
-}
+af[#af+1] = LoadActor("./SongList.lua", {
+	K=K, Size=FOCUS_SIZE, X=CENTER_X, Y=CENTER_Y,
+	Zoom=scene.Focus.ListSize / FOCUS_SIZE, Tilt=FOCUS_TILT,
+})
 
 af[#af+1] = scene.Front
 
@@ -598,15 +598,15 @@ details[#details+1] = Def.ActorFrame{
 	nameSlot(1),
 	nameSlot(2),
 }
-details[#details+1] = K.Text{ Name="Info", Px=18, Tint=K.Ink, Align=center, X=K.W/2, Y=978 }
+details[#details+1] = K.Text{ Name="Info", Px=18, Tint=K.Ink, Align=center, X=K.W/2, Y=948 }
 -- The pack's place in the list.
-details[#details+1] = K.Text{ Name="Position", Px=13, Tint=K.Ink, Align=center, X=K.W/2, Y=1014 }
+details[#details+1] = K.Text{ Name="Position", Px=13, Tint=K.Ink, Align=center, X=K.W/2, Y=976 }
 af[#af+1] = details
 
 af[#af+1] = Def.BitmapText{
 	Name="Notice", Font=K.Label,
 	InitCommand=function(self)
-		self:xy(K.W/2, 1046):horizalign(center):shadowlength(0)
+		self:xy(K.W/2, 1003):horizalign(center):shadowlength(0)
 			:zoom(VOLT26.Type.LabelZoom(13)):diffuse(K.Ink):diffusealpha(0)
 			:settext(K.String("PressBackAgain"))
 	end,
