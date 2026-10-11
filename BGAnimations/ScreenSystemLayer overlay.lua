@@ -7,16 +7,20 @@ local t = Def.ActorFrame{}
 -- top of it. See Scripts/VOLT26_Glitch.lua for where it is allowed to appear.
 t[#t+1] = VOLT26.Glitch.CreateLayer()
 
--- Cutout lettering (Scripts/VOLT26_Cutout.lua) for the credit texts on the
--- screens listed in VOLT26.Cutout.Screens.  The plain BitmapTexts below still
--- decide what to say and whether to show it; on those screens they are made
--- transparent and their text is mirrored into a cutout slot.
+-- Cutout lettering (Scripts/VOLT26_Cutout.lua) for the credit line: the
+-- player names and the centre text (EVENT MODE, credits, free play).
+--
+-- Project rule (owner, 2026-10-11): the credit line is always drawn in the
+-- cutout lettering, on every screen that shows it, never in a plain font.
+-- The plain BitmapTexts below still decide what to say and whether to show
+-- it; they are made transparent and their text is mirrored into a cutout
+-- slot.
 local cutoutSlots = {}
 local function MirrorToCutout(actor, key)
 	local slot = cutoutSlots[key]
 	if not slot then return end
 	local screen = SCREENMAN:GetTopScreen()
-	if screen and VOLT26.Cutout.IsEnabledOn(screen:GetName()) then
+	if screen then
 		local text = actor:GetText()
 		slot:visible(actor:GetVisible() and text ~= "")
 		slot:playcommand("CutoutSet", {text = text})

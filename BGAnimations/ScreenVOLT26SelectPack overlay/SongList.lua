@@ -2,8 +2,9 @@
 --
 -- Start on a pack turns its jacket over (default.lua) and this face shows the
 -- songs' titles in the order the song wheel lists them, on a red ground in the
--- pack step's Persona-style dress: each title on its own slanted slab, black
--- and white in turn, staggered left and right.  A pack with more titles than
+-- pack step's Persona-style dress: each title, centred and set in Helvetica
+-- Bold, on its own slanted slab, black and white in turn, staggered left and
+-- right.  A pack with more titles than
 -- the face holds scrolls by itself, round and round; Up/Down nudge it a row
 -- (and hold the automatic scroll for a moment), Start opens the song wheel and
 -- Back turns the jacket face up again.
@@ -26,10 +27,11 @@ local PackSelection = VOLT26.PackSelection
 
 local PITCH = 58               -- row spacing
 local SLAB_H = 46
-local TEXT_PX = 28
-local PAD_X = 22               -- slab padding around the title
-local INSET = 30               -- face edge to the slabs' left edge
-local STAGGER = 18             -- alternate rows sit this much further right
+local FONT = "Helvetica Bold"
+local TEXT_ZOOM = 0.72         -- of the font's 58 px line: about 19 px caps
+local PAD_X = 24               -- slab padding either side of the title
+local INSET = 30               -- face edge to the widest slab
+local STAGGER = 18             -- black rows sit this far left of white ones
 local MAX_TEXT = size - INSET*2 - STAGGER - PAD_X*2
 local FIT = math.floor((size - 40) / PITCH)   -- rows that fit without scrolling
 local POOL = FIT + 2
@@ -50,14 +52,14 @@ local function slabLook(row, songIndex)
 	local dark = songIndex % 2 == 1
 	row:GetChild("Slab"):diffuse(dark and Color.Black or Color.White)
 	row:GetChild("Title"):diffuse(dark and Color.White or Color.Black)
-	row:x(dark and 0 or STAGGER)
+	row:x(dark and -STAGGER/2 or STAGGER/2)
 end
 
 -- Put a title on a row and size its slab to it.
 local function setRow(row, song, songIndex)
 	local title = row:GetChild("Title")
-	K.SetDisplay(title, song:GetDisplayMainTitle(), TEXT_PX, MAX_TEXT)
-	local width = math.min(title:GetWidth() * VOLT26.Type.DisplayZoom(TEXT_PX), MAX_TEXT)
+	title:settext(song:GetDisplayMainTitle())
+	local width = math.min(title:GetWidth() * TEXT_ZOOM, MAX_TEXT)
 	row:GetChild("Slab"):zoomto(width + PAD_X*2, SLAB_H)
 	slabLook(row, songIndex)
 	row.songIndex = songIndex
@@ -131,16 +133,23 @@ af[#af+1] = Def.Quad{
 	Name="Ground",
 	InitCommand=function(self) self:zoomto(size, size):diffuse(RED) end,
 }
-af[#af+1] = K.Text{ Name="Empty", Role="Display", Px=TEXT_PX, Tint=Color.White, Align=center, Text=K.String("PackListEmpty") }
+af[#af+1] = Def.BitmapText{
+	Name="Empty", Font=FONT,
+	InitCommand=function(self)
+		self:zoom(TEXT_ZOOM):diffuse(Color.White):settext(K.String("PackListEmpty"))
+	end,
+}
 
 for i = 1, POOL do
 	af[#af+1] = Def.ActorFrame{
 		Name="Row" .. i,
-		Def.Sprite{
-			Name="Slab", Texture=THEME:GetPathG("", "VOLT26/PackSelect/slab.png"),
-			InitCommand=function(self) self:horizalign(left):x(top + INSET) end,
+		Def.Sprite{ Name="Slab", Texture=THEME:GetPathG("", "VOLT26/PackSelect/slab.png") },
+		Def.BitmapText{
+			Name="Title", Font=FONT,
+			InitCommand=function(self)
+				self:zoom(TEXT_ZOOM):maxwidth(MAX_TEXT / TEXT_ZOOM):shadowlength(0)
+			end,
 		},
-		K.Text{ Name="Title", Role="Display", Px=TEXT_PX, X=top + INSET + PAD_X, Width=MAX_TEXT },
 	}
 end
 
