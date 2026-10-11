@@ -16,12 +16,20 @@ t[#t+1] = VOLT26.Glitch.CreateLayer()
 -- it; they are made transparent and their text is mirrored into a cutout
 -- slot.
 local cutoutSlots = {}
+
+-- Screens that draw the credit line smaller than the title menu does, where
+-- it would crowd the screen's own lettering.
+local cutoutZoom = {
+	ScreenVOLT26SelectPack = 0.7,
+}
+
 local function MirrorToCutout(actor, key)
 	local slot = cutoutSlots[key]
 	if not slot then return end
 	local screen = SCREENMAN:GetTopScreen()
 	if screen then
 		local text = actor:GetText()
+		slot:zoom(cutoutZoom[screen:GetName()] or 1)
 		slot:visible(actor:GetVisible() and text ~= "")
 		slot:playcommand("CutoutSet", {text = text})
 		actor:diffusealpha(0)
