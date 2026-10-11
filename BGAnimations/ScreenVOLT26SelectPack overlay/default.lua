@@ -28,6 +28,7 @@
 
 local K = LoadActor(THEME:GetPathB("", "_volt26 music kit.lua"))
 local PackSelection = VOLT26.PackSelection
+local scene = LoadActor("./Scene.lua", { K=K })
 
 local packs = PackSelection.List()
 local count = #packs
@@ -35,19 +36,27 @@ local focus = PackSelection.InitialIndex(packs)
 
 local POOL = 9                 -- tiles in the pool: offsets -4 .. 4
 local HALF = (POOL - 1) / 2
+-- Tiles are built at K.TileSize (the song wheel badge is the same tile) and
+-- zoomed to their slot.
 local FOCUS_SIZE = K.TileSize
--- Sized so three and a half jackets fill the width: the focused one, one
--- either side, and a quarter of the next on each edge.
-local SIDE_SIZE = 500
-local GAP = 30
-local SIDE_ZOOM = SIDE_SIZE / FOCUS_SIZE
-local CENTER_X = K.W / 2
-local CENTER_Y = 450
+-- The focused jacket sits in the splash's window (Scene.lua).
+local CENTER_X = scene.Focus.X
+local CENTER_Y = scene.Focus.Y
+local FOCUS_ZOOM = scene.Focus.Size / FOCUS_SIZE
+local FOCUS_TILT = scene.Focus.Tilt
+-- Neighbours, by distance from the focus: smaller, turned away from the
+-- middle, darkened, and partly behind the splash (draw order, see sortTiles).
+-- x/y are relative to the focused slot; tilt is for the right-hand side.
+local SLOTS = {
+	[1] = { x = 560, y = 30, size = 300, tilt = 7, bright = 0.5 },
+	[2] = { x = 805, y = 74, size = 210, tilt = 12, bright = 0.3 },
+	[3] = { x = 1000, y = 110, size = 160, tilt = 15, bright = 0.2 },
+}
 local MOVE_SECONDS = 0.14
 local JUMP = 5
 local HOLD_DELAY = 0.3         -- a held direction starts repeating after this
 local FLIP_SECONDS = 0.12      -- each half of the jacket's turn
-local NAME_Y = CENTER_Y + FOCUS_SIZE/2 + 78
+local NAME_Y = 895             -- the mockup's "pack name", under the splash
 local ART_IDLE = 0.08          -- rest before artwork starts loading
 local DETAIL_IDLE = 0.12       -- rest before the pack summary is computed
 local LOAD_REACH = 2           -- tiles further out are off screen
@@ -82,14 +91,17 @@ local function wrap(index)
 	return ((index - 1) % count) + 1
 end
 
-local function slotX(offset)
-	if offset == 0 then return 0 end
-	local reach = FOCUS_SIZE/2 + GAP + SIDE_SIZE/2 + (math.abs(offset) - 1) * (SIDE_SIZE + GAP)
-	return offset > 0 and reach or -reach
-end
-
-local function slotAlpha(offset)
-	return math.max(0, 1 - 0.18 * math.abs(offset))
+-- Where a tile at this offset stands: x, y (carousel coordinates), zoom,
+-- rotation, brightness, and whether it is drawn at all (offsets past the
+-- second neighbour wait off to the side, hidden).
+local function slot(offset)
+	if offset == 0 then
+		return CENTER_X, 0, FOCUS_ZOOM, FOCUS_TILT, 1, true
+	end
+	local reach = math.abs(offset)
+	local s = SLOTS[math.min(reach, #SLOTS)]
+	local side = offset > 0 and 1 or -1
+	return CENTER_X + side * s.x, s.y, s.size / FOCUS_SIZE, side * s.tilt, s.bright, reach <= 2
 end
 
 -- With fewer packs than tiles every pack is shown once, around the focus.
@@ -106,20 +118,32 @@ local function setContent(tile)
 	tile:playcommand("SetPack", { Group = entry and entry.Name or nil })
 end
 
-local function setFocusLook(tile, focused)
-	tile:GetChild("Body"):GetChild("Frame"):visible(focused)
+-- The splash frames the focused jacket, so the tile's own focus outline is
+-- not used here.
+local function setFocusLook(tile)
+	tile:GetChild("Body"):GetChild("Frame"):visible(false)
+end
+
+-- The focused jacket is drawn in front of the splash (draw order 0), the
+-- neighbours behind it, nearer ones over further ones.  A jacket leaving
+-- the focus drops behind the splash at once and slides out from under it.
+local function sortTiles()
+	for _, tile in ipairs(tiles) do
+		tile:draworder(tile.offset == 0 and 10 or -math.abs(tile.offset))
+	end
+	root:GetChild("Carousel"):SortByDrawOrder()
 end
 
 local function placeTile(tile, animate)
 	local offset = tile.offset
+	local x, y, zoom, tilt, bright, shown = slot(offset)
 	tile:stoptweening()
 	-- A jacket left turned over (or mid-turn) is put face up at once.
 	tile:GetChild("Body"):finishtweening():rotationy(0)
 	if animate then tile:decelerate(moveSeconds) end
-	tile:x(CENTER_X + slotX(offset)):y(0)
-		:zoom(offset == 0 and 1 or SIDE_ZOOM)
-		:diffusealpha(inWindow(offset) and slotAlpha(offset) or 0)
-	setFocusLook(tile, offset == 0)
+	tile:xy(x, y):zoom(zoom):rotationz(tilt)
+		:diffuse(bright, bright, bright, (shown and inWindow(offset)) and 1 or 0)
+	setFocusLook(tile)
 end
 
 local function focusedTile()
@@ -211,16 +235,16 @@ end
 local function enterFromSongWheel()
 	for _, tile in ipairs(tiles) do
 		local offset = tile.offset
+		local x, y, zoom, tilt, bright, shown = slot(offset)
 		if offset == 0 then
-			tile:stoptweening():xy(BADGE_X, BADGE_Y):zoom(BADGE_ZOOM):diffusealpha(1)
-				:decelerate(K.HandoffSeconds):xy(CENTER_X, 0):zoom(1)
+			tile:stoptweening():xy(BADGE_X, BADGE_Y):zoom(BADGE_ZOOM):rotationz(0):diffuse(1, 1, 1, 1)
+				:decelerate(K.HandoffSeconds):xy(x, y):zoom(zoom):rotationz(tilt)
 		else
 			local side = offset > 0 and 1 or -1
-			tile:stoptweening():xy(CENTER_X + slotX(offset) + side * 360, 0)
-				:zoom(SIDE_ZOOM):diffusealpha(0)
+			tile:stoptweening():xy(x + side * 360, y):zoom(zoom):rotationz(tilt)
+				:diffuse(bright, bright, bright, 0)
 				:sleep(0.08):decelerate(K.HandoffSeconds)
-				:x(CENTER_X + slotX(offset))
-				:diffusealpha(inWindow(offset) and slotAlpha(offset) or 0)
+				:x(x):diffusealpha((shown and inWindow(offset)) and 1 or 0)
 		end
 	end
 	local details = root:GetChild("Details")
@@ -239,13 +263,15 @@ local function leaveToSongWheel()
 		local offset = tile.offset
 		if offset == 0 then
 			tile:GetChild("Body"):GetChild("Frame"):visible(false)
-			tile:stoptweening():decelerate(K.HandoffSeconds):xy(BADGE_X, BADGE_Y):zoom(BADGE_ZOOM)
+			tile:stoptweening():decelerate(K.HandoffSeconds):xy(BADGE_X, BADGE_Y):zoom(BADGE_ZOOM):rotationz(0)
 		else
 			local side = offset > 0 and 1 or -1
 			tile:stoptweening():accelerate(0.22):addx(side * 420):diffusealpha(0)
 		end
 	end
 	root:GetChild("Details"):stoptweening():linear(0.12):diffusealpha(0)
+	root:playcommand("SceneLeave")
+	MESSAGEMAN:Broadcast("VOLT26PackScene", { Phase = "Leave" })
 end
 
 -- Turning the jacket over ---------------------------------------------------
@@ -316,6 +342,8 @@ local function move(direction, steps)
 			end
 		end
 	end
+	sortTiles()
+	root:playcommand("Bump")
 	idle = 0
 	detailsDirty = true
 	exitArmedAt = nil
@@ -485,6 +513,7 @@ local af = Def.ActorFrame{
 			setContent(tile)
 			placeTile(tile, false)
 		end
+		sortTiles()
 		-- The focused jacket is on screen from the first frame (and is the
 		-- one that may have just grown out of the header), so its artwork is
 		-- not deferred.
@@ -493,6 +522,9 @@ local af = Def.ActorFrame{
 		refreshName()
 		refreshDetails()
 		detailsDirty = false
+		local entering = { Phase = "Enter", FromSongWheel = handoff == "FromSongWheel" }
+		self:playcommand("SceneEnter", entering)
+		MESSAGEMAN:Broadcast("VOLT26PackScene", entering)
 		if handoff == "FromSongWheel" then enterFromSongWheel() else enterFresh() end
 
 		local elapsed = 0
@@ -529,32 +561,14 @@ local af = Def.ActorFrame{
 	end,
 }
 
-af[#af+1] = Def.BitmapText{
-	Name="Notice", Font=K.Label,
-	InitCommand=function(self)
-		self:xy(K.W/2, CENTER_Y + FOCUS_SIZE/2 + 228):horizalign(center):shadowlength(0)
-			:zoom(VOLT26.Type.LabelZoom(13)):diffuse(K.Accent):diffusealpha(0)
-			:settext(K.String("PressBackAgain"))
-	end,
-}
+-- Back to front (the set's ground and stripes are in the background layer):
+-- the carousel (neighbours, the splash, the focused jacket), the back of the
+-- focused jacket, the set's lettering and stars, then the words.
 
--- Focused pack details
-local details = Def.ActorFrame{ Name="Details" }
-details[#details+1] = Def.ActorFrame{
-	Name="NameLayer",
-	InitCommand=function(self) self:xy(K.W/2, NAME_Y):zoom(1 / K.Scale) end,
-	nameSlot(1),
-	nameSlot(2),
-}
-details[#details+1] = K.Text{ Name="Info", Px=18, Tint=K.Mute, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 150 }
--- The pack's place in the list.
-details[#details+1] = K.Text{ Name="Position", Px=13, Tint=K.Dim, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 190 }
-af[#af+1] = details
-
--- Carousel
 local carousel = Def.ActorFrame{
 	Name="Carousel",
 	InitCommand=function(self) self:y(CENTER_Y) end,
+	scene.Splash,
 }
 for i = 1, POOL do
 	carousel[#carousel+1] = LoadActor("./Tile.lua", { K=K, Size=FOCUS_SIZE, Name="Tile" .. i })
@@ -565,9 +579,33 @@ af[#af+1] = carousel
 af[#af+1] = LoadActor("./SongList.lua", { K=K, Size=FOCUS_SIZE })..{
 	InitCommand=function(self)
 		self.songs, self.offset, self.moved = {}, 0, false
-		self:xy(CENTER_X, CENTER_Y):visible(false)
+		self:xy(CENTER_X, CENTER_Y):zoom(FOCUS_ZOOM):rotationz(FOCUS_TILT):visible(false)
 	end,
 	HideCommand=function(self) self:visible(false):rotationy(0) end,
+}
+
+af[#af+1] = scene.Front
+
+-- Focused pack details
+local details = Def.ActorFrame{ Name="Details" }
+details[#details+1] = Def.ActorFrame{
+	Name="NameLayer",
+	InitCommand=function(self) self:xy(K.W/2, NAME_Y):zoom(1 / K.Scale) end,
+	nameSlot(1),
+	nameSlot(2),
+}
+details[#details+1] = K.Text{ Name="Info", Px=18, Tint=K.Ink, Align=center, X=K.W/2, Y=978 }
+-- The pack's place in the list.
+details[#details+1] = K.Text{ Name="Position", Px=13, Tint=K.Ink, Align=center, X=K.W/2, Y=1014 }
+af[#af+1] = details
+
+af[#af+1] = Def.BitmapText{
+	Name="Notice", Font=K.Label,
+	InitCommand=function(self)
+		self:xy(K.W/2, 1046):horizalign(center):shadowlength(0)
+			:zoom(VOLT26.Type.LabelZoom(13)):diffuse(K.Ink):diffusealpha(0)
+			:settext(K.String("PressBackAgain"))
+	end,
 }
 
 af[#af+1] = LoadActor(THEME:GetPathS("MusicWheel", "change"))..{ Name="Change", IsAction=true, SupportPan=false }
