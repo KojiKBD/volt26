@@ -7,8 +7,8 @@
 -- used to show.
 --
 -- The pack step and the song wheel are two screens drawn to read as one: the
--- same backdrop and header/footer bands (K.Chrome), and the chosen jacket
--- travels between them.  Opening a pack shrinks the focused jacket into the
+-- same backdrop, and the chosen jacket travels between them.  The pack step
+-- has no header or footer band; the song wheel's fade in and out around it.  Opening a pack shrinks the focused jacket into the
 -- song wheel's header badge (K.Badge) while the other jackets slide away;
 -- coming back grows it out of the badge into the carousel again.  The screen's
 -- out transition only holds (K.HandoffHold) so the motion is not covered.
@@ -30,16 +30,18 @@ local focus = PackSelection.InitialIndex(packs)
 local POOL = 9                 -- tiles in the pool: offsets -4 .. 4
 local HALF = (POOL - 1) / 2
 local FOCUS_SIZE = K.TileSize
-local SIDE_SIZE = 280
-local GAP = 28
+-- Sized so three and a half jackets fill the width: the focused one, one
+-- either side, and a quarter of the next on each edge.
+local SIDE_SIZE = 500
+local GAP = 30
 local SIDE_ZOOM = SIDE_SIZE / FOCUS_SIZE
 local CENTER_X = K.W / 2
-local CENTER_Y = 500
+local CENTER_Y = 450
 local MOVE_SECONDS = 0.14
 local JUMP = 5
 local ART_IDLE = 0.08          -- rest before artwork starts loading
 local DETAIL_IDLE = 0.12       -- rest before the pack summary is computed
-local LOAD_REACH = 3           -- tiles further out are off screen
+local LOAD_REACH = 2           -- tiles further out are off screen
 local EXIT_WINDOW = 2.0        -- event mode: seconds for the second Back
 
 -- The header badge, in the carousel's own coordinates.
@@ -85,13 +87,8 @@ local function setContent(tile)
 	tile:playcommand("SetPack", { Group = entry and entry.Name or nil })
 end
 
-local function setFocusLook(tile, focused, animate)
-	local body = tile:GetChild("Body")
-	local plate = body:GetChild("Plate")
-	plate:stoptweening()
-	if animate then plate:linear(MOVE_SECONDS) end
-	plate:diffusealpha(focused and 0 or 1)
-	body:GetChild("Frame"):visible(focused)
+local function setFocusLook(tile, focused)
+	tile:GetChild("Body"):GetChild("Frame"):visible(focused)
 end
 
 local function placeTile(tile, animate)
@@ -101,7 +98,7 @@ local function placeTile(tile, animate)
 	tile:x(CENTER_X + slotX(offset)):y(0)
 		:zoom(offset == 0 and 1 or SIDE_ZOOM)
 		:diffusealpha(inWindow(offset) and slotAlpha(offset) or 0)
-	setFocusLook(tile, offset == 0, animate)
+	setFocusLook(tile, offset == 0)
 end
 
 local function focusedTile()
@@ -114,8 +111,8 @@ end
 -- Details -------------------------------------------------------------------
 
 local function refreshName()
-	local name = root:GetChild("Details"):GetChild("Name")
-	local position = root:GetChild("Position")
+	local details = root:GetChild("Details")
+	local name, position = details:GetChild("Name"), details:GetChild("Position")
 	if count == 0 then
 		K.SetDisplay(name, "", 56)
 		K.SetLabel(position, "", 13)
@@ -166,8 +163,6 @@ local function enterFromSongWheel()
 	end
 	local details = root:GetChild("Details")
 	details:stoptweening():diffusealpha(0):addy(16):sleep(0.16):decelerate(0.2):diffusealpha(1):addy(-16)
-	root:GetChild("Position"):stoptweening():diffusealpha(0):sleep(0.16):linear(0.2):diffusealpha(1)
-	root:GetChild("Chrome"):playcommand("ChromeIn")
 end
 
 local function enterFresh()
@@ -189,8 +184,6 @@ local function leaveToSongWheel()
 		end
 	end
 	root:GetChild("Details"):stoptweening():linear(0.12):diffusealpha(0)
-	root:GetChild("Position"):stoptweening():linear(0.12):diffusealpha(0)
-	root:GetChild("Chrome"):playcommand("ChromeOut")
 end
 
 -- Actions -------------------------------------------------------------------
@@ -373,19 +366,10 @@ local af = Def.ActorFrame{
 	end,
 }
 
--- The header and footer bands come first: the jacket flying to the header
--- badge has to pass over them.
-af[#af+1] = K.Chrome{
-	Title = K.String("PackTitle"),
-	Hints = table.concat({ K.String("HintPack"), K.String("HintJump"), K.String("HintOpen"), K.String("HintExit") }, "        "),
-}
--- Where the song wheel shows the song's place in its pack, the pack step shows
--- the pack's place in the list.
-af[#af+1] = K.Text{ Name="Position", Px=13, Tint=K.Mute, X=K.Badge.X + K.Badge.Size/2 + 18, Y=72 }
 af[#af+1] = Def.BitmapText{
 	Name="Notice", Font=K.Label,
 	InitCommand=function(self)
-		self:xy(K.W-40, K.FooterTop+38):horizalign(right):shadowlength(0)
+		self:xy(K.W/2, CENTER_Y + FOCUS_SIZE/2 + 205):horizalign(center):shadowlength(0)
 			:zoom(VOLT26.Type.LabelZoom(13)):diffuse(K.Accent):diffusealpha(0)
 			:settext(K.String("PressBackAgain"))
 	end,
@@ -393,8 +377,10 @@ af[#af+1] = Def.BitmapText{
 
 -- Focused pack details
 local details = Def.ActorFrame{ Name="Details" }
-details[#details+1] = K.Text{ Name="Name", Role="Display", Px=56, Tint=K.Ink, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 80 }
-details[#details+1] = K.Text{ Name="Info", Px=18, Tint=K.Mute, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 138 }
+details[#details+1] = K.Text{ Name="Name", Role="Display", Px=56, Tint=K.Ink, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 72 }
+details[#details+1] = K.Text{ Name="Info", Px=18, Tint=K.Mute, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 128 }
+-- The pack's place in the list.
+details[#details+1] = K.Text{ Name="Position", Px=13, Tint=K.Dim, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 166 }
 af[#af+1] = details
 
 -- Carousel

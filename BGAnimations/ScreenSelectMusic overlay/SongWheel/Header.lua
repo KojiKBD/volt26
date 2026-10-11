@@ -44,8 +44,6 @@ af[#af+1] = LoadActor(THEME:GetPathB("ScreenVOLT26SelectPack", "overlay/Tile.lua
 	InitCommand=function(self)
 		self.group, self.loadedGroup, self.artPending = nil, nil, false
 		self:xy(K.Badge.X, K.Badge.Y):zoom(K.Badge.Size / K.TileSize)
-		-- As the focused jacket: no name plate, no frame.
-		self:GetChild("Body"):GetChild("Plate"):diffusealpha(0)
 	end,
 }
 af[#af+1] = K.Text{ Name="Pack", Px=20, Tint=K.Ink, X=textX, Y=38 }

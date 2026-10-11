@@ -1,4 +1,4 @@
--- One pack jacket: a square with the pack's artwork and a name plate.
+-- One pack jacket: a square filled edge to edge with the pack's artwork.
 --
 -- Used by the pack carousel (one tile per pool slot) and by the song wheel
 -- header, where the chosen pack sits as a small badge.  Both build it at the
@@ -13,7 +13,6 @@
 local params = ...
 local K = params.K
 local size = params.Size or K.TileSize
-local plateHeight = 64
 local PackSelection = VOLT26.PackSelection
 
 local body = Def.ActorFrame{ Name="Body" }
@@ -25,18 +24,9 @@ body[#body+1] = K.Rule{ Name="Ground", AlignX=0.5, AlignY=0.5, Width=size, Heigh
 -- been loaded.
 body[#body+1] = K.Text{ Name="Initials", Role="Display", Px=150, Tint=K.Dim, Align=center, Width=size-60 }
 
--- A banner-only pack shows its banner twice: cropped and dimmed to fill the
--- square, and whole across the middle of it.
-body[#body+1] = Def.Sprite{ Name="Fill", InitCommand=function(self) self:visible(false) end }
+-- The artwork always fills the whole square: a jacket is cropped to it, and a
+-- banner-only pack has its banner cropped to the square as well.
 body[#body+1] = Def.Sprite{ Name="Art", InitCommand=function(self) self:visible(false) end }
-
-local plate = Def.ActorFrame{
-	Name="Plate",
-	InitCommand=function(self) self:y(size/2 - plateHeight/2) end,
-}
-plate[#plate+1] = K.Rule{ AlignX=0.5, AlignY=0.5, Width=size, Height=plateHeight, Tint=K.Bg, Alpha=0.85 }
-plate[#plate+1] = K.Text{ Name="Name", Px=20, Tint=K.Ink, Align=center }
-body[#body+1] = plate
 
 -- The focused tile's frame.
 local frame = K.Outline{ Name="Frame", Width=size+16, Height=size+16, Stroke=6, Tint=K.Accent }
@@ -52,11 +42,9 @@ return Def.ActorFrame{
 		local group = p and p.Group or nil
 		self.group = group
 		local b = self:GetChild("Body")
-		K.SetLabel(b:GetChild("Plate"):GetChild("Name"), (group or ""):upper(), 20, size - 48)
 		b:GetChild("Initials"):settext(group and K.Initials(group) or "")
 		if self.loadedGroup ~= group then
 			b:GetChild("Art"):visible(false)
-			b:GetChild("Fill"):visible(false)
 			self.loadedGroup = nil
 			self.artPending = group ~= nil
 		end
@@ -65,27 +53,17 @@ return Def.ActorFrame{
 		self.artPending = false
 		self.loadedGroup = self.group
 		local b = self:GetChild("Body")
-		local art, fill = b:GetChild("Art"), b:GetChild("Fill")
+		local art = b:GetChild("Art")
 		art:visible(false)
-		fill:visible(false)
 		if not self.group then return end
 
 		local info = PackSelection.Artwork(self.group)
 		if not info then return end
-		if info.Kind == "Jacket" then
-			if K.LoadStill(art, info.Path) then
-				K.Cover(art, size, size)
-				art:visible(true)
-			end
-		else
-			if K.LoadStill(fill, info.Path, "Banner") then
-				K.Cover(fill, size, size)
-				fill:diffusealpha(0.28):visible(true)
-			end
-			if K.LoadStill(art, info.Path, "Banner") then
-				K.Contain(art, size - 40, size - 40)
-				art:visible(true)
-			end
+		-- Loaded whole, not from the small banner cache: a banner cropped to the
+		-- square is enlarged far past the cached copy's resolution.
+		if K.LoadStill(art, info.Path) then
+			K.Cover(art, size, size)
+			art:visible(true)
 		end
 	end,
 	body,

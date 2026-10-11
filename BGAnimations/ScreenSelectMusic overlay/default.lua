@@ -13,7 +13,8 @@
 -- music kit and scaled to the real screen.
 --
 -- The pack step and this screen are drawn to read as one screen: the same
--- backdrop and bands (K.Chrome), and the pack jacket that shrinks into this
+-- backdrop, header and footer bands (K.Chrome) that fade in over it, and the
+-- pack jacket that shrinks into this
 -- header's badge on the way in grows back out of it on the way out.  Arriving
 -- from the pack step the wheel slides in from the right and the details from
 -- the left; Back plays the reverse before the (motion-only) cancel transition
@@ -62,7 +63,9 @@ local function enterFromPacks()
 	layoutPart("Details"):stoptweening():addx(-DETAILS_SLIDE):diffusealpha(0)
 		:sleep(0.06):decelerate(K.HandoffSeconds):addx(DETAILS_SLIDE):diffusealpha(1)
 	layoutPart("Header"):playcommand("SongWheelIn")
-	layoutPart("Chrome"):playcommand("ChromeIn")
+	-- The pack step has no bands: they fade in here and out on the way back.
+	layoutPart("Chrome"):stoptweening():diffusealpha(0):linear(K.HandoffSeconds):diffusealpha(1)
+		:playcommand("ChromeIn")
 end
 
 -- Back to the pack step: the reverse.  Everything but the badge leaves; the
@@ -79,7 +82,7 @@ local function leaveToPacks()
 	end
 	layoutPart("Details"):stoptweening():accelerate(0.2):addx(-DETAILS_SLIDE):diffusealpha(0)
 	layoutPart("Header"):playcommand("SongWheelOut")
-	layoutPart("Chrome"):playcommand("ChromeOut")
+	layoutPart("Chrome"):stoptweening():linear(0.2):diffusealpha(0)
 	screen:Cancel()
 end
 

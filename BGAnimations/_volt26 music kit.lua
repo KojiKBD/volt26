@@ -225,7 +225,7 @@ end
 -- it; K.Badge is that spot, and K.TileSize the jacket's full carousel size.
 K.HeaderHeight = 96
 K.FooterTop = 1004
-K.TileSize = 440
+K.TileSize = 560
 K.Badge = { X = 1036, Y = 48, Size = 72 }
 -- Seconds of the shared hand-off motion.  The screens' out and cancel
 -- transitions hold for K.HandoffHold so the motion finishes before the next
@@ -235,8 +235,12 @@ K.HandoffHold = 0.36
 
 function K.ModeText()
 	local style = GAMESTATE:GetCurrentStyle()
-	local parts = { (style and style:GetName() or ""):upper() }
-	parts[#parts+1] = #GAMESTATE:GetHumanPlayers() > 1 and K.String("Versus") or K.String("Solo")
+	local name = style and style:GetName() or ""
+	local parts = { name:upper() }
+	-- The versus style already says it; the others say whether one or two play.
+	if name ~= "versus" then
+		parts[#parts+1] = #GAMESTATE:GetHumanPlayers() > 1 and K.String("Versus") or K.String("Solo")
+	end
 	if GAMESTATE:IsCourseMode() then parts[#parts+1] = K.String("Marathon") end
 	return table.concat(parts, "   /   ")
 end
