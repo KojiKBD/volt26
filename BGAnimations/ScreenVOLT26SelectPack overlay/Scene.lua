@@ -26,10 +26,11 @@ local p = ...
 local K = p.K
 
 -- The splash's white window is the focused jacket's frame: the jacket is
--- drawn inside it, square and only slightly turned, so the window's skew
--- shows around it.  The back of the jacket (the song list) is drawn larger,
+-- drawn inside it, square and upright, so the window's skew shows around it.
+-- Jackets are never rotated: a turned sprite's edges and corners alias
+-- badly in the engine.  The back of the jacket (the song list) is drawn larger,
 -- filling the window.
-local Focus = { X = 948, Y = 517, Size = 420, ListSize = 460, Tilt = -2 }
+local Focus = { X = 948, Y = 517, Size = 420, ListSize = 460, Tilt = 0 }
 
 local lively = not VOLT26.Performance.IsEnabled()
 local LEAVE_SECONDS = 0.22      -- must finish within K.HandoffHold

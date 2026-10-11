@@ -44,16 +44,17 @@ local CENTER_X = scene.Focus.X
 local CENTER_Y = scene.Focus.Y
 local FOCUS_ZOOM = scene.Focus.Size / FOCUS_SIZE
 local FOCUS_TILT = scene.Focus.Tilt
--- Neighbours, by distance from the focus: smaller, turned away from the
--- middle, darkened, and partly behind the splash (draw order, see sortTiles).
--- x/y are relative to the focused slot; tilt is for the right-hand side.
+-- Neighbours, by distance from the focus: smaller, upright (a turned jacket
+-- aliases at its corners), darkened, and partly behind the splash (draw
+-- order, see sortTiles).  x/y are relative to the focused slot; tilt is for
+-- the right-hand side, mirrored on the left.
 -- Only the nearest neighbour on each side is shown (three packs on screen);
 -- the further slots are where tiles wait, hidden, to slide in from.
 local SHOWN_REACH = 1
 local SLOTS = {
-	[1] = { x = 560, y = 30, size = 300, tilt = 7, bright = 0.5 },
-	[2] = { x = 805, y = 74, size = 210, tilt = 12, bright = 0.3 },
-	[3] = { x = 1000, y = 110, size = 160, tilt = 15, bright = 0.2 },
+	[1] = { x = 560, y = 30, size = 300, tilt = 0, bright = 0.5 },
+	[2] = { x = 805, y = 74, size = 210, tilt = 0, bright = 0.3 },
+	[3] = { x = 1000, y = 110, size = 160, tilt = 0, bright = 0.2 },
 }
 local MOVE_SECONDS = 0.14
 local JUMP = 5
