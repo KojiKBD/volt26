@@ -25,13 +25,16 @@ The two screens are drawn to read as one screen:
 
 ## Pack step — `ScreenVOLT26SelectPack`
 
-- `Scripts/VOLT26_PackSelection.lua` — CORE: `List`, `InitialIndex`, `Artwork`, `Summary`, `Choose`. No actors.
+- `Scripts/VOLT26_PackSelection.lua` — CORE: `List`, `InitialIndex`, `Artwork`, `Summary`, `Songs`, `HardestMeter`, `Choose`, `SetHandoff`/`TakeHandoff`. No actors.
 - `BGAnimations/ScreenVOLT26SelectPack overlay/default.lua` — carousel, details, input, menu timer.
+- `BGAnimations/ScreenVOLT26SelectPack overlay/SongList.lua` — the back of the focused jacket: the pack's song list.
 - `BGAnimations/ScreenVOLT26SelectPack overlay/Tile.lua` — one square jacket (`SetPack`, `LoadPackArt`), also used as the song wheel header badge.
 
 Jackets fill their square edge to edge (artwork is cropped to it, banners included) with no name plate; the focused pack's name, song count, level range and place in the list are written under the carousel.  The focused jacket is 560 units and the others 500, so three and a half fit across the screen: the focused one, one either side and a quarter of the next on each edge.
 
-Input: Left/Right one pack, Up/Down five packs, Start opens, Back leaves. The carousel recycles nine tiles; only a tile that wraps from one end to the other gets a new pack. Artwork loads only once the carousel has been still for 0.08 s, nearest tiles first, and never for off-screen tiles.
+The focused pack's name is drawn in the same cutout lettering as the profile names (`VOLT26.Cutout`, two slots used alternately so the old name stays until the new one has rendered; names over 48 characters fall back to plain text).
+
+Input: Left/Right one pack, Up/Down five packs.  Holding a direction repeats after 0.3 s at the operator's MusicWheel scroll speed (`MusicWheelSwitchSpeed`, set under the VOLT26 options as MusicWheel Scroll Speed), counted in packs per second; the engine's own repeat events are not used.  Start turns the focused jacket over (`SongList.lua`): its back lists the pack's songs in title order with each song's hardest meter, ten at a time.  On the back, Up/Down scroll the list, Start opens the pack on the song wheel (the jacket turns face up while it flies to the badge), Back turns the jacket face up again and Left/Right turn it face up and move on.  Back on the carousel leaves. The carousel recycles nine tiles; only a tile that wraps from one end to the other gets a new pack. Artwork loads only once the carousel has been still for 0.08 s, nearest tiles first, and never for off-screen tiles.
 
 Pack artwork, in order: a jacket the engine reports for the pack (when the build has `SONGMAN:GetSongGroupJacketPath`), an image in the pack folder named `jacket`, `cover`, `folder`, `jk`, `*jacket` or `* jk`/`*_jk`/`*-jk`, then the pack banner (loaded at full resolution and cropped to the square). Movies are never used. A pack with none shows its initials.
 

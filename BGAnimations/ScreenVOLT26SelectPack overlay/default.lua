@@ -1,10 +1,16 @@
 -- ScreenVOLT26SelectPack: the first step of music selection.
 --
 -- Packs are shown as square jackets on a horizontal carousel.  Left/Right
--- moves one pack, Up/Down jumps five, Start opens the focused pack on the song
--- wheel (ScreenSelectMusic) and Back leaves music selection.  In event mode
--- Back has to be pressed twice, standing in for the exit prompt the song wheel
--- used to show.
+-- moves one pack, Up/Down jumps five; holding a direction keeps moving at the
+-- operator's MusicWheel scroll speed (the MusicWheelSwitchSpeed preference,
+-- set in the VOLT26 options), the same speed the song wheel scrolls at.
+-- Start turns the focused jacket over to show the pack's songs on its back
+-- (SongList.lua); there Up/Down scroll the list, Start opens the pack on the
+-- song wheel (ScreenSelectMusic) and Back turns the jacket face up again.
+-- Back on the carousel leaves music selection; in event mode it has to be
+-- pressed twice, standing in for the exit prompt the song wheel used to show.
+-- The focused pack's name is drawn in the profile screen's cutout lettering
+-- (VOLT26.Cutout).
 --
 -- The pack step and the song wheel are two screens drawn to read as one: the
 -- same backdrop, and the chosen jacket travels between them.  The pack step
@@ -39,6 +45,9 @@ local CENTER_X = K.W / 2
 local CENTER_Y = 450
 local MOVE_SECONDS = 0.14
 local JUMP = 5
+local HOLD_DELAY = 0.3         -- a held direction starts repeating after this
+local FLIP_SECONDS = 0.12      -- each half of the jacket's turn
+local NAME_Y = CENTER_Y + FOCUS_SIZE/2 + 78
 local ART_IDLE = 0.08          -- rest before artwork starts loading
 local DETAIL_IDLE = 0.12       -- rest before the pack summary is computed
 local LOAD_REACH = 2           -- tiles further out are off screen
@@ -58,6 +67,16 @@ local exitArmedAt = nil
 local timerSeen = false
 local checkTimer = VOLT26.MenuTimer.IsEnabledForSongSelect()
 local handoff = PackSelection.TakeHandoff()
+local held = nil               -- the direction being held, see Hold()
+local moveSeconds = MOVE_SECONDS
+local flipped = false
+
+-- Packs per second while a direction is held: the operator's MusicWheel
+-- scroll speed (ScreenOptionsService, VOLT26.OperatorOptions.MusicWheelSpeed).
+local function holdRate()
+	local speed = tonumber(PREFSMAN:GetPreference("MusicWheelSwitchSpeed")) or 15
+	return math.max(1, speed)
+end
 
 local function wrap(index)
 	return ((index - 1) % count) + 1
@@ -94,7 +113,9 @@ end
 local function placeTile(tile, animate)
 	local offset = tile.offset
 	tile:stoptweening()
-	if animate then tile:decelerate(MOVE_SECONDS) end
+	-- A jacket left turned over (or mid-turn) is put face up at once.
+	tile:GetChild("Body"):finishtweening():rotationy(0)
+	if animate then tile:decelerate(moveSeconds) end
 	tile:x(CENTER_X + slotX(offset)):y(0)
 		:zoom(offset == 0 and 1 or SIDE_ZOOM)
 		:diffusealpha(inWindow(offset) and slotAlpha(offset) or 0)
@@ -110,15 +131,52 @@ end
 
 -- Details -------------------------------------------------------------------
 
+-- The name: two cutout slots used alternately, as on the profile screen, so
+-- the name on screen stays until its successor has finished rendering.
+local names = { slots = {}, active = 1, shown = nil, wanted = nil, pending = nil }
+
+local function nameSlot(index)
+	return VOLT26.Cutout.CreateSlot{
+		-- The slots stand in theme units (NameLayer undoes the design scale),
+		-- so their texture matches the screen's pixels.
+		maxW = 1600 * K.Scale, maxH = 130 * K.Scale, halign = 0.5, valign = 0.5,
+		maxChars = 48, held = true,
+		opts = { base = 70 * K.Scale, tiltDeg = -2 },
+		fallbackZoom = VOLT26.Type.DisplayZoom(56 * K.Scale),
+		onInit = function(slot) names.slots[index] = slot end,
+		onReady = function(slot)
+			-- Only the slot being prepared, and only for the name still wanted.
+			if slot ~= names.slots[3 - names.active] or names.pending ~= names.wanted then return end
+			local outgoing = names.slots[names.active]
+			names.active = 3 - names.active
+			names.shown = names.wanted
+			outgoing:playcommand("CutoutHold", { held = true })
+			slot:playcommand("CutoutHold", { held = false })
+		end,
+	}
+end
+
+local function setName(text)
+	text = text or ""
+	if text == names.wanted then return end
+	names.wanted = text
+	if text == names.shown then
+		names.pending = nil
+		return
+	end
+	names.pending = text
+	local slot = names.slots[3 - names.active]
+	if slot then slot:playcommand("CutoutSet", { text = text }) end
+end
+
 local function refreshName()
-	local details = root:GetChild("Details")
-	local name, position = details:GetChild("Name"), details:GetChild("Position")
+	local position = root:GetChild("Details"):GetChild("Position")
 	if count == 0 then
-		K.SetDisplay(name, "", 56)
+		setName("")
 		K.SetLabel(position, "", 13)
 		return
 	end
-	K.SetDisplay(name, packs[focus].Name, 56, 1500)
+	setName(packs[focus].Name)
 	K.SetLabel(position, string.format("%03d / %03d", focus, count), 13)
 end
 
@@ -186,6 +244,46 @@ local function leaveToSongWheel()
 	root:GetChild("Details"):stoptweening():linear(0.12):diffusealpha(0)
 end
 
+-- Turning the jacket over ---------------------------------------------------
+--
+-- The jacket's front turns edge-on, then the song list (a separate face drawn
+-- over the focused slot) turns in from the other edge; turning back is the
+-- reverse.  Each face only ever rotates between face-on and edge-on.
+
+local function songList()
+	return root:GetChild("SongList")
+end
+
+local function flipToSongs()
+	local tile = focusedTile()
+	if not tile or count == 0 then return end
+	-- A direction still held would turn the jacket straight back.
+	held = nil
+	moveSeconds = MOVE_SECONDS
+	flipped = true
+	songList():playcommand("SetSongs", { Group = packs[focus].Name })
+	tile:GetChild("Body"):stoptweening():linear(FLIP_SECONDS):rotationy(90)
+	songList():stoptweening():visible(true):rotationy(-90)
+		:sleep(FLIP_SECONDS):decelerate(FLIP_SECONDS):rotationy(0)
+end
+
+local function flipToJacket(instant)
+	if not flipped then return end
+	flipped = false
+	local tile = focusedTile()
+	local list = songList()
+	if instant then
+		list:stoptweening():rotationy(0):visible(false)
+		if tile then tile:GetChild("Body"):stoptweening():rotationy(0) end
+		return
+	end
+	list:stoptweening():linear(FLIP_SECONDS):rotationy(90):queuecommand("Hide")
+	if tile then
+		tile:GetChild("Body"):stoptweening():rotationy(-90)
+			:sleep(FLIP_SECONDS):decelerate(FLIP_SECONDS):rotationy(0)
+	end
+end
+
 -- Actions -------------------------------------------------------------------
 
 local function play(name)
@@ -195,6 +293,7 @@ end
 
 local function move(direction, steps)
 	if finished or count <= 1 then return end
+	flipToJacket(true)
 	steps = steps or 1
 	for _ = 1, steps do
 		focus = wrap(focus + direction)
@@ -228,11 +327,13 @@ local function choose()
 		return
 	end
 	finished = true
+	held = nil
 	play("Start")
 	-- The badge in the song wheel header shows the same artwork; make sure the
-	-- jacket that flies there already has it.
+	-- jacket that flies there already has it, and turn it face up on the way.
 	local tile = focusedTile()
 	if tile and tile.artPending then tile:playcommand("LoadPackArt") end
+	flipToJacket(false)
 	PackSelection.SetHandoff("ToSongWheel")
 	leaveToSongWheel()
 	local screen = SCREENMAN:GetTopScreen()
@@ -266,27 +367,84 @@ local function back()
 		:sleep(EXIT_WINDOW):linear(0.2):diffusealpha(0)
 end
 
+-- A held direction: one move on the press, then after HOLD_DELAY a steady
+-- stream at holdRate() packs per second (Up/Down repeat whole jumps at the
+-- same pace in packs).  Engine repeat events are not used for this, so the
+-- operator's speed setting is what decides the pace.
+local function hold(event, direction, steps)
+	held = { player = event.PlayerNumber, button = event.GameButton,
+		direction = direction, steps = steps, elapsed = 0, owed = 0 }
+	moveSeconds = MOVE_SECONDS
+	move(direction, steps)
+end
+
+local function updateHold(delta)
+	if not held or finished then return end
+	held.elapsed = held.elapsed + delta
+	if held.elapsed < HOLD_DELAY then return end
+	local rate = holdRate() / held.steps
+	held.owed = held.owed + delta * rate
+	local moves = math.floor(held.owed)
+	if moves < 1 then return end
+	held.owed = held.owed - moves
+	-- Each glide has to finish before the next one starts.
+	moveSeconds = math.min(MOVE_SECONDS, 0.9 / holdRate())
+	move(held.direction, moves * held.steps)
+end
+
+local function onFlippedSide(event, button, kind)
+	if button == "MenuUp" or button == "MenuDown" then
+		local list = songList()
+		list:playcommand("Scroll", { Delta = button == "MenuUp" and -1 or 1 })
+		if list.moved then play("Change") end
+	elseif kind == "InputEventType_FirstPress" then
+		if button == "MenuLeft" then
+			hold(event, -1, 1)
+		elseif button == "MenuRight" then
+			hold(event, 1, 1)
+		elseif button == "Start" then
+			choose()
+		elseif button == "Back" then
+			flipToJacket(false)
+			play("Change")
+		end
+	end
+end
+
 input = function(event)
 	if finished or not event or not event.PlayerNumber then return false end
 	if not GAMESTATE:IsHumanPlayer(event.PlayerNumber) then return false end
 	local kind = event.type
-	if kind ~= "InputEventType_FirstPress" and kind ~= "InputEventType_Repeat" then return false end
 	local button = event.GameButton
 
-	if button == "MenuLeft" then
-		move(-1)
-	elseif button == "MenuRight" then
-		move(1)
-	elseif button == "MenuUp" then
-		move(-1, JUMP)
-	elseif button == "MenuDown" then
-		move(1, JUMP)
-	elseif kind == "InputEventType_FirstPress" then
-		if button == "Start" then
-			choose()
-		elseif button == "Back" then
-			back()
+	if kind == "InputEventType_Release" then
+		if held and held.player == event.PlayerNumber and held.button == button then
+			held = nil
+			moveSeconds = MOVE_SECONDS
 		end
+		return false
+	end
+	if kind ~= "InputEventType_FirstPress" and kind ~= "InputEventType_Repeat" then return false end
+
+	if flipped then
+		onFlippedSide(event, button, kind)
+		return false
+	end
+	-- Carousel movement repeats on its own clock (updateHold), not on the
+	-- engine's repeat events.
+	if kind ~= "InputEventType_FirstPress" then return false end
+	if button == "MenuLeft" then
+		hold(event, -1, 1)
+	elseif button == "MenuRight" then
+		hold(event, 1, 1)
+	elseif button == "MenuUp" then
+		hold(event, -1, JUMP)
+	elseif button == "MenuDown" then
+		hold(event, 1, JUMP)
+	elseif button == "Start" then
+		if count == 0 then play("Invalid") else flipToSongs(); play("Change") end
+	elseif button == "Back" then
+		back()
 	end
 	return false
 end
@@ -336,6 +494,7 @@ local af = Def.ActorFrame{
 		local elapsed = 0
 		self:SetUpdateFunction(function(frame, delta)
 			delta = delta or 0
+			updateHold(delta)
 			idle = idle + delta
 			if idle >= ART_IDLE and not finished then
 				local best
@@ -369,7 +528,7 @@ local af = Def.ActorFrame{
 af[#af+1] = Def.BitmapText{
 	Name="Notice", Font=K.Label,
 	InitCommand=function(self)
-		self:xy(K.W/2, CENTER_Y + FOCUS_SIZE/2 + 205):horizalign(center):shadowlength(0)
+		self:xy(K.W/2, CENTER_Y + FOCUS_SIZE/2 + 228):horizalign(center):shadowlength(0)
 			:zoom(VOLT26.Type.LabelZoom(13)):diffuse(K.Accent):diffusealpha(0)
 			:settext(K.String("PressBackAgain"))
 	end,
@@ -377,10 +536,15 @@ af[#af+1] = Def.BitmapText{
 
 -- Focused pack details
 local details = Def.ActorFrame{ Name="Details" }
-details[#details+1] = K.Text{ Name="Name", Role="Display", Px=56, Tint=K.Ink, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 72 }
-details[#details+1] = K.Text{ Name="Info", Px=18, Tint=K.Mute, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 128 }
+details[#details+1] = Def.ActorFrame{
+	Name="NameLayer",
+	InitCommand=function(self) self:xy(K.W/2, NAME_Y):zoom(1 / K.Scale) end,
+	nameSlot(1),
+	nameSlot(2),
+}
+details[#details+1] = K.Text{ Name="Info", Px=18, Tint=K.Mute, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 150 }
 -- The pack's place in the list.
-details[#details+1] = K.Text{ Name="Position", Px=13, Tint=K.Dim, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 166 }
+details[#details+1] = K.Text{ Name="Position", Px=13, Tint=K.Dim, Align=center, X=K.W/2, Y=CENTER_Y + FOCUS_SIZE/2 + 190 }
 af[#af+1] = details
 
 -- Carousel
@@ -392,6 +556,15 @@ for i = 1, POOL do
 	carousel[#carousel+1] = LoadActor("./Tile.lua", { K=K, Size=FOCUS_SIZE, Name="Tile" .. i })
 end
 af[#af+1] = carousel
+
+-- The back of the focused jacket, over the focused slot.
+af[#af+1] = LoadActor("./SongList.lua", { K=K, Size=FOCUS_SIZE })..{
+	InitCommand=function(self)
+		self.songs, self.offset, self.moved = {}, 0, false
+		self:xy(CENTER_X, CENTER_Y):visible(false)
+	end,
+	HideCommand=function(self) self:visible(false):rotationy(0) end,
+}
 
 af[#af+1] = LoadActor(THEME:GetPathS("MusicWheel", "change"))..{ Name="Change", IsAction=true, SupportPan=false }
 af[#af+1] = LoadActor(THEME:GetPathS("common", "start"))..{ Name="Start", IsAction=true, SupportPan=false }

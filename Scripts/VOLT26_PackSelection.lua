@@ -218,6 +218,34 @@ function PackSelection.Summary(group)
 	return summary
 end
 
+-- The pack's songs in title order (the order the song wheel lists them in,
+-- near enough: by transliterated full title, case-insensitive).
+function PackSelection.Songs(group)
+	local songs = {}
+	for _, song in ipairs(songsInGroup(group)) do songs[#songs+1] = song end
+	local keys = {}
+	for _, song in ipairs(songs) do keys[song] = titleKey(song) end
+	table.sort(songs, function(a, b)
+		if keys[a] ~= keys[b] then return keys[a] < keys[b] end
+		return tostring(a) < tostring(b)
+	end)
+	return songs
+end
+
+-- The hardest meter a song offers in the current style, or nil.
+function PackSelection.HardestMeter(song)
+	local stepsType = currentStepsType()
+	if not song or not stepsType then return nil end
+	local ok, charts = pcall(function() return song:GetStepsByStepsType(stepsType) end)
+	if not ok or type(charts) ~= "table" then return nil end
+	local hardest
+	for _, chart in ipairs(charts) do
+		local meter = tonumber(chart:GetMeter())
+		if meter and meter > 0 then hardest = math.max(hardest or meter, meter) end
+	end
+	return hardest
+end
+
 -- Hands the chosen pack to the engine.  The MusicWheel opens on the preferred
 -- song's section, so the pack is chosen by choosing one of its songs: the song
 -- already current when it belongs to this pack (coming back to a pack lands on
