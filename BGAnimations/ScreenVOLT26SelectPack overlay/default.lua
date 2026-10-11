@@ -47,6 +47,9 @@ local FOCUS_TILT = scene.Focus.Tilt
 -- Neighbours, by distance from the focus: smaller, turned away from the
 -- middle, darkened, and partly behind the splash (draw order, see sortTiles).
 -- x/y are relative to the focused slot; tilt is for the right-hand side.
+-- Only the nearest neighbour on each side is shown (three packs on screen);
+-- the further slots are where tiles wait, hidden, to slide in from.
+local SHOWN_REACH = 1
 local SLOTS = {
 	[1] = { x = 560, y = 30, size = 300, tilt = 7, bright = 0.5 },
 	[2] = { x = 805, y = 74, size = 210, tilt = 12, bright = 0.3 },
@@ -59,7 +62,7 @@ local FLIP_SECONDS = 0.12      -- each half of the jacket's turn
 local NAME_Y = 895             -- the mockup's "pack name", under the splash
 local ART_IDLE = 0.08          -- rest before artwork starts loading
 local DETAIL_IDLE = 0.12       -- rest before the pack summary is computed
-local LOAD_REACH = 2           -- tiles further out are off screen
+local LOAD_REACH = 1           -- tiles further out are hidden
 local EXIT_WINDOW = 2.0        -- event mode: seconds for the second Back
 
 -- The header badge, in the carousel's own coordinates.
@@ -101,7 +104,7 @@ local function slot(offset)
 	local reach = math.abs(offset)
 	local s = SLOTS[math.min(reach, #SLOTS)]
 	local side = offset > 0 and 1 or -1
-	return CENTER_X + side * s.x, s.y, s.size / FOCUS_SIZE, side * s.tilt, s.bright, reach <= 2
+	return CENTER_X + side * s.x, s.y, s.size / FOCUS_SIZE, side * s.tilt, s.bright, reach <= SHOWN_REACH
 end
 
 -- With fewer packs than tiles every pack is shown once, around the focus.
@@ -579,7 +582,7 @@ af[#af+1] = carousel
 af[#af+1] = LoadActor("./SongList.lua", { K=K, Size=FOCUS_SIZE })..{
 	InitCommand=function(self)
 		self.songs, self.offset, self.moved = {}, 0, false
-		self:xy(CENTER_X, CENTER_Y):zoom(FOCUS_ZOOM):rotationz(FOCUS_TILT):visible(false)
+		self:xy(CENTER_X, CENTER_Y):zoom(scene.Focus.ListSize / FOCUS_SIZE):rotationz(FOCUS_TILT):visible(false)
 	end,
 	HideCommand=function(self) self:visible(false):rotationy(0) end,
 }

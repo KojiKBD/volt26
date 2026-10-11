@@ -10,7 +10,7 @@ Item ids refer to the mockup's top-level items, back to front:
   00 red ground, 02 dark vignette     -> bg.png (flattened, half size)
   01 VOLT26 RE:Spark logo (50%)       -> logo.png
   03 zig-zag stripes                  -> stripes.png
-  10 black splash + white window + 4 stars -> splash.png, window filled black
+  10 black splash + white window + 4 stars -> splash.png
   11 "CHOOSE YOUR PACK" lettering     -> title.png
   04 sparkle (all four-point sparkles share its shape) -> sparkle.png
   08 outlined star (06/07/09 share its shape)          -> star.png
@@ -21,7 +21,7 @@ Usage: python build_pack_select_art.py [art_dir] [theme_root]
 import os
 import sys
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ART = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "art")
@@ -58,27 +58,19 @@ def main():
         im.save(os.path.join(OUT, name + ".png"), optimize=True)
         layout.append("%-8s centre %7.1f %7.1f  size %d x %d" % (name, c[0], c[1], im.width, im.height))
 
-    # The splash: the white window becomes part of the black ground, so the
-    # pack jacket (drawn square and only slightly turned) never shows white
-    # corners around it.
+    # The splash: its white window is the frame the focused jacket sits in
+    # (the jacket is drawn smaller and only slightly turned, so the window's
+    # skew shows around it).  Its bounds are measured for the layout.
     splash = item(10)
-    seed = (950, 520)
     window = splash.copy()
-    ImageDraw.floodfill(window, seed, (255, 0, 255, 255), thresh=60)
-    # The window's anti-aliased edge is not reached by the fill; growing the
-    # filled area by a few pixels takes it too (the window sits well inside
-    # the black, away from the red outline).
-    mask = Image.new("L", splash.size, 0)
-    mpx, wpx = mask.load(), window.load()
+    ImageDraw.floodfill(window, (950, 520), (255, 0, 255, 255), thresh=60)
+    wpx = window.load()
     xs, ys = [], []
     for y in range(splash.height):
         for x in range(splash.width):
             if wpx[x, y] == (255, 0, 255, 255):
-                mpx[x, y] = 255
                 xs.append(x)
                 ys.append(y)
-    mask = mask.filter(ImageFilter.MaxFilter(7))
-    splash.paste((0, 0, 0, 255), (0, 0), mask)
     im, c = crop(splash)
     im.save(os.path.join(OUT, "splash.png"), optimize=True)
     layout.append("%-8s centre %7.1f %7.1f  size %d x %d" % ("splash", c[0], c[1], im.width, im.height))
