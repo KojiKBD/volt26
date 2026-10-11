@@ -3,7 +3,7 @@
 -- cut up by build_pack_select_art.py into Graphics/VOLT26/PackSelect).
 --
 -- Returns the pieces, each placed by its own screen layer:
---   Back    red ground, the faded VOLT26 logo, the zig-zag stripes; drawn by
+--   Back    red ground and the zig-zag stripes; drawn by
 --           the background layer (ScreenVOLT26SelectPack background.lua) so
 --           the screen's decorations, such as the menu timer, stay on top
 --   Splash  the black torn frame the focused jacket sits in; drawn inside the
@@ -60,18 +60,12 @@ local back = Def.ActorFrame{
 	-- Past the design rectangle in the ground's own red, for non-16:9 screens.
 	Def.Quad{
 		InitCommand=function(self)
-			self:align(0,0):xy(-K.W, -K.H):zoomto(K.W*3, K.H*3):diffuse(color("#a60206"))
+			self:align(0,0):xy(-K.W, -K.H):zoomto(K.W*3, K.H*3):diffuse(color("#760000"))
 		end,
 	},
 	Def.Sprite{
 		Name="Ground", Texture=art("bg"),
 		InitCommand=function(self) self:align(0,0):xy(0,0):zoomto(K.W, K.H) end,
-	},
-	-- A fixed decoration: mostly hidden behind the splash, it shows only
-	-- under its bottom edge, behind the pack name.
-	Def.Sprite{
-		Name="Logo", Texture=art("logo"),
-		InitCommand=function(self) self:xy(961, 540) end,
 	},
 	Def.Sprite{
 		Name="Stripes", Texture=art("stripes"),

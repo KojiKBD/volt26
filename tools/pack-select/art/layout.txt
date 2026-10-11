@@ -1,17 +1,17 @@
-logo     centre   961.0   540.0  size 740 x 740
+bg       items 00 01
 stripes  centre  1002.5   540.0  size 1323 x 1080
 title    centre   967.0   205.0  size 1130 x 184
-sparkle  centre  1179.5   269.0  size 79 x 78
-star     centre   447.0   399.0  size 68 x 70
 splash   centre   961.0   540.5  size 946 x 713
 window   bounds 684 285 1211 749
-sparkle04 centre  1179.5   269.0
-sparkle05 centre   689.0   246.0
-sparkle12 centre  1525.0   184.0
-sparkle13 centre   500.0   126.0
-sparkle14 centre   914.0   173.0
-sparkle15 centre   722.5   249.0
-star06   centre   500.5   442.5  size 43
-star07   centre  1453.5   721.0  size 43
-star08   centre   447.0   399.0  size 68
-star09   centre  1417.0   571.0  size 68
+sparkle  centre  1179.5   269.0  size 79 x 78
+sparkle  at  1179.5   269.0
+sparkle  at   689.0   246.0
+sparkle  at  1525.0   184.0
+sparkle  at   500.0   126.0
+sparkle  at   914.0   173.0
+sparkle  at   722.5   249.0
+star     centre  1417.0   571.0  size 68 x 70
+star     at   500.5   442.5  zoom 0.63
+star     at  1453.5   721.0  zoom 0.63
+star     at   447.0   399.0  zoom 1.00
+star     at  1417.0   571.0  zoom 1.00
