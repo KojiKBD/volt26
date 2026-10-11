@@ -199,20 +199,29 @@ local function setName(text)
 end
 
 local function refreshName()
-	local position = root:GetChild("Details"):GetChild("Position")
-	if count == 0 then
-		setName("")
-		K.SetLabel(position, "", 13)
-		return
+	setName(count > 0 and packs[focus].Name or "")
+end
+
+-- The summary line is drawn white over eight black copies of itself, nudged
+-- around it, which gives it a black stroke (the label font has no stroke
+-- layer of its own).
+local INFO_PX = 18
+local INFO_STROKE = 3
+local INFO_OFFSETS = {
+	{ -1, -1 }, { 0, -1 }, { 1, -1 }, { -1, 0 }, { 1, 0 }, { -1, 1 }, { 0, 1 }, { 1, 1 },
+}
+
+local function setInfo(text)
+	local info = root:GetChild("Details"):GetChild("Info")
+	for i = 1, #INFO_OFFSETS do
+		K.SetLabel(info:GetChild("Stroke" .. i), text, INFO_PX, 1500)
 	end
-	setName(packs[focus].Name)
-	K.SetLabel(position, string.format("%03d / %03d", focus, count), 13)
+	K.SetLabel(info:GetChild("Text"), text, INFO_PX, 1500)
 end
 
 local function refreshDetails()
-	local info = root:GetChild("Details"):GetChild("Info")
 	if count == 0 then
-		K.SetLabel(info, K.String("NoPacks"), 18)
+		setInfo(K.String("NoPacks"))
 		return
 	end
 	local summary = PackSelection.Summary(packs[focus].Name)
@@ -226,7 +235,7 @@ local function refreshDetails()
 			parts[#parts+1] = string.format(K.String("PackLevels"), summary.MinMeter, summary.MaxMeter)
 		end
 	end
-	K.SetLabel(info, table.concat(parts, "   /   "), 18, 1500)
+	setInfo(table.concat(parts, "   /   "))
 end
 
 -- Entrances and exits --------------------------------------------------------
@@ -521,9 +530,16 @@ details[#details+1] = Def.ActorFrame{
 	nameSlot(1),
 	nameSlot(2),
 }
-details[#details+1] = K.Text{ Name="Info", Px=18, Tint=K.Ink, Align=center, X=K.W/2, Y=948 }
--- The pack's place in the list.
-details[#details+1] = K.Text{ Name="Position", Px=13, Tint=K.Ink, Align=center, X=K.W/2, Y=976 }
+local info = Def.ActorFrame{
+	Name="Info",
+	InitCommand=function(self) self:xy(K.W/2, 952) end,
+}
+for i, o in ipairs(INFO_OFFSETS) do
+	info[#info+1] = K.Text{ Name="Stroke" .. i, Px=INFO_PX, Tint=Color.Black, Align=center,
+		X=o[1] * INFO_STROKE, Y=o[2] * INFO_STROKE }
+end
+info[#info+1] = K.Text{ Name="Text", Px=INFO_PX, Tint=Color.White, Align=center }
+details[#details+1] = info
 af[#af+1] = details
 
 af[#af+1] = Def.BitmapText{
