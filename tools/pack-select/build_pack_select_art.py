@@ -17,6 +17,8 @@ and size instead:
   path 60-90 px                          -> sparkle.png (all share a shape)
   group 30-90 px                         -> star.png (the largest; smaller
                                             ones are the same star scaled)
+  placed item (linked image)             -> chainN.png, left to right (the
+                                            chains; cut at the artboard edge)
   text frames                            -> ignored (the theme draws the name)
 Anything else is reported and left out.
 
@@ -61,6 +63,8 @@ def classify(entry):
         return "bg"
     if kind == "RasterItem":
         return "title"
+    if kind == "PlacedItem":
+        return "chain"
     if kind == "GroupItem" and w > 1200:
         return "stripes"
     if kind == "GroupItem" and 800 <= w <= 1100:
@@ -141,6 +145,10 @@ def main():
     for entry in groups["star"]:
         im, c = crop(load(entry))
         layout.append("star     at %7.1f %7.1f  zoom %.2f" % (c[0], c[1], im.width / float(star.width)))
+
+    chains = sorted(groups.get("chain", []), key=lambda e: e["bounds"][0])
+    for n, entry in enumerate(chains, 1):
+        single("chain%d" % n, entry)
 
     with open(os.path.join(ART, "layout.txt"), "w") as f:
         f.write("\n".join(layout) + "\n")

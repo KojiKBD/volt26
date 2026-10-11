@@ -9,7 +9,8 @@
 --   Splash  the black torn frame the focused jacket sits in; drawn inside the
 --           overlay's carousel, in front of the neighbouring jackets and
 --           behind the focused one
---   Front   the "CHOOSE YOUR PACK" lettering, sparkles and loose stars
+--   Front   the chains in two corners, the "CHOOSE YOUR PACK" lettering,
+--           sparkles and loose stars
 --   Focus   where the focused jacket goes: the splash's window
 --
 -- All positions are the mockup's, in 1920x1080 design pixels.
@@ -123,6 +124,38 @@ local front = Def.ActorFrame{
 		self:stoptweening():linear(LEAVE_SECONDS * 0.6):diffusealpha(0)
 	end,
 }
+
+-- Chains in the bottom-left and top-right corners.  Each is cut where it
+-- leaves the artboard, so it only ever moves out through its own corner
+-- (along Out, a unit vector) and never further in than its rest position,
+-- which would show the cut ends.  They are pulled in after the frame lands,
+-- clank outward and back on settling, and jolt outward on each pack change.
+local chains = {
+	{ name = "chain1", x = 236, y = 827, out = { -0.72, 0.69 }, delay = 0.16 },
+	{ name = "chain2", x = 1728, y = 213, out = { 0.72, -0.69 }, delay = 0.24 },
+}
+local CHAIN_REACH = 720         -- far enough out to be off screen
+for i, c in ipairs(chains) do
+	local function at(self, d) return self:xy(c.x + c.out[1] * d, c.y + c.out[2] * d) end
+	front[#front+1] = Def.Sprite{
+		Name="Chain" .. i, Texture=art(c.name),
+		InitCommand=function(self) self:xy(c.x, c.y) end,
+		SceneEnterCommand=function(self, params)
+			at(self:stoptweening(), CHAIN_REACH)
+			if params and params.FromSongWheel then
+				at(self:decelerate(0.24), 0)
+				return
+			end
+			at(at(at(self:sleep(c.delay):decelerate(0.3), 0):decelerate(0.05), 14):accelerate(0.08), 0)
+		end,
+		SceneLeaveCommand=function(self)
+			at(self:stoptweening():accelerate(LEAVE_SECONDS), CHAIN_REACH)
+		end,
+		BumpCommand=function(self)
+			at(at(at(self:finishtweening(), 0):decelerate(0.05), 9):accelerate(0.1), 0)
+		end,
+	}
+end
 
 front[#front+1] = Def.ActorFrame{
 	Name="TitleFrame",

@@ -8,10 +8,12 @@
 {"id":"06","type":"GroupItem","name":"","text":"","opacity":100,"bounds":[1433.96,700.86,1471.67,739.07]},
 {"id":"07","type":"GroupItem","name":"","text":"","opacity":100,"bounds":[414.82,365.19,477.47,430.14]},
 {"id":"08","type":"GroupItem","name":"","text":"","opacity":100,"bounds":[1385,537.62,1447.65,602.58]},
-{"id":"09","type":"GroupItem","name":"","text":"","opacity":100,"bounds":[489.07,185.59,1429.22,894.03]},
-{"id":"10","type":"RasterItem","name":"","text":"","opacity":100,"bounds":[285.11,25.53,1634.89,377.47]},
-{"id":"11","type":"PathItem","name":"","text":"","opacity":100,"bounds":[1487.58,146.16,1560.86,219.44]},
+{"id":"09","type":"RasterItem","name":"","text":"","opacity":100,"bounds":[285.11,25.53,1634.89,377.47]},
+{"id":"10","type":"PathItem","name":"","text":"","opacity":100,"bounds":[1487.58,146.16,1560.86,219.44]},
+{"id":"11","type":"PlacedItem","name":"","text":"","opacity":100,"bounds":[-149.25,208.11,1513.69,1369.84]},
 {"id":"12","type":"PathItem","name":"","text":"","opacity":100,"bounds":[462.53,88.13,535.81,161.4]},
 {"id":"13","type":"PathItem","name":"","text":"","opacity":100,"bounds":[876.09,135.36,949.36,208.64]},
-{"id":"14","type":"PathItem","name":"","text":"","opacity":100,"bounds":[684.92,211.22,758.2,284.5]}
+{"id":"14","type":"PathItem","name":"","text":"","opacity":100,"bounds":[684.92,211.22,758.2,284.5]},
+{"id":"15","type":"GroupItem","name":"","text":"","opacity":100,"bounds":[489.07,185.59,1429.22,894.03]},
+{"id":"16","type":"PlacedItem","name":"","text":"","opacity":100,"bounds":[814.21,-218.5,2067.38,724.54]}
 ]
