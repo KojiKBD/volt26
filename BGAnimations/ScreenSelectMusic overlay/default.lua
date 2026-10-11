@@ -146,7 +146,8 @@ local af = Def.ActorFrame{
 			leaveToPacks()
 		end
 	end,
-	-- The wheel's BACK TO PACK SELECTION row (VOLT26.PackSelection.WheelBackToPacks).
+	-- The wheel's BACK TO PACK SELECTION row ([VOLT26SongWheel] in metrics.ini).
+	-- The engine may send it once per joined player; leaveToPacks ignores repeats.
 	VOLT26BackToPacksMessageCommand=function(self) leaveToPacks() end,
 	ReloadScreenForMemoryCardsMessageCommand=function(self, params)
 		-- Wait some time for the profile screen to finish transitioning
