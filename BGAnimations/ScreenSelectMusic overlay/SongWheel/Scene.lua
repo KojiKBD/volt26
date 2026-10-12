@@ -17,7 +17,8 @@
 -- (VOLT26.PackSelection.TakenHandoff() == "ToSongWheel"), and on the bridge,
 -- quicker, while a pack opens; EXIT plays on the bridge on the way back.  A
 -- new song gives the stars and the jacket frame a kick, and outside
--- Performance mode the light breathes and the stars turn.  The SELECT logo
+-- Performance mode the light breathes and the stars turn with the hovered
+-- song's BPM.  The SELECT logo
 -- does not move (the owner's call); it only fades with the bridge.
 local part = ... or "Back"
 local K = LoadActor(THEME:GetPathB("", "_volt26 music kit.lua"))
@@ -32,9 +33,32 @@ local function piece(name, enter, extra)
 end
 
 if part == "Front" then
-	-- Stars: pop in turning, then turn on their own (each its own speed and
-	-- way round); a new song makes them jump.
-	local starSpin = { 34, -22, 48, -30 }
+	-- Stars: pop in turning, then turn with the hovered song's tempo -- one
+	-- turn every TURN_BEATS beats of its BPM (at the music rate), each star
+	-- its own way round and a little faster or slower -- and jump on a new
+	-- song.
+	local TURN_BEATS = 8
+	local DEFAULT_BPM = 120               -- no song, or a random BPM
+	local starSpin = { 1, -0.8, 1.25, -0.9 }
+
+	local function hoveredBpm()
+		local song = GAMESTATE:GetCurrentSong()
+		if not song or GAMESTATE:IsCourseMode() then return DEFAULT_BPM end
+		local ok, bpm = pcall(function()
+			if song:IsDisplayBpmRandom() then return nil end
+			local bpms = song:GetDisplayBpms()
+			return math.max(tonumber(bpms[1]) or 0, tonumber(bpms[2]) or 0)
+		end)
+		bpm = ok and tonumber(bpm) or nil
+		if not bpm or bpm <= 0 then bpm = DEFAULT_BPM end
+		return bpm * VOLT26.MusicSelection.GetMusicRate()
+	end
+
+	-- Degrees per second for star i.
+	local function spinRate(i)
+		return hoveredBpm() / 60 / TURN_BEATS * 360 * starSpin[i]
+	end
+
 	local af = Def.ActorFrame{ Name = "SceneFront" }
 	for i = 1, 4 do
 		af[#af+1] = piece("Star" .. i, function(self)
@@ -43,10 +67,11 @@ if part == "Front" then
 				:queuecommand("Idle")
 		end, {
 			IdleCommand = function(self)
-				if idle then self:spin():effectmagnitude(0, 0, starSpin[i]) end
+				if idle then self:spin():effectmagnitude(0, 0, spinRate(i)) end
 			end,
 			CurrentSongChangedMessageCommand = function(self)
 				self:finishtweening():sleep((i - 1) * 0.04):decelerate(0.08):zoom(1.3):accelerate(0.12):zoom(1)
+				if idle then self:effectmagnitude(0, 0, spinRate(i)) end
 			end,
 		})
 	end
