@@ -135,54 +135,85 @@ function P.FitEllipsis(actor, text, width, minScale)
 end
 
 -- A line of text that scrolls when it is too long for its window: the text
--- shrinks to fit down to minScale first, and only what still overflows
--- scrolls, to and fro, inside the window.  The window is cut with the
--- z-buffer masks of the theme API (MaskSource / MaskDest).
--- t = P.Text's fields plus Width (the window), MinScale.
--- P.SetMarquee(frame, text) fills it.
+-- shrinks to fit down to MinScale first, and only what still overflows
+-- scrolls, to and fro, inside the window.  The text is drawn into its own
+-- small texture (an ActorFrameTexture as large as the widest window) and
+-- shown through a sprite cropped to the window, so nothing can show outside
+-- it.  (Z-buffer masks did not cut it in ITGmania.)
+-- t = P.Text's fields plus Width (the widest window), MinScale.
+-- P.SetMarquee(frame, text[, window]) fills it.
 local MARQUEE_SPEED = 90       -- design pixels a second
 local MARQUEE_REST = 1.4       -- seconds at either end
+local marquees = 0
 
 function P.Marquee(t)
-	local maskH = (t.Cap or 20) * 2.4
-	local maskY = (t.Baseline or 0) - (t.Cap or 20) / 2
+	marquees = marquees + 1
+	local cap = t.Cap or 20
+	local width = t.Width
+	local height = math.ceil(cap * 2.4)
+	-- Draw at the display's resolution, so the sprite maps onto its pixels.
+	local display = 1
+	if DISPLAY and DISPLAY.GetDisplayHeight then
+		display = math.min(3, math.max(1, DISPLAY:GetDisplayHeight() / SCREEN_HEIGHT))
+	end
+	local s = P.Scale * display
+	local texW, texH = math.ceil(width * s), math.ceil(height * s)
+	local name = ("VOLT26Marquee%s%d_%d"):format(t.Name or "", marquees, math.floor(GetTimeSinceStart() * 1000))
 	local text = {}
 	for k, v in pairs(t) do text[k] = v end
-	text.Name, text.Width = "Text", nil
+	text.Name, text.Width, text.X, text.Rot = "Text", nil, 0, 0
+	text.Baseline = height / 2 + cap / 2
+	local aft
 	return Def.ActorFrame{
 		Name = t.Name,
-		InitCommand = function(self) self.window, self.minScale = t.Width, t.MinScale or 0.8 end,
-		-- Two masks, either side of the window.
-		Def.Quad{ Name="MaskL", InitCommand=function(self)
-			self:align(1, 0.5):xy(t.X or 0, maskY):zoomto(2000, maskH):rotationz(t.Rot or 0):MaskSource()
-		end },
-		Def.Quad{ Name="MaskR", InitCommand=function(self)
-			self:align(0, 0.5):xy((t.X or 0) + t.Width, maskY):zoomto(2000, maskH):rotationz(t.Rot or 0):MaskSource(true)
-		end },
-		P.Text(text)..{
-			OnCommand=function(self) self:MaskDest() end,
-			MarqueeCommand=function(self)
-				local over = self.overflow or 0
-				if over <= 0 then return end
-				local x = self.p5.X
-				self:x(x):sleep(MARQUEE_REST):linear(over / MARQUEE_SPEED):x(x - over)
-					:sleep(MARQUEE_REST):linear(0.12):diffusealpha(0):x(x)
-					:linear(0.12):diffusealpha(1):queuecommand("Marquee")
+		InitCommand = function(self) self.window, self.minScale, self.full = width, t.MinScale or 0.8, width end,
+		Def.ActorFrameTexture{
+			Name = "Texture",
+			InitCommand = function(self)
+				aft = self
+				self:setsize(texW, texH):SetTextureName(name)
+				self:EnableAlphaBuffer(true):EnablePreserveTexture(false):Create()
+			end,
+			Def.ActorFrame{
+				Name = "Zoom",
+				InitCommand = function(self) self:zoom(s) end,
+				P.Text(text)..{
+					MarqueeCommand = function(self)
+						local over = self.overflow or 0
+						if over <= 0 then return end
+						self:x(0):sleep(MARQUEE_REST):linear(over / MARQUEE_SPEED):x(-over)
+							:sleep(MARQUEE_REST):linear(0.12):diffusealpha(0):x(0)
+							:linear(0.12):diffusealpha(1):queuecommand("Marquee")
+					end,
+				},
+			},
+		},
+		Def.Sprite{
+			Name = "View",
+			InitCommand = function(self)
+				self:SetTexture(aft:GetTexture())
+				self:align(0, 0.5):xy(t.X or 0, (t.Baseline or 0) - cap / 2)
+					:zoom(1 / s):rotationz(t.Rot or 0)
 			end,
 		},
 	}
 end
 
+-- The text actor of a marquee (for colour attributes and the like).
+function P.MarqueeText(frame)
+	return frame:GetChild("Texture"):GetChild("Zoom"):GetChild("Text")
+end
+
 -- Answers the drawn width (at most the window).
 function P.SetMarquee(frame, text, window)
-	local actor = frame:GetChild("Text")
-	window = window or frame.window
+	local actor = P.MarqueeText(frame)
+	window = math.min(window or frame.window, frame.full)
 	local overflow, drawn = P.FitText(actor, text, window, frame.minScale)
-	actor:stoptweening():x(actor.p5.X):diffusealpha(1)
+	actor:stoptweening():x(0):diffusealpha(1)
 	actor.overflow = overflow
 	if overflow > 0 then actor:queuecommand("Marquee") end
-	-- The masks follow the window's right edge.
-	frame:GetChild("MaskR"):x(actor.p5.X + window)
+	-- The sprite shows only the window.
+	frame:GetChild("View"):cropright(1 - window / frame.full)
 	return drawn
 end
 

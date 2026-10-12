@@ -64,7 +64,7 @@ return Def.ActorFrame{
 		self:GetChild("Bpm"):visible(not custom)
 		P.SetArtistLine(ARTIST.X, self:GetChild("Bpm"), artist, bpm, ARTIST.Width,
 			function(text, room) return P.SetMarquee(artistFrame, text, room) end)
-		local artistText = artistFrame:GetChild("Text")
+		local artistText = P.MarqueeText(artistFrame)
 		artistText:ClearAttributes()
 		if artist ~= "" then artistText:AddAttribute(0, { Length=1, Diffuse=P.Cyan }) end
 		self:GetChild("Title"):visible(not custom)

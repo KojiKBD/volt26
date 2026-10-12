@@ -151,7 +151,7 @@ local function wedge(extra)
 		end },
 		-- A band along the top, under the panel's top edge.
 		Def.Quad{ InitCommand = function(self)
-			self:align(1, 1):xy(900 - piece.X, 6 - piece.Y):zoomto(K.W * 2, 200):diffuse(P.Black)
+			self:align(1, 1):xy(975 - piece.X, 6 - piece.Y):zoomto(K.W * 2, 200):diffuse(P.Black)
 		end },
 		Def.Sprite{ Texture = P.PiecePath("Wedge") },
 	}
