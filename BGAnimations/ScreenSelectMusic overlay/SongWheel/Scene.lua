@@ -3,19 +3,22 @@
 --            the red ground with the chosen song's jacket faint under it,
 --            its light, the black panel the rows hang down, the white
 --            slashes and shards, and the SELECT logo;
---   "Bridge" just the red ground and its light, from the pack step's
---            background: it fades in while a pack opens (and out on the way
---            back), so the pack step hands over to red rather than
---            uncovering the backdrop under its own set; the song select's
---            pieces then slam in over it;
+--   "Bridge" the same scenery (without the jacket), from the pack step's
+--            background: it builds itself while a pack opens, under the
+--            jacket flying to its frame, so the song select arrives with its
+--            scenery already standing; on the way back from the song select
+--            it takes itself apart again over the returning pack step;
 --   "Front"  from the overlay, over the wheel: the stars beside the focused
 --            row and the jacket's white frame.
 -- Every piece sits where the mockup has it (Art.lua).
 --
--- Motion, in the Persona manner: every piece but the SELECT logo arrives on
--- the screen's On with a hard ease and a small overshoot, a new song gives
--- the stars and the jacket frame a kick, and (outside Performance mode) the
--- light breathes and the stars turn.
+-- Motion, in the Persona manner.  The scenery's entrance (ENTER below) plays
+-- on the song select's On, unless the pack step's bridge has just built it
+-- (VOLT26.PackSelection.TakenHandoff() == "ToSongWheel"), and on the bridge,
+-- quicker, while a pack opens; EXIT plays on the bridge on the way back.  A
+-- new song gives the stars and the jacket frame a kick, and outside
+-- Performance mode the light breathes and the stars turn.  The SELECT logo
+-- does not move (the owner's call); it only fades with the bridge.
 local part = ... or "Back"
 local K = LoadActor(THEME:GetPathB("", "_volt26 music kit.lua"))
 local P = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/P5.lua"))
@@ -64,111 +67,161 @@ end
 local JACKET_ALPHA = 0.28
 local JACKET_DELAY = 0.2
 
+-- The scenery's choreography.  Each entry takes the piece and a time scale
+-- (1 on the song select; less on the bridge, which must finish within the
+-- pack step's K.HandoffHold).  Moves are relative, so a piece always ends
+-- where the mockup has it.
+local PIECES = { "Glow", "Wedge", "DebrisA", "DebrisB", "Slash", "SlashThin",
+	"ChipA", "ChipB", "Band", "Line", "Bar", "Select" }
+
+local ENTER = {
+	-- The light fades up.
+	Glow = function(a, k) a:diffusealpha(0):linear(0.4 * k):diffusealpha(1) end,
+	-- The black panel sweeps in from the left; the shards rise from below.
+	Wedge = function(a, k) a:addx(-760):decelerate(0.26 * k):addx(790):decelerate(0.08 * k):addx(-30) end,
+	DebrisA = function(a, k) a:addy(260):sleep(0.12 * k):decelerate(0.24 * k):addy(-280):decelerate(0.08 * k):addy(20) end,
+	DebrisB = function(a, k) a:addy(300):sleep(0.18 * k):decelerate(0.24 * k):addy(-320):decelerate(0.08 * k):addy(20) end,
+	-- The slashes cut down along their own line.
+	Slash = function(a, k) a:addx(520):addy(-990):sleep(0.06 * k):decelerate(0.22 * k):addx(-520):addy(990) end,
+	SlashThin = function(a, k) a:addx(230):addy(-470):sleep(0.14 * k):decelerate(0.2 * k):addx(-230):addy(470) end,
+	ChipA = function(a, k) a:zoom(0):sleep(0.3 * k):decelerate(0.12 * k):zoom(1.4):accelerate(0.08 * k):zoom(1) end,
+	ChipB = function(a, k) a:zoom(0):sleep(0.34 * k):decelerate(0.12 * k):zoom(1.4):accelerate(0.08 * k):zoom(1) end,
+	-- The white band, the line and the black bar wipe across.
+	Band = function(a, k) a:cropright(1):sleep(0.1 * k):decelerate(0.28 * k):cropright(0) end,
+	Line = function(a, k) a:cropright(1):sleep(0.2 * k):decelerate(0.24 * k):cropright(0) end,
+	Bar = function(a, k) a:cropleft(1):sleep(0.24 * k):decelerate(0.16 * k):cropleft(0) end,
+	-- SELECT does not move; it is simply there.
+	Select = function(a, k) end,
+}
+
+local EXIT = {
+	Glow = function(a, k) a:linear(0.24 * k):diffusealpha(0) end,
+	Wedge = function(a, k) a:accelerate(0.22 * k):addx(-800) end,
+	DebrisA = function(a, k) a:accelerate(0.2 * k):addy(300) end,
+	DebrisB = function(a, k) a:sleep(0.03 * k):accelerate(0.2 * k):addy(320) end,
+	Slash = function(a, k) a:accelerate(0.2 * k):addx(520):addy(-990) end,
+	SlashThin = function(a, k) a:accelerate(0.18 * k):addx(230):addy(-470) end,
+	ChipA = function(a, k) a:accelerate(0.1 * k):zoom(0) end,
+	ChipB = function(a, k) a:accelerate(0.1 * k):zoom(0) end,
+	Band = function(a, k) a:accelerate(0.2 * k):cropleft(1) end,
+	Line = function(a, k) a:accelerate(0.18 * k):cropleft(1) end,
+	Bar = function(a, k) a:accelerate(0.14 * k):cropright(1) end,
+	Select = function(a, k) a:linear(0.12 * k):diffusealpha(0) end,
+}
+
+-- Puts a piece back where the mockup has it, ready for a motion.
+local function reset(a, name)
+	local piece = P.Art.Pieces[name]
+	a:stoptweening():xy(piece.X, piece.Y):zoom(piece.Zoom or 1):rotationz(0)
+		:cropleft(0):cropright(0):diffusealpha(1)
+end
+
 local af = Def.ActorFrame{
 	Name = "SceneBack",
 	InitCommand = function(self) self:xy(K.Left, K.Top):zoom(K.Scale) end,
-	-- Sized past the design rectangle so a screen that is not 16:9 keeps the
-	-- red out to its own edges.
-	Def.Quad{
-		Name = "Ground",
-		InitCommand = function(self)
-			self:align(0, 0):xy(-K.W, -K.H):zoomto(K.W * 3, K.H * 3):diffuse(P.Red)
-		end,
-	},
 }
 
-if part == "Back" then
-	-- The chosen song's jacket, covering the screen, faint under the red.  The
-	-- small cached copy is enough for a picture this faint.  A new jacket
-	-- swells in slightly as it fades up.
-	af[#af+1] = Def.Sprite{
-		Name = "Jacket",
-		InitCommand = function(self) self:xy(K.W / 2, K.H / 2):diffusealpha(0) end,
-		OnCommand = function(self) self:queuecommand("Want") end,
-		CurrentSongChangedMessageCommand = function(self) self:queuecommand("Want") end,
-		CurrentCourseChangedMessageCommand = function(self) self:queuecommand("Want") end,
-		WantCommand = function(self)
-			local item = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentCourse() or GAMESTATE:GetCurrentSong()
-			local path, cacheDir
-			if item then
-				if GAMESTATE:IsCourseMode() then path, cacheDir = K.CourseArt(item) else path, cacheDir = K.SongArt(item) end
-			end
-			if path == self.wanted then return end
-			self.wanted, self.wantedCache = path, cacheDir
-			self:stoptweening():linear(0.12):diffusealpha(0):sleep(JACKET_DELAY):queuecommand("Show")
-		end,
-		ShowCommand = function(self)
-			local path = self.wanted
-			if path and K.LoadStill(self, path, self.wantedCache) then
-				K.Cover(self, K.W, K.H)
-				local zoom = self:GetZoomX()
-				self:zoom(zoom * 1.06):decelerate(0.4):zoom(zoom):diffusealpha(JACKET_ALPHA)
-			end
-		end,
-	}
-elseif part == "Bridge" then
-	af.InitCommand = function(self) self:xy(K.Left, K.Top):zoom(K.Scale):diffusealpha(0) end
+if part == "Bridge" then
+	-- The bridge's red comes in as a slanted sheet from the right (and leaves
+	-- to the left), instead of a fade.  It is sized to cover the screen
+	-- whatever its tilt.
+	local SWEEP_W, SWEEP_H, SWEEP_TILT = K.W * 2.2, K.H * 2.4, -14
+	local BRIDGE_K = 0.72
+	af.InitCommand = function(self) self:xy(K.Left, K.Top):zoom(K.Scale):visible(false) end
 	af.VOLT26PackSceneMessageCommand = function(self, p)
 		if p.Phase == "Leave" then
-			self:stoptweening():linear(K.HandoffSeconds):diffusealpha(1)
+			self:stoptweening():visible(true)
+			self:GetChild("Ground"):stoptweening():x(K.W / 2 + SWEEP_W):decelerate(0.2):x(K.W / 2)
+			for _, name in ipairs(PIECES) do
+				local a = self:GetChild(name)
+				reset(a, name)
+				ENTER[name](a, BRIDGE_K)
+			end
+			-- SELECT has no motion; on the bridge it fades up with the band.
+			self:GetChild("Select"):diffusealpha(0):sleep(0.12):linear(0.12):diffusealpha(1)
 		elseif p.Phase == "Enter" and p.FromSongWheel then
-			self:stoptweening():diffusealpha(1):linear(K.HandoffSeconds):diffusealpha(0)
+			self:stoptweening():visible(true)
+			self:GetChild("Ground"):stoptweening():x(K.W / 2):sleep(0.1):accelerate(0.22):x(K.W / 2 - SWEEP_W)
+			for _, name in ipairs(PIECES) do
+				local a = self:GetChild(name)
+				reset(a, name)
+				EXIT[name](a, 1)
+			end
+			self:sleep(0.4):queuecommand("Hide")
 		end
 	end
-	af[#af+1] = P.Piece("Glow")
+	af.HideCommand = function(self) self:visible(false) end
+	af[#af+1] = Def.Quad{
+		Name = "Ground",
+		InitCommand = function(self)
+			self:xy(K.W / 2, K.H / 2):zoomto(SWEEP_W, SWEEP_H):rotationz(SWEEP_TILT):diffuse(P.Red)
+		end,
+	}
+	for _, name in ipairs(PIECES) do af[#af+1] = P.Piece(name) end
 	return af
 end
 
--- The light: fades up, then breathes.
-af[#af+1] = piece("Glow", function(self)
-	self:diffusealpha(0):linear(0.4):diffusealpha(1):queuecommand("Idle")
-end, {
-	IdleCommand = function(self)
-		if idle then
-			self:diffuseshift():effectperiod(4)
-				:effectcolor1(color("1,1,1,1")):effectcolor2(color("1,1,1,0.55"))
+-- The song select's own scenery -----------------------------------------------
+
+-- Sized past the design rectangle so a screen that is not 16:9 keeps the red
+-- out to its own edges.
+af[#af+1] = Def.Quad{
+	Name = "Ground",
+	InitCommand = function(self)
+		self:align(0, 0):xy(-K.W, -K.H):zoomto(K.W * 3, K.H * 3):diffuse(P.Red)
+	end,
+}
+
+-- The chosen song's jacket, covering the screen, faint under the red.  The
+-- small cached copy is enough for a picture this faint.  A new jacket swells
+-- in slightly as it fades up.
+af[#af+1] = Def.Sprite{
+	Name = "Jacket",
+	InitCommand = function(self) self:xy(K.W / 2, K.H / 2):diffusealpha(0) end,
+	OnCommand = function(self) self:queuecommand("Want") end,
+	CurrentSongChangedMessageCommand = function(self) self:queuecommand("Want") end,
+	CurrentCourseChangedMessageCommand = function(self) self:queuecommand("Want") end,
+	WantCommand = function(self)
+		local item = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentCourse() or GAMESTATE:GetCurrentSong()
+		local path, cacheDir
+		if item then
+			if GAMESTATE:IsCourseMode() then path, cacheDir = K.CourseArt(item) else path, cacheDir = K.SongArt(item) end
+		end
+		if path == self.wanted then return end
+		self.wanted, self.wantedCache = path, cacheDir
+		self:stoptweening():linear(0.12):diffusealpha(0):sleep(JACKET_DELAY):queuecommand("Show")
+	end,
+	ShowCommand = function(self)
+		local path = self.wanted
+		if path and K.LoadStill(self, path, self.wantedCache) then
+			K.Cover(self, K.W, K.H)
+			local zoom = self:GetZoomX()
+			self:zoom(zoom * 1.06):decelerate(0.4):zoom(zoom):diffusealpha(JACKET_ALPHA)
 		end
 	end,
-})
+}
 
--- The black panel sweeps in from the left; the shards rise from the bottom.
-af[#af+1] = piece("Wedge", function(self)
-	self:addx(-760):decelerate(0.26):addx(790):decelerate(0.08):addx(-30)
-end)
-af[#af+1] = piece("DebrisA", function(self)
-	self:addy(260):sleep(0.12):decelerate(0.24):addy(-280):decelerate(0.08):addy(20)
-end)
-af[#af+1] = piece("DebrisB", function(self)
-	self:addy(300):sleep(0.18):decelerate(0.24):addy(-320):decelerate(0.08):addy(20)
-end)
+-- Was the scenery just built by the pack step's bridge?
+local function bridged()
+	if GAMESTATE:IsCourseMode() then return false end
+	local selection = VOLT26.PackSelection
+	return selection and selection.TakenHandoff and selection.TakenHandoff() == "ToSongWheel" or false
+end
 
--- The slashes cut down along their own line.
-af[#af+1] = piece("Slash", function(self)
-	self:addx(520):addy(-990):sleep(0.06):decelerate(0.22):addx(-520):addy(990)
-end)
-af[#af+1] = piece("SlashThin", function(self)
-	self:addx(230):addy(-470):sleep(0.14):decelerate(0.2):addx(-230):addy(470)
-end)
-af[#af+1] = piece("ChipA", function(self)
-	self:zoom(0):sleep(0.42):decelerate(0.12):zoom(1.4):accelerate(0.08):zoom(1)
-end)
-af[#af+1] = piece("ChipB", function(self)
-	self:zoom(0):sleep(0.46):decelerate(0.12):zoom(1.4):accelerate(0.08):zoom(1)
-end)
-
--- The white band, the line and the black bar wipe across.
-af[#af+1] = piece("Band", function(self)
-	self:cropright(1):sleep(0.1):decelerate(0.28):cropright(0)
-end)
-af[#af+1] = piece("Line", function(self)
-	self:cropright(1):sleep(0.2):decelerate(0.24):cropright(0)
-end)
-af[#af+1] = piece("Bar", function(self)
-	self:cropleft(1):sleep(0.24):decelerate(0.16):cropleft(0)
-end)
-
--- SELECT stands still (the owner's call).
-af[#af+1] = P.Piece("Select")
+for _, name in ipairs(PIECES) do
+	af[#af+1] = P.Piece(name, 0, 0, {
+		OnCommand = function(self)
+			if not bridged() then ENTER[name](self, 1) end
+			if name == "Glow" then self:queuecommand("Idle") end
+		end,
+		IdleCommand = function(self)
+			if idle and name == "Glow" then
+				self:diffuseshift():effectperiod(4)
+					:effectcolor1(color("1,1,1,1")):effectcolor2(color("1,1,1,0.55"))
+			end
+		end,
+	})
+end
 
 -- The cutout lettering of the song select, drawn here and shown in the
 -- overlay through proxies (see P.CutoutHost).

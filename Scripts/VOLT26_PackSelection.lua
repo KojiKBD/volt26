@@ -293,5 +293,14 @@ end
 function PackSelection.TakeHandoff()
 	local direction = PackSelection.handoff
 	PackSelection.handoff = nil
+	PackSelection.taken = direction
 	return direction
+end
+
+-- The direction the last TakeHandoff answered (nil when it found none), for
+-- the other layers of the screen being entered: the overlay takes the
+-- hand-off when it loads, and the background, loaded after it, still needs
+-- to know whether its scenery was already built by the screen being left.
+function PackSelection.TakenHandoff()
+	return PackSelection.taken
 end

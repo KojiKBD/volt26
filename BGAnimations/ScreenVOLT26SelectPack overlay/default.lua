@@ -247,8 +247,10 @@ local function enterFromSongWheel()
 		local offset = tile.offset
 		local x, y, zoom, tilt, bright, shown = slot(offset)
 		if offset == 0 then
+			-- It overshoots a little and settles, like a card slapped down.
 			tile:stoptweening():xy(BADGE_X, BADGE_Y):zoom(BADGE_ZOOM):rotationz(0):diffuse(1, 1, 1, 1)
-				:decelerate(K.HandoffSeconds):xy(x, y):zoom(zoom):rotationz(tilt)
+				:decelerate(K.HandoffSeconds * 0.8):xy(x, y):zoom(zoom * 1.05):rotationz(tilt)
+				:decelerate(K.HandoffSeconds * 0.2):zoom(zoom)
 		else
 			local side = offset > 0 and 1 or -1
 			tile:stoptweening():xy(x + side * 360, y):zoom(zoom):rotationz(tilt)
@@ -266,14 +268,20 @@ local function enterFresh()
 	carousel:diffusealpha(0):addy(24):decelerate(0.25):diffusealpha(1):addy(-24)
 end
 
--- Opening a pack: the focused jacket shrinks into the song wheel's header
--- badge, the others slide out to their own side, and the words fade.
+-- Opening a pack: the focused jacket shrinks into the song wheel's jacket
+-- frame, the others slide out to their own side, and the words fade; under
+-- it all the song select's scenery builds itself (the background's bridge,
+-- ScreenSelectMusic overlay/SongWheel/Scene.lua).
 local function leaveToSongWheel()
 	for _, tile in ipairs(tiles) do
 		local offset = tile.offset
 		if offset == 0 then
 			tile:GetChild("Body"):GetChild("Frame"):visible(false)
-			tile:stoptweening():decelerate(K.HandoffSeconds):xy(BADGE_X, BADGE_Y):zoom(BADGE_ZOOM):rotationz(0)
+			-- It overshoots into the frame and settles there (never turned:
+			-- jackets stay upright).
+			tile:stoptweening():decelerate(K.HandoffSeconds * 0.8):xy(BADGE_X, BADGE_Y)
+				:zoom(BADGE_ZOOM * 0.92):rotationz(0)
+				:decelerate(K.HandoffSeconds * 0.2):zoom(BADGE_ZOOM)
 		else
 			local side = offset > 0 and 1 or -1
 			tile:stoptweening():accelerate(0.22):addx(side * 420):diffusealpha(0)

@@ -58,7 +58,7 @@ The song wheel step follows the owner's Persona-style Illustrator mockup.
 | Part | Where |
 | --- | --- |
 | Red ground with the chosen song's jacket faint under it, light, black left panel, slashes, shards, SELECT logo | `BGAnimations/ScreenSelectMusic background.lua` -> `overlay/SongWheel/Scene.lua` ("Back"), under the engine wheel |
-| The same red scene fading in over the pack step while a pack opens (and out on the way back), so the old shared backdrop never shows | `ScreenVOLT26SelectPack background.lua` -> `Scene.lua` ("Bridge") |
+| The same scenery building itself over the pack step while a pack opens (red sweeping in on a slant, the black panel, slashes and bands arriving), so the song select arrives with it standing; taking itself apart over the pack step on the way back | `ScreenVOLT26SelectPack background.lua` -> `Scene.lua` ("Bridge"); the song select skips its own entrance when `VOLT26.PackSelection.TakenHandoff()` is `"ToSongWheel"` |
 | Song rows: "ARTIST - BPM" + RANK on a black band, the title on a white band, the song's highest meter as a badge | `Graphics/VOLT26/SongWheel/Row.lua` (every MusicWheelItem NormalPart) |
 | Row placement on the slant, the hidden focused copy, the last row tipping over | `VOLT26.MusicSelection.Wheel` / `PositionWheelItem` in `Scripts/SL_Init.lua` |
 | The focused row (larger, red band, difference-blend flags) | `overlay/SongWheel/Focus.lua` |
