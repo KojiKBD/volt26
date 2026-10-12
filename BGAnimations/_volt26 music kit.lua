@@ -220,13 +220,16 @@ end
 -- Shared screen furniture ---------------------------------------------------
 --
 -- Both screens wear the same header and footer bands, in the same places, so
--- that moving between them only changes the words in them.  The chosen pack's
--- jacket shrinks into the song wheel header as a badge and grows back out of
--- it; K.Badge is that spot, and K.TileSize the jacket's full carousel size.
+-- that moving between them only changes the words in them (the song wheel no
+-- longer draws them; the pack step still may).  The chosen pack's jacket
+-- shrinks into the song wheel's jacket frame and grows back out of it; K.Badge
+-- is that spot (the frame of the song select mockup, see
+-- ScreenSelectMusic overlay/SongWheel/Jacket.lua), and K.TileSize the
+-- jacket's full carousel size.
 K.HeaderHeight = 96
 K.FooterTop = 1004
 K.TileSize = 560
-K.Badge = { X = 1036, Y = 48, Size = 72 }
+K.Badge = { X = 1678, Y = 193, Size = 284 }
 -- Seconds of the shared hand-off motion.  The screens' out and cancel
 -- transitions hold for K.HandoffHold so the motion finishes before the next
 -- screen replaces this one.

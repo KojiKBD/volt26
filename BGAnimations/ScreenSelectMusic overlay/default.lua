@@ -5,29 +5,28 @@
 -- wheel lists that pack alone.  Back, the close-folder buttons or the wheel's
 -- BACK TO PACK SELECTION row return to the pack step through VOLT26.Navigation.
 --
--- The layout follows Simply Love's: the engine MusicWheel fills the right side
--- of the screen and the left side shows the selected song, its charts and one
--- pane per player.  The engine keeps ownership of the wheel, chart selection,
--- sample music and the flow to options and gameplay; this overlay presents
--- them.  Everything is laid out in the 1920x1080 design space of the shared
--- music kit and scaled to the real screen.
+-- The layout is the owner's Persona-style mockup (tools/song-select): the
+-- engine MusicWheel's rows hang down a black panel on the left on a slant,
+-- the focused one drawn larger by this overlay (SongWheel/Focus.lua); the
+-- jacket, the difficulty column and the info panel (names, chart facts, the
+-- notes radar and the density graphs) take the right.  The scenery under the
+-- wheel is the screen's background (SongWheel/Scene.lua).  The engine keeps
+-- ownership of the wheel, chart selection, sample music and the flow to
+-- options and gameplay; this overlay presents them.  Everything is laid out
+-- in the 1920x1080 design space of the mockup and scaled to the real screen.
 --
--- The pack step and this screen are drawn to read as one screen: the same
--- backdrop, header and footer bands (K.Chrome) that fade in over it, and the
--- pack jacket that shrinks into this
--- header's badge on the way in grows back out of it on the way out.  Arriving
--- from the pack step the wheel slides in from the right and the details from
--- the left; Back plays the reverse before the (motion-only) cancel transition
--- hands over to the pack step.
+-- The pack jacket that shrinks into the jacket frame on the way in (K.Badge)
+-- grows back out of it on the way out.  Arriving from the pack step the wheel
+-- slides in and the details fade in; Back plays the reverse before the
+-- (motion-only) cancel transition hands over to the pack step.
 
 local K = LoadActor(THEME:GetPathB("", "_volt26 music kit.lua"))
 local S = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/State.lua"), K)
-local G = VOLT26.MusicSelection.Wheel
 
 local modalOpen = false
 local leaving = false
 local handoff = not GAMESTATE:IsCourseMode() and VOLT26.PackSelection.TakeHandoff() or nil
-local WHEEL_SLIDE = 920        -- design units the wheel travels in and out
+local WHEEL_SLIDE = -700       -- design units the wheel travels in and out (from the left)
 local DETAILS_SLIDE = 40
 
 local function part(file, params)
@@ -47,7 +46,11 @@ local function leaveMusicSelection()
 	-- Leaving music selection altogether: no hand-off, everything fades.
 	local wheel = K.Wheel()
 	if wheel then wheel:stoptweening():linear(0.2):diffusealpha(0) end
-	if overlay then layoutPart("Details"):stoptweening():linear(0.2):diffusealpha(0) end
+	if overlay then
+		for _, name in ipairs({ "Details", "Info" }) do
+			layoutPart(name):stoptweening():linear(0.2):diffusealpha(0)
+		end
+	end
 	pcall(function() screen:SetPrevScreenName(VOLT26.Navigation.LeaveMusicSelection()) end)
 	screen:Cancel()
 end
@@ -60,12 +63,11 @@ local function enterFromPacks()
 		wheel:stoptweening():addx(WHEEL_SLIDE * K.Scale):diffusealpha(0)
 			:decelerate(K.HandoffSeconds):addx(-WHEEL_SLIDE * K.Scale):diffusealpha(1)
 	end
-	layoutPart("Details"):stoptweening():addx(-DETAILS_SLIDE):diffusealpha(0)
-		:sleep(0.06):decelerate(K.HandoffSeconds):addx(DETAILS_SLIDE):diffusealpha(1)
+	for _, name in ipairs({ "Details", "Info" }) do
+		layoutPart(name):stoptweening():addx(-DETAILS_SLIDE):diffusealpha(0)
+			:sleep(0.06):decelerate(K.HandoffSeconds):addx(DETAILS_SLIDE):diffusealpha(1)
+	end
 	layoutPart("Header"):playcommand("SongWheelIn")
-	-- The pack step has no bands: they fade in here and out on the way back.
-	layoutPart("Chrome"):stoptweening():diffusealpha(0):linear(K.HandoffSeconds):diffusealpha(1)
-		:playcommand("ChromeIn")
 end
 
 -- Back to the pack step: the reverse.  Everything but the badge leaves; the
@@ -80,9 +82,10 @@ local function leaveToPacks()
 	if wheel then
 		wheel:stoptweening():accelerate(0.24):addx(WHEEL_SLIDE * K.Scale):diffusealpha(0)
 	end
-	layoutPart("Details"):stoptweening():accelerate(0.2):addx(-DETAILS_SLIDE):diffusealpha(0)
+	for _, name in ipairs({ "Details", "Info" }) do
+		layoutPart(name):stoptweening():accelerate(0.2):addx(-DETAILS_SLIDE):diffusealpha(0)
+	end
 	layoutPart("Header"):playcommand("SongWheelOut")
-	layoutPart("Chrome"):stoptweening():linear(0.2):diffusealpha(0)
 	screen:Cancel()
 end
 
@@ -113,9 +116,10 @@ local af = Def.ActorFrame{
 				wheel:ChangeSort("SortOrder_Group")
 			end
 			-- The wheel is the screen's own actor rather than a child of this
-			-- overlay, so it gets the design scale here; its origin is the
-			-- left edge of the rows, on the row the selection sits on.
-			wheel:xy(K.Left + G.X * K.Scale, K.Top + G.CenterY * K.Scale):zoom(K.Scale)
+			-- overlay, so it gets the design scale here.  Its origin is the
+			-- design space's own: VOLT26.MusicSelection.PositionWheelItem
+			-- places every row at its anchor in the mockup.
+			wheel:xy(K.Left, K.Top):zoom(K.Scale)
 		end
 		if handoff == "ToSongWheel" then enterFromPacks() end
 		if not GAMESTATE:IsCourseMode() then SCREENMAN:GetTopScreen():AddInputCallback(input) end
@@ -228,29 +232,28 @@ local layout = Def.ActorFrame{
 	PlayerProfileSetMessageCommand=schedule,
 }
 
--- The details column steps aside while a modal overlay (sort menu, quick
--- mods, song search, leaderboard, input test) owns the screen.
-local details = Def.ActorFrame{
-	Name="Details",
-	VOLT26ModalOverlayOpenedMessageCommand=function(self) self:visible(false) end,
-	VOLT26ModalOverlayClosedMessageCommand=function(self) self:visible(true) end,
-}
-details[#details+1] = part("SongInfo.lua", { K=K, S=S })
-details[#details+1] = part("Charts.lua", { K=K, S=S })
-details[#details+1] = part("PlayerPane.lua", { K=K, S=S, Player=PLAYER_1 })
-details[#details+1] = part("PlayerPane.lua", { K=K, S=S, Player=PLAYER_2 })
-local hintKeys = GAMESTATE:IsCourseMode()
-	and { "HintPlay", "HintMenu", "HintExit" }
-	or { "HintPlay", "HintPacks", "HintMenu" }
-local hints = {}
-for _, key in ipairs(hintKeys) do hints[#hints+1] = K.String(key) end
+-- Details and info step aside while a modal overlay (sort menu, quick mods,
+-- song search, leaderboard, input test) owns the screen.
+local function modalAware(def)
+	def.VOLT26ModalOverlayOpenedMessageCommand = function(self) self:visible(false) end
+	def.VOLT26ModalOverlayClosedMessageCommand = function(self) self:visible(true) end
+	return def
+end
 
+-- The focused row and the scenery over the wheel (stars, jacket frame).
+local details = modalAware(Def.ActorFrame{ Name="Details" })
+details[#details+1] = part("Focus.lua", { K=K, S=S })
+details[#details+1] = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/Scene.lua"), "Front")
 layout[#layout+1] = details
-layout[#layout+1] = K.Chrome{
-	Title = K.String(GAMESTATE:IsCourseMode() and "CourseTitle" or "SongTitle"),
-	Hints = table.concat(hints, "        "),
-}
+-- The pack tile in the jacket frame, apart from the details so it can stand
+-- still while the pack step's jacket lands on it.
 layout[#layout+1] = part("Header.lua", { K=K, S=S })
+-- The song's jacket and length, the difficulty column and the info panel.
+local info = modalAware(Def.ActorFrame{ Name="Info" })
+info[#info+1] = part("Jacket.lua", { K=K, S=S })
+info[#info+1] = part("Difficulty.lua", { K=K, S=S })
+info[#info+1] = part("Panel.lua", { K=K, S=S })
+layout[#layout+1] = info
 af[#af+1] = layout
 
 -- Shared modal overlays, in their original draw order -----------------------

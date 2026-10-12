@@ -1,0 +1,59 @@
+-- The song's jacket in the mockup's white frame at the top right, and the
+-- song's length stamped in cutout lettering over the frame's lower edge.
+--
+-- The jacket stays upright (jackets are never rotated, see
+-- .agents/presentation.md); the frame around it carries the slant.  Under it,
+-- Header.lua keeps the pack's own tile, which the pack step's jacket shrinks
+-- into on the way in, so a song without artwork shows its pack.
+local p = ...
+local K, S = p.K, p.S
+local P = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/P5.lua"))
+local frame = P.Art.Pieces.JacketFrame
+
+local SIZE = K.Badge.Size
+local X, Y = K.Badge.X, K.Badge.Y
+local ART_DELAY = 0.10   -- the wheel must rest this long before artwork loads
+-- The length tag: over the frame's lower right corner, tilted against it.
+local LENGTH = { X = frame.X + frame.W / 2 - 18, Y = frame.Y + frame.H / 2 - 6,
+	MaxW = 170, MaxH = 62, Base = 46, Tilt = -7 }
+
+local af = Def.ActorFrame{
+	Name="Jacket",
+	RefreshCommand=function(self)
+		local item = S.Item()
+		local path, cacheDir
+		if item then
+			if S.IsCourseMode() then path, cacheDir = K.CourseArt(item) else path, cacheDir = K.SongArt(item) end
+		end
+		-- The full image looks best at this size; the low-end path keeps to the
+		-- small cached copy.
+		if not VOLT26.Performance.IsEnabled() then cacheDir = nil end
+		self.wantedArt, self.wantedCache = path, cacheDir
+		if path ~= self.loadedArt then
+			self:GetChild("Art"):visible(false)
+			self:stoptweening():sleep(ART_DELAY):queuecommand("LoadArt")
+		end
+		local length = item and S.LengthText(item) or ""
+		if length == K.Dash then length = "" end
+		self:GetChild("Length"):visible(length ~= "")
+		P.SetCutout(self:GetChild("Length"), length)
+	end,
+	LoadArtCommand=function(self)
+		local art = self:GetChild("Art")
+		local path, cacheDir = self.wantedArt, self.wantedCache
+		self.loadedArt = path
+		if not path then art:visible(false); return end
+		if K.LoadStill(art, path, cacheDir) then
+			K.Cover(art, SIZE, SIZE)
+			art:visible(true):diffusealpha(0):linear(0.12):diffusealpha(1)
+		else
+			art:visible(false)
+		end
+	end,
+}
+
+af[#af+1] = Def.Sprite{ Name="Art", InitCommand=function(self) self:xy(X, Y):visible(false) end }
+af[#af+1] = P.CutoutSlot{ Name="Length", X=LENGTH.X, Y=LENGTH.Y, MaxW=LENGTH.MaxW, MaxH=LENGTH.MaxH,
+	Base=LENGTH.Base, Tilt=LENGTH.Tilt, HAlign=1, VAlign=0.5, MaxChars=8, Scale=K.Scale }
+
+return af

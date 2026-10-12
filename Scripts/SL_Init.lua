@@ -1238,27 +1238,59 @@ end
 VOLT26.MusicSelection = {}
 
 -- Song wheel geometry, in the screen's virtual 1920x1080 design space.  The
--- Song Select overlay (BGAnimations/ScreenSelectMusic overlay/SongWheel/)
--- positions the engine wheel from these figures and the row graphic
--- (Graphics/VOLT26/SongWheel/Row.lua) draws each row from them, so rows, the
--- highlight and the layout cannot drift apart.  X is the left edge of every
--- row and the wheel's own origin; CenterY is the row the selection sits on.
--- As in Simply Love, the wheel fills the right side of the screen top to
--- bottom and the song details take the left side.
+-- rows hang down the black panel on the left of the screen on a slant, as in
+-- the owner's mockup: each row further down sits one Step lower and further
+-- left.  The figures are row anchors (the top-left corner of a row's black
+-- band, Graphics/VOLT26/SongWheel/Row.lua) for the rows just above and just
+-- below the focused one; the focused row itself is drawn larger by the
+-- overlay (BGAnimations/ScreenSelectMusic overlay/SongWheel/Focus.lua), so
+-- the wheel's own copy of it stays hidden.  Rows past FallFrom tip over and
+-- fade off the bottom of the panel.  The wheel's origin is the design
+-- space's own (0, 0).
 VOLT26.MusicSelection.Wheel = {
-	X = 1000,
-	Width = 880,
-	CenterY = 540,
-	Pitch = 72,
-	ItemHeight = 66,
+	Above = { 413, 30 },
+	Below = { 299, 243 },
+	Step = { -42.25, 104.5 },
+	FallFrom = 5,
+	-- The last row's tip-over, from the mockup: turned, pushed left and dimmed.
+	Fall = { Rotation = 8.4, X = -95, Y = -8, Alpha = 0.31 },
 }
 
--- Every row keeps the same pitch and the selection stays on the wheel's centre,
--- so scrolling moves the list past a fixed highlight rather than moving the
--- highlight.  MusicWheel's own SwitchSeconds does the damping.
+-- Places a wheel row for its offset from the focus.  The engine calls this
+-- every frame while the wheel moves, with fractional offsets, so everything
+-- here is continuous in the offset.
 function VOLT26.MusicSelection.PositionWheelItem(self, offsetFromCenter)
-	self.VOLT26Offset = offsetFromCenter
-	self:y(offsetFromCenter * VOLT26.MusicSelection.Wheel.Pitch)
+	local G = VOLT26.MusicSelection.Wheel
+	local o = offsetFromCenter
+	self.VOLT26Offset = o
+	local x, y
+	if o >= 1 then
+		x, y = G.Below[1] + (o - 1) * G.Step[1], G.Below[2] + (o - 1) * G.Step[2]
+	elseif o <= -1 then
+		x, y = G.Above[1] + (o + 1) * G.Step[1], G.Above[2] + (o + 1) * G.Step[2]
+	else
+		local t = (o + 1) / 2
+		x = G.Above[1] + (G.Below[1] - G.Above[1]) * t
+		y = G.Above[2] + (G.Below[2] - G.Above[2]) * t
+	end
+
+	local alpha, rotation = 1, 0
+	local distance = math.abs(o)
+	-- The overlay draws the focused row; the wheel's copy fades in only as it
+	-- moves away from the focus.
+	if distance < 1 then alpha = math.min(1, math.max(0, (distance - 0.45) / 0.4)) end
+	if o > G.FallFrom then
+		local t = math.min(1, o - G.FallFrom)
+		rotation = G.Fall.Rotation * t
+		x, y = x + G.Fall.X * t, y + G.Fall.Y * t
+		alpha = 1 - (1 - G.Fall.Alpha) * t
+		if o > G.FallFrom + 1 then
+			alpha = G.Fall.Alpha * math.max(0, 1 - (o - G.FallFrom - 1) * 2)
+		end
+	elseif o < -1 then
+		alpha = math.max(0, 1 + (o + 1) * 1.5)
+	end
+	self:xy(x, y):rotationz(rotation):diffusealpha(alpha)
 end
 
 function VOLT26.MusicSelection.GetMusicRate()

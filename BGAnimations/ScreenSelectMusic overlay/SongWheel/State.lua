@@ -160,4 +160,97 @@ function S.PlayerName(player)
 	return ToEnumShortString(player)
 end
 
+-- Chart readings for the info panel: the NPS of every measure (the density
+-- graph), the tech counts and the notes radar built from them, and how much of
+-- the chart is stream.  A course reads every chart of its trail as one.
+-- Cached per player until that player's chart changes.
+local techCategories = {
+	{ "Crossovers",   "TechCountsCategory_Crossovers" },
+	{ "Footswitches", "TechCountsCategory_Footswitches" },
+	{ "Sideswitches", "TechCountsCategory_Sideswitches" },
+	{ "Brackets",     "TechCountsCategory_Brackets" },
+	{ "Jacks",        "TechCountsCategory_Jacks" },
+}
+
+local function appendChartData(data, steps, player)
+	if not steps then return end
+	local okNps, nps = pcall(function() return steps:GetNpsPerMeasure(player) end)
+	if okNps and type(nps) == "table" then
+		for _, value in ipairs(nps) do
+			value = tonumber(value) or 0
+			data.nps[#data.nps+1] = value
+			data.peak = math.max(data.peak, value)
+		end
+	end
+	local okTech, tech = pcall(function() return steps:GetTechCounts(player) end)
+	if okTech and tech then
+		data.techAvailable = true
+		for _, pair in ipairs(techCategories) do
+			local value = tonumber(tech:GetValue(pair[2])) or 0
+			if value > 0 then
+				data.techCounts[pair[1]] = (data.techCounts[pair[1]] or 0) + math.floor(value + 0.5)
+			end
+		end
+	end
+end
+
+-- The chart's fastest BPM, the reference for what counts as a stream measure.
+local function chartBpm(chart, item)
+	local ok, bpm = pcall(function()
+		local timing = chart.GetTimingData and chart:GetTimingData() or nil
+		if not timing or not timing.GetActualBPM then return nil end
+		local _, fastest = timing:GetActualBPM()
+		return fastest
+	end)
+	if ok and tonumber(bpm) and bpm > 0 then return bpm end
+	local okDisplay, bpms = pcall(function() return item and item:GetDisplayBpms() or nil end)
+	if okDisplay and type(bpms) == "table" and tonumber(bpms[2]) and bpms[2] > 0 then return bpms[2] end
+	return nil
+end
+
+local chartCache = {}
+
+function S.ChartData(player)
+	local chart = S.Chart(player)
+	local cached = chartCache[player]
+	if cached and cached.chart == chart then return cached.data end
+	local data = { chart=chart, nps={}, peak=0, techCounts={}, techAvailable=false,
+		notes=0, stream=0, streamMeasures=0 }
+	if chart then
+		if S.IsCourseMode() and chart.GetTrailEntries then
+			for _, entry in ipairs(chart:GetTrailEntries()) do appendChartData(data, entry:GetSteps(), player) end
+		else
+			appendChartData(data, chart, player)
+		end
+		data.notes = S.Radar(chart, player, "RadarCategory_TapsAndHolds") or 0
+		local bpm = chartBpm(chart, S.Item())
+		data.stream = VOLT26.ChartRadar.ComputeStream(data.nps, bpm)
+		-- Every stream measure lies inside the span ComputeStream measures, so
+		-- the count is simply the measures that reach the stream speed.
+		if bpm and bpm > 0 then
+			local threshold = bpm / 15 * 0.97
+			for _, value in ipairs(data.nps) do
+				if value >= threshold then data.streamMeasures = data.streamMeasures + 1 end
+			end
+		end
+		data.radar = VOLT26.ChartRadar.Build{
+			TechCounts = data.techCounts,
+			Stream = data.stream,
+			TotalNotes = data.notes,
+		}
+	end
+	chartCache[player] = { chart=chart, data=data }
+	return data
+end
+
+-- The chart's credit: its author, else its description.
+function S.StepArtist(chart)
+	if not chart then return "" end
+	for _, getter in ipairs({ "GetAuthorCredit", "GetDescription", "GetChartName" }) do
+		local ok, value = pcall(function() return chart[getter] and chart[getter](chart) or nil end)
+		if ok and type(value) == "string" and value ~= "" then return value end
+	end
+	return ""
+end
+
 return S
