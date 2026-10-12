@@ -80,6 +80,8 @@ function P.Text(t)
 		InitCommand = function(self)
 			local cap, condense = t.Cap or 20, t.Condense or 0.7
 			local zoom = cap / P.FontCap
+			-- Kept for P.FitText.
+			self.p5 = { Cap = cap, Condense = condense, X = t.X or 0, Baseline = t.Baseline or 0 }
 			-- Centred on the caps: half a cap height above the baseline.
 			self:halign(t.Align or 0):valign(0.5):shadowlength(0)
 				:xy(t.X or 0, (t.Baseline or 0) - cap / 2)
@@ -89,6 +91,99 @@ function P.Text(t)
 			if t.Text then self:settext(t.Text) end
 		end,
 	}
+end
+
+-- Long words ------------------------------------------------------------------
+
+-- Sets `text` on a P.Text actor and shrinks it, whole, to fit `width`, but no
+-- further than `minScale` of its size; past that it is left long.  Answers
+-- how far it still overflows (0 when it fits).  `squeeze` then narrows what
+-- is left to the width instead, for places with no room to scroll.
+function P.FitText(actor, text, width, minScale, squeeze)
+	local m = actor.p5
+	local base = m.Cap / P.FontCap
+	actor:maxwidth(0):settext(text or "")
+	local natural = actor:GetWidth() * base * m.Condense
+	local scale = 1
+	if natural > width and natural > 0 then scale = math.max(minScale or 1, width / natural) end
+	actor:zoomx(base * m.Condense * scale):zoomy(base * scale)
+		:y(m.Baseline - m.Cap * scale / 2)
+	local overflow = math.max(0, natural * scale - width)
+	if squeeze and overflow > 0 then
+		actor:maxwidth(width / (base * m.Condense * scale))
+		overflow = 0
+	end
+	return overflow, math.min(width, natural * scale)
+end
+
+-- Shortens `text` with an ellipsis until it fits `width` at minScale (the
+-- artist of a wheel row, so the BPM beside it always shows whole).  Answers
+-- the drawn width.
+function P.FitEllipsis(actor, text, width, minScale)
+	text = text or ""
+	local overflow, drawn = P.FitText(actor, text, width, minScale)
+	if overflow <= 0 then return drawn end
+	local chars = {}
+	for ch in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do chars[#chars+1] = ch end
+	local keep = #chars
+	while keep > 1 and overflow > 0 do
+		keep = keep - 1
+		local cut = table.concat(chars, "", 1, keep):gsub("%s+$", "") .. "..."
+		overflow, drawn = P.FitText(actor, cut, width, minScale)
+	end
+	return drawn
+end
+
+-- A line of text that scrolls when it is too long for its window: the text
+-- shrinks to fit down to minScale first, and only what still overflows
+-- scrolls, to and fro, inside the window.  The window is cut with the
+-- z-buffer masks of the theme API (MaskSource / MaskDest).
+-- t = P.Text's fields plus Width (the window), MinScale.
+-- P.SetMarquee(frame, text) fills it.
+local MARQUEE_SPEED = 90       -- design pixels a second
+local MARQUEE_REST = 1.4       -- seconds at either end
+
+function P.Marquee(t)
+	local maskH = (t.Cap or 20) * 2.4
+	local maskY = (t.Baseline or 0) - (t.Cap or 20) / 2
+	local text = {}
+	for k, v in pairs(t) do text[k] = v end
+	text.Name, text.Width = "Text", nil
+	return Def.ActorFrame{
+		Name = t.Name,
+		InitCommand = function(self) self.window, self.minScale = t.Width, t.MinScale or 0.8 end,
+		-- Two masks, either side of the window.
+		Def.Quad{ Name="MaskL", InitCommand=function(self)
+			self:align(1, 0.5):xy(t.X or 0, maskY):zoomto(2000, maskH):rotationz(t.Rot or 0):MaskSource()
+		end },
+		Def.Quad{ Name="MaskR", InitCommand=function(self)
+			self:align(0, 0.5):xy((t.X or 0) + t.Width, maskY):zoomto(2000, maskH):rotationz(t.Rot or 0):MaskSource(true)
+		end },
+		P.Text(text)..{
+			OnCommand=function(self) self:MaskDest() end,
+			MarqueeCommand=function(self)
+				local over = self.overflow or 0
+				if over <= 0 then return end
+				local x = self.p5.X
+				self:x(x):sleep(MARQUEE_REST):linear(over / MARQUEE_SPEED):x(x - over)
+					:sleep(MARQUEE_REST):linear(0.12):diffusealpha(0):x(x)
+					:linear(0.12):diffusealpha(1):queuecommand("Marquee")
+			end,
+		},
+	}
+end
+
+-- Answers the drawn width (at most the window).
+function P.SetMarquee(frame, text, window)
+	local actor = frame:GetChild("Text")
+	window = window or frame.window
+	local overflow, drawn = P.FitText(actor, text, window, frame.minScale)
+	actor:stoptweening():x(actor.p5.X):diffusealpha(1)
+	actor.overflow = overflow
+	if overflow > 0 then actor:queuecommand("Marquee") end
+	-- The masks follow the window's right edge.
+	frame:GetChild("MaskR"):x(actor.p5.X + window)
+	return drawn
 end
 
 -- Meter badge ----------------------------------------------------------------
@@ -192,13 +287,40 @@ function P.BPMText(item)
 	return ("%d-%d BPM"):format(low, high)
 end
 
--- "ARTIST - BPM" of the mockup.
-function P.ArtistLine(song)
-	if not song then return "" end
+-- "ARTIST - BPM" of the mockup, as its two parts: the artist, and the BPM
+-- with its separator (" - 180 BPM").  The BPM always shows whole; a long
+-- artist gives way.
+function P.ArtistParts(song)
+	if not song then return "", "" end
 	local artist = song.GetDisplayArtist and song:GetDisplayArtist() or ""
 	local bpm = P.BPMText(song)
-	if artist ~= "" and bpm ~= "" then return artist .. " - " .. bpm end
-	return artist ~= "" and artist or bpm
+	if artist ~= "" and bpm ~= "" then return artist, " - " .. bpm end
+	return artist, bpm
+end
+
+-- A wheel row's artist line: the whole line (artist and BPM together) first
+-- shrinks to fit, down to minScale; if it is still too long, the artist is
+-- shortened with an ellipsis at that size.  The BPM always shows whole.
+function P.SetArtistLineShrink(x0, artistActor, bpmActor, artist, bpm, width, minScale)
+	local _, a = P.FitText(artistActor, artist, 1e6, 1)
+	local _, b = P.FitText(bpmActor, bpm, 1e6, 1)
+	local scale = 1
+	if a + b > width and a + b > 0 then scale = math.max(minScale, width / (a + b)) end
+	P.FitText(bpmActor, bpm, b * scale + 0.5, scale)
+	local room = math.max(0, width - b * scale)
+	local drawn = artist ~= "" and P.FitEllipsis(artistActor, artist, room, scale) or 0
+	if artist == "" then artistActor:settext("") end
+	bpmActor:x(x0 + drawn)
+end
+
+-- Places an artist and its BPM on one line of `width` starting at x0: the
+-- BPM is measured first and keeps its full size; the artist takes what is
+-- left (fit = function(text, room) -> drawn width).
+function P.SetArtistLine(x0, bpmActor, artist, bpm, width, fit)
+	local _, bpmW = P.FitText(bpmActor, bpm, width, 1)
+	local room = math.max(0, width - bpmW)
+	local drawn = fit(artist, room)
+	bpmActor:x(x0 + drawn)
 end
 
 -- The highest meter among the charts the current style can play: the "RANK"
@@ -224,7 +346,7 @@ function P.TopMeter(song)
 	return top and math.floor(top + 0.5) or nil
 end
 
--- Cutout lettering (player names, the pack, the song length, BACK TO PACK
+-- Cutout lettering (player names, the pack, the song length, PACK
 -- SELECTION) ------------------------------------------------------------------
 --
 -- VOLT26.Cutout draws a string only while every ancestor of its slot is

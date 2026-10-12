@@ -38,29 +38,37 @@ local function rowContent()
 		if S.IsCourseMode() then
 			local ok, stages = pcall(function() return item:GetEstimatedNumStages() end)
 			local count = ok and tonumber(stages) or 0
-			return count > 0 and ("%d STAGES"):format(count) or "", item:GetDisplayFullTitle(), nil
+			return count > 0 and ("%d STAGES"):format(count) or "", "", item:GetDisplayFullTitle(), nil
 		end
-		return P.ArtistLine(item), item:GetDisplayMainTitle(), P.TopMeter(item)
+		local artist, bpm = P.ArtistParts(item)
+		return artist, bpm, item:GetDisplayMainTitle(), P.TopMeter(item)
 	end
 	local wheel = K.Wheel()
 	local selected = wheel and wheel:GetSelectedType() or nil
-	if selected == "WheelItemDataType_Custom" then return "", customLabel(), nil end
+	if selected == "WheelItemDataType_Custom" then return "", "", customLabel(), nil end
 	local ok, section = pcall(function() return wheel:GetSelectedSection() end)
-	return "", ok and section or "", nil
+	return "", "", ok and section or "", nil
 end
 
 return Def.ActorFrame{
 	Name="Focus",
 	InitCommand=function(self) self:xy(ax, ay) end,
 	RefreshCommand=function(self)
-		local artist, title, meter = rowContent()
-		-- BACK TO PACK SELECTION fills both bands in cutout lettering.
+		local artist, bpm, title, meter = rowContent()
+		-- PACK SELECTION fills both bands in cutout lettering.
 		local custom = isCustom()
-		local artistText = self:GetChild("Artist")
+		-- A long title shrinks, then scrolls; a long artist scrolls while
+		-- the BPM beside it stays whole.
+		local artistFrame = self:GetChild("Artist")
+		artistFrame:visible(not custom)
+		self:GetChild("Bpm"):visible(not custom)
+		P.SetArtistLine(ARTIST.X, self:GetChild("Bpm"), artist, bpm, ARTIST.Width,
+			function(text, room) return P.SetMarquee(artistFrame, text, room) end)
+		local artistText = artistFrame:GetChild("Text")
 		artistText:ClearAttributes()
-		artistText:visible(not custom):settext(artist)
 		if artist ~= "" then artistText:AddAttribute(0, { Length=1, Diffuse=P.Cyan }) end
-		self:GetChild("Title"):visible(not custom):settext(title)
+		self:GetChild("Title"):visible(not custom)
+		P.SetMarquee(self:GetChild("Title"), title)
 		local label = self:GetChild("LabelFrame")
 		label:visible(custom)
 		if custom then P.SetCutout(label:GetChild("Label"), title) end
@@ -91,12 +99,14 @@ return Def.ActorFrame{
 
 	P.Piece("FocusBands", ax, ay),
 	P.Piece("FocusRank", ax, ay),
-	P.Text{ Name="Title", Cap=TITLE.Cap, X=TITLE.X, Baseline=TITLE.Baseline,
-		Width=TITLE.Width, Rot=TEXT_ROT, Tint=P.Black },
+	P.Marquee{ Name="Title", Cap=TITLE.Cap, X=TITLE.X, Baseline=TITLE.Baseline,
+		Width=TITLE.Width, MinScale=0.8, Rot=TEXT_ROT, Tint=P.Black },
 	P.Piece("FocusFront", ax, ay),
 	P.Badge{ Name="Badge", X=F.Badge.X, Y=F.Badge.Y, Zoom=BADGE.Zoom, Rot=BADGE.Rot },
-	P.Text{ Name="Artist", Cap=ARTIST.Cap, X=ARTIST.X, Baseline=ARTIST.Baseline,
-		Width=ARTIST.Width, Rot=TEXT_ROT, Tint=P.White },
+	P.Marquee{ Name="Artist", Cap=ARTIST.Cap, X=ARTIST.X, Baseline=ARTIST.Baseline,
+		Width=ARTIST.Width, MinScale=0.85, Rot=TEXT_ROT, Tint=P.White },
+	P.Text{ Name="Bpm", Cap=ARTIST.Cap, X=ARTIST.X, Baseline=ARTIST.Baseline,
+		Rot=TEXT_ROT, Tint=P.White },
 	-- The focused row is the plain row drawn larger.
 	Def.ActorFrame{
 		Name="LabelFrame",

@@ -8,7 +8,7 @@
 --
 -- Loaded by the MusicWheelItem NormalPart graphics with the kind of item the
 -- part stands for: "Song", "Section", "Course" or "Custom" (the song wheel's
--- BACK TO PACK SELECTION row; see [VOLT26SongWheel] in metrics.ini).  The
+-- PACK SELECTION row; see [VOLT26SongWheel] in metrics.ini).  The
 -- origin is the row's anchor, the top-left corner of its black band, in the
 -- design units of the 1920x1080 mockup; the wheel itself is scaled by the
 -- overlay.
@@ -21,7 +21,7 @@ local R = P.Art.Row
 local ARTIST = { X=14, Baseline=48, Cap=30, Width=300 }
 local TITLE = { X=8, Baseline=102, Cap=38, Width=385 }
 local TEXT_ROT = 1.2
--- BACK TO PACK SELECTION: left edge and vertical centre over both bands.
+-- PACK SELECTION: left edge and vertical centre over both bands.
 local LABEL = { X=18, Y=58 }
 local BADGE_ZOOM = 0.52
 local BADGE_ROT = 5
@@ -52,9 +52,9 @@ return Def.ActorFrame{
 		self:visible(matches and true or false)
 		if not matches then return end
 
-		local artist, title, meter = "", "", nil
+		local artist, bpm, title, meter = "", "", "", nil
 		if isSong then
-			artist = P.ArtistLine(params.Song)
+			artist, bpm = P.ArtistParts(params.Song)
 			title = params.Song:GetDisplayMainTitle()
 			meter = P.TopMeter(params.Song)
 		elseif isCourse then
@@ -70,9 +70,15 @@ return Def.ActorFrame{
 			if songs > 0 then artist = ("%d SONGS"):format(songs) end
 		end
 
-		-- BACK TO PACK SELECTION fills both bands in cutout lettering.
-		self:GetChild("Artist"):visible(not isCustom):settext(artist)
-		self:GetChild("Title"):visible(not isCustom):settext(title)
+		-- PACK SELECTION fills both bands in cutout lettering.
+		-- A long title shrinks, then narrows; a long artist is shortened with
+		-- an ellipsis so the BPM beside it always shows whole.
+		self:GetChild("Artist"):visible(not isCustom)
+		self:GetChild("Bpm"):visible(not isCustom)
+		P.SetArtistLineShrink(ARTIST.X, self:GetChild("Artist"), self:GetChild("Bpm"),
+			artist, bpm, ARTIST.Width, 0.78)
+		self:GetChild("Title"):visible(not isCustom)
+		P.FitText(self:GetChild("Title"), title, TITLE.Width, 0.72, true)
 		local label = self:GetChild("Label")
 		label:visible(isCustom)
 		if isCustom then P.SetCutout(label, title) end
@@ -84,9 +90,11 @@ return Def.ActorFrame{
 	P.Piece("RowBands", R.Anchors[-1][1], R.Anchors[-1][2]),
 	P.Piece("Rank", R.Anchors[-1][1], R.Anchors[-1][2]),
 	P.Text{ Name="Artist", Cap=ARTIST.Cap, X=ARTIST.X, Baseline=ARTIST.Baseline,
-		Width=ARTIST.Width, Rot=TEXT_ROT, Tint=P.White },
+		Rot=TEXT_ROT, Tint=P.White },
+	P.Text{ Name="Bpm", Cap=ARTIST.Cap, X=ARTIST.X, Baseline=ARTIST.Baseline,
+		Rot=TEXT_ROT, Tint=P.White },
 	P.Text{ Name="Title", Cap=TITLE.Cap, X=TITLE.X, Baseline=TITLE.Baseline,
-		Width=TITLE.Width, Rot=TEXT_ROT, Tint=P.Black },
+		Rot=TEXT_ROT, Tint=P.Black },
 	P.Badge{ Name="Badge", X=R.Badge.X, Y=R.Badge.Y, Zoom=BADGE_ZOOM, Rot=BADGE_ROT },
 	P.CutoutSlot{ Name="Label", Id="BackLabel", X=LABEL.X, Y=LABEL.Y, Scale=P.Scale },
 }
