@@ -136,6 +136,29 @@ local EXIT = {
 	Select = function(a, k) a:linear(0.12 * k):diffusealpha(0) end,
 }
 
+-- The black panel.  Its picture starts a pixel below the top edge, and its
+-- edges are soft where they meet the screen's, so the red would show through
+-- in a thin line along the top and the left; black fill behind it, moving
+-- with it, reaches past both edges.
+local function wedge(extra)
+	local piece = P.Art.Pieces.Wedge
+	local def = Def.ActorFrame{
+		Name = "Wedge",
+		InitCommand = function(self) self:xy(piece.X, piece.Y) end,
+		-- Everything left of x = 330 (the panel is solid black there).
+		Def.Quad{ InitCommand = function(self)
+			self:align(1, 0.5):x(330 - piece.X):zoomto(K.W * 2, K.H * 1.4):diffuse(P.Black)
+		end },
+		-- A band along the top, under the panel's top edge.
+		Def.Quad{ InitCommand = function(self)
+			self:align(1, 1):xy(900 - piece.X, 6 - piece.Y):zoomto(K.W * 2, 200):diffuse(P.Black)
+		end },
+		Def.Sprite{ Texture = P.PiecePath("Wedge") },
+	}
+	if extra then for k, v in pairs(extra) do def[k] = v end end
+	return def
+end
+
 -- Puts a piece back where the mockup has it, ready for a motion.
 local function reset(a, name)
 	local piece = P.Art.Pieces[name]
@@ -184,7 +207,7 @@ if part == "Bridge" then
 			self:xy(K.W / 2, K.H / 2):zoomto(SWEEP_W, SWEEP_H):rotationz(SWEEP_TILT):diffuse(P.Red)
 		end,
 	}
-	for _, name in ipairs(PIECES) do af[#af+1] = P.Piece(name) end
+	for _, name in ipairs(PIECES) do af[#af+1] = name == "Wedge" and wedge() or P.Piece(name) end
 	return af
 end
 
@@ -236,7 +259,7 @@ local function bridged()
 end
 
 for _, name in ipairs(PIECES) do
-	af[#af+1] = P.Piece(name, 0, 0, {
+	af[#af+1] = (name == "Wedge" and wedge or function(extra) return P.Piece(name, 0, 0, extra) end)({
 		OnCommand = function(self)
 			if not bridged() then ENTER[name](self, TEMPO) end
 			if name == "Glow" then self:queuecommand("Idle") end
