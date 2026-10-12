@@ -25,7 +25,7 @@ end
 
 -- How much of the jacket shows through the red, and how long the wheel must
 -- rest on a song before its jacket is loaded.
-local JACKET_ALPHA = 0.16
+local JACKET_ALPHA = 0.28
 local JACKET_DELAY = 0.2
 
 local af = Def.ActorFrame{
