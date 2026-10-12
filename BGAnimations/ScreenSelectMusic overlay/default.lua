@@ -260,7 +260,7 @@ layout[#layout+1] = details
 -- still while the pack step's jacket lands on it.
 layout[#layout+1] = part("Header.lua", { K=K, S=S })
 -- The song's jacket and length, the difficulty column, the open pack's name,
--- the notes radar on the red and one card per player.  SongWheel/Panel.lua
+-- the notes radar on the red, one card per player and the names footer.  SongWheel/Panel.lua
 -- is the mockup's own solid info panel (names, facts, radar and graphs in
 -- one slab); it was set aside as too heavy, but can stand in for the cards
 -- and the radar here.
@@ -270,6 +270,7 @@ info[#info+1] = part("Difficulty.lua", { K=K, S=S })
 info[#info+1] = part("PackTag.lua", { K=K, S=S })
 info[#info+1] = part("Radar.lua", { K=K, S=S, X=1045, Y=460, R=122 })
 info[#info+1] = part("Cards.lua", { K=K, S=S })
+info[#info+1] = part("Footer.lua", { K=K, S=S })
 layout[#layout+1] = info
 af[#af+1] = layout
 

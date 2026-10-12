@@ -28,7 +28,6 @@ return Def.ActorFrame{
 		self:GetChild("Line"):settext(line)
 	end,
 
-	P.CutoutSlot{ Name="Name", X=X, Y=Y, MaxW=MAX_W, MaxH=MAX_H, Base=44, Tilt=-4,
-		HAlign=0.5, VAlign=0.5, MaxChars=40, Scale=K.Scale },
+	P.CutoutSlot{ Name="Name", Id="Pack", X=X, Y=Y, Scale=K.Scale },
 	P.Text{ Name="Line", Cap=13, Condense=0.85, Align=0.5, X=X, Baseline=Y + MAX_H / 2 + 30, Width=MAX_W },
 }

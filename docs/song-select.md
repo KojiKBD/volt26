@@ -69,6 +69,8 @@ The song wheel step follows the owner's Persona-style Illustrator mockup.
 | Open pack's name (cutout), the song's place in it, the play mode | `overlay/SongWheel/PackTag.lua` |
 | Notes radar, free on the red | `overlay/SongWheel/Radar.lua` |
 | One card per player: name (cutout) and chart; best ITG, EX, grade, steps by, rate; notes/jumps/holds/mines/rolls/hands, peak NPS, stream measures; density graph | `overlay/SongWheel/Cards.lua` |
+| Names footer: the joined players' names in cutout lettering, right-justified at the bottom right, underlined in their colours | `overlay/SongWheel/Footer.lua` |
+| Cutout lettering of the screen (names, pack, length, BACK TO PACK SELECTION): drawn off screen in the background, shown through ActorProxies | `P.CutoutHost` / `P.CutoutSlot` in `overlay/SongWheel/P5.lua`, specs in `P.CutoutSpecs` |
 | The mockup's own solid info panel (names, facts, radar, graphs in one slab), set aside as too heavy; can replace the cards and the radar in `default.lua` | `overlay/SongWheel/Panel.lua` |
 | Shared pieces, condensed text, meter badge and its palettes | `overlay/SongWheel/P5.lua` |
 | Chart readings (NPS per measure, tech, radar, stream) and the player's best | `S.ChartData`, `S.Best` in `overlay/SongWheel/State.lua` |
@@ -88,6 +90,17 @@ The owner's star (docs/notes-radar.md).  One player: the gold star.  Two
 players: P1's red star with P2's blue star over it, see-through and edged.
 It depends on the notes radar work (`Scripts/VOLT26_ChartRadar.lua`,
 `overlay/VOLT26/RadarArt.lua`, `Graphics/VOLT26/SongSelection/NotesRadar/`).
+
+#### Why the cutout lettering lives in the background
+
+`VOLT26.Cutout` draws a string only while every ancestor of its slot is
+visible, opaque and not tweening, and an ActorFrame reports the tweens of all
+its descendants as its own.  The song select's overlay always has a tween
+running somewhere (the leaderboard's looping bounce, among others), so slots
+there never drew (seen in ITGmania's log, 2026-10-12).  The background has no
+endless tween, so the slots live there, off screen, and the overlay and the
+wheel rows show them through proxies.  Avoid endless tweens in the background
+(idle motion there uses effects, which do not count).
 
 ### Rebuilding the art
 

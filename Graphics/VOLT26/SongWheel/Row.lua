@@ -21,6 +21,8 @@ local R = P.Art.Row
 local ARTIST = { X=14, Baseline=48, Cap=30, Width=300 }
 local TITLE = { X=8, Baseline=102, Cap=38, Width=385 }
 local TEXT_ROT = 1.2
+-- BACK TO PACK SELECTION: left edge and vertical centre over both bands.
+local LABEL = { X=18, Y=58 }
 local BADGE_ZOOM = 0.52
 local BADGE_ROT = 5
 
@@ -68,8 +70,12 @@ return Def.ActorFrame{
 			if songs > 0 then artist = ("%d SONGS"):format(songs) end
 		end
 
-		self:GetChild("Artist"):settext(artist)
-		self:GetChild("Title"):settext(title)
+		-- BACK TO PACK SELECTION fills both bands in cutout lettering.
+		self:GetChild("Artist"):visible(not isCustom):settext(artist)
+		self:GetChild("Title"):visible(not isCustom):settext(title)
+		local label = self:GetChild("Label")
+		label:visible(isCustom)
+		if isCustom then P.SetCutout(label, title) end
 		self:GetChild("Rank"):visible(meter ~= nil)
 		P.SetBadge(self:GetChild("Badge"), meter)
 	end,
@@ -82,4 +88,5 @@ return Def.ActorFrame{
 	P.Text{ Name="Title", Cap=TITLE.Cap, X=TITLE.X, Baseline=TITLE.Baseline,
 		Width=TITLE.Width, Rot=TEXT_ROT, Tint=P.Black },
 	P.Badge{ Name="Badge", X=R.Badge.X, Y=R.Badge.Y, Zoom=BADGE_ZOOM, Rot=BADGE_ROT },
+	P.CutoutSlot{ Name="Label", Id="BackLabel", X=LABEL.X, Y=LABEL.Y, Scale=P.Scale },
 }

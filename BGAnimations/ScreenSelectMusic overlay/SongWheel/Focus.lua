@@ -18,10 +18,17 @@ local ARTIST = { X=15, Baseline=51, Cap=32.5, Width=330 }
 local TITLE = { X=9, Baseline=110, Cap=41, Width=420 }
 local TEXT_ROT = 1.2
 local BADGE = { Zoom = 0.56, Rot = 5 }
+local LABEL_ZOOM = 1.08
 
 local function customLabel()
 	local ok, text = pcall(function() return THEME:GetString("MusicWheel", "CustomItemBackToPacksText") end)
 	return ok and text or ""
+end
+
+local function isCustom()
+	if S.Item() then return false end
+	local wheel = K.Wheel()
+	return wheel ~= nil and wheel:GetSelectedType() == "WheelItemDataType_Custom"
 end
 
 -- The words on the row: artist line, title and the top meter.
@@ -47,11 +54,16 @@ return Def.ActorFrame{
 	InitCommand=function(self) self:xy(ax, ay) end,
 	RefreshCommand=function(self)
 		local artist, title, meter = rowContent()
+		-- BACK TO PACK SELECTION fills both bands in cutout lettering.
+		local custom = isCustom()
 		local artistText = self:GetChild("Artist")
 		artistText:ClearAttributes()
-		artistText:settext(artist)
+		artistText:visible(not custom):settext(artist)
 		if artist ~= "" then artistText:AddAttribute(0, { Length=1, Diffuse=P.Cyan }) end
-		self:GetChild("Title"):settext(title)
+		self:GetChild("Title"):visible(not custom):settext(title)
+		local label = self:GetChild("LabelFrame")
+		label:visible(custom)
+		if custom then P.SetCutout(label:GetChild("Label"), title) end
 		self:GetChild("FocusRank"):visible(meter ~= nil)
 		P.SetBadge(self:GetChild("Badge"), meter, P.Ink.Plain, P.Ink.P1Box)
 		if title ~= self.shown then
@@ -85,4 +97,10 @@ return Def.ActorFrame{
 	P.Badge{ Name="Badge", X=F.Badge.X, Y=F.Badge.Y, Zoom=BADGE.Zoom, Rot=BADGE.Rot },
 	P.Text{ Name="Artist", Cap=ARTIST.Cap, X=ARTIST.X, Baseline=ARTIST.Baseline,
 		Width=ARTIST.Width, Rot=TEXT_ROT, Tint=P.White },
+	-- The focused row is the plain row drawn larger.
+	Def.ActorFrame{
+		Name="LabelFrame",
+		InitCommand=function(self) self:zoom(LABEL_ZOOM):visible(false) end,
+		P.CutoutSlot{ Name="Label", Id="BackLabel", X=18, Y=58, Scale=K.Scale },
+	},
 }

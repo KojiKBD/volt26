@@ -12,10 +12,10 @@
 --            row and the jacket's white frame.
 -- Every piece sits where the mockup has it (Art.lua).
 --
--- Motion, in the Persona manner: every piece arrives on the screen's On with
--- a hard ease and a small overshoot, a new song gives the logo, the stars and
--- the jacket frame a kick, and (outside Performance mode) the light breathes,
--- the stars turn and the logo rocks.
+-- Motion, in the Persona manner: every piece but the SELECT logo arrives on
+-- the screen's On with a hard ease and a small overshoot, a new song gives
+-- the stars and the jacket frame a kick, and (outside Performance mode) the
+-- light breathes and the stars turn.
 local part = ... or "Back"
 local K = LoadActor(THEME:GetPathB("", "_volt26 music kit.lua"))
 local P = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/P5.lua"))
@@ -167,24 +167,11 @@ af[#af+1] = piece("Bar", function(self)
 	self:cropleft(1):sleep(0.24):decelerate(0.16):cropleft(0)
 end)
 
--- SELECT slams down from large, overshoots, then rocks; it jolts on a new
--- song and swells when the song is chosen.
-af[#af+1] = piece("Select", function(self)
-	self:zoom(2.3):rotationz(-24):diffusealpha(0):sleep(0.3)
-		:accelerate(0.16):zoom(0.9):rotationz(4):diffusealpha(1)
-		:decelerate(0.12):zoom(1.04):rotationz(-1)
-		:accelerate(0.08):zoom(1):rotationz(0)
-		:queuecommand("Idle")
-end, {
-	IdleCommand = function(self)
-		if idle then self:wag():effectmagnitude(0, 0, 1.6):effectperiod(3.2) end
-	end,
-	CurrentSongChangedMessageCommand = function(self)
-		self:finishtweening():zoom(1.06):decelerate(0.14):zoom(1)
-	end,
-	SongChosenMessageCommand = function(self)
-		self:finishtweening():decelerate(0.12):zoom(1.25):rotationz(-6):accelerate(0.2):zoom(1.1):rotationz(-3)
-	end,
-})
+-- SELECT stands still (the owner's call).
+af[#af+1] = P.Piece("Select")
+
+-- The cutout lettering of the song select, drawn here and shown in the
+-- overlay through proxies (see P.CutoutHost).
+af[#af+1] = P.CutoutHost(K.Scale)
 
 return af

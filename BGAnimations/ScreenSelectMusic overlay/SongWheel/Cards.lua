@@ -131,8 +131,7 @@ for c, at in ipairs(CARDS) do
 		-- The bands of a song row, stretched to the card's width.
 		Def.Sprite{ Texture=P.PiecePath("RowBands"),
 			InitCommand=function(self) self:xy(W / 2, bands.H / 2):zoomx(BANDS_ZOOMX) end },
-		P.CutoutSlot{ Name="Name", X=16, Y=32, MaxW=330, MaxH=54, Base=36, Tilt=-3,
-			HAlign=0, VAlign=0.5, MaxChars=16, Scale=K.Scale },
+		P.CutoutSlot{ Name="Name", Id="Card" .. c .. "Name", X=16, Y=32, Scale=K.Scale },
 		P.Text{ Name="Chart", Cap=24, Condense=0.75, Align=1, X=W - 26, Baseline=46, Width=260 },
 
 		-- On the white band: best ITG, best EX, grade; credit and rate.

@@ -116,8 +116,7 @@ for c = 1, 2 do
 	local column = Def.ActorFrame{
 		Name = "Column" .. c,
 		InitCommand = function(self) self:xy(COLUMN_X[c], 0) end,
-		P.CutoutSlot{ Name="Name", X=0, Y=NAME_Y, MaxW=NAME.MaxW, MaxH=NAME.MaxH, Base=NAME.Base,
-			Tilt=-3, HAlign=0, VAlign=0.5, MaxChars=16, Scale=K.Scale },
+		P.CutoutSlot{ Name="Name", Id="Card" .. c .. "Name", X=0, Y=NAME_Y, Scale=K.Scale },
 	}
 	for l = 1, INFO_LINES do
 		column[#column+1] = P.Text{ Name="Info" .. l, Cap=INFO_CAP, Condense=0.8, X=0,

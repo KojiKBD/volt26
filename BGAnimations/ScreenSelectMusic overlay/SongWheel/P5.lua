@@ -15,6 +15,10 @@ local P = {}
 -- Where every piece of the mockup sits (generated, see Art.lua).
 P.Art = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/Art.lua"))
 
+-- The design scale (the 1920x1080 mockup to the theme's screen), as in the
+-- music kit's K.Scale.
+P.Scale = math.min(_screen.w / 1920, _screen.h / 1080)
+
 -- Colours sampled from the mockup.
 P.Red    = color("#e40001")   -- the ground
 P.Flag   = color("#fe0003")   -- the focused row's band and flags, P1's square
@@ -220,64 +224,110 @@ function P.TopMeter(song)
 	return top and math.floor(top + 0.5) or nil
 end
 
--- Cutout lettering (player names, the song length) --------------------------
+-- Cutout lettering (player names, the pack, the song length, BACK TO PACK
+-- SELECTION) ------------------------------------------------------------------
 --
--- VOLT26.Cutout sizes its texture in screen units; the song select is drawn in
--- a frame scaled from the 1920x1080 design, so the slot stands in a frame that
--- undoes that scale and gets its figures converted.  t = {Name, X, Y, MaxW,
--- MaxH, Base, Tilt, HAlign, VAlign, MaxChars, Scale}
--- TEMPORARY (2026-10-12): the slots did not show in the first test in
--- ITGmania.  Until the cause is known, a slot that has not finished after two
--- seconds writes to the log which of its ancestors keeps it from drawing
--- (hidden, see-through or tweening: VOLT26.Cutout only draws a pass when all
--- of them are visible, opaque and still).
-local function blocker(actor)
-	while actor do
-		local name = actor:GetName() or "?"
-		if not actor:GetVisible() then return "hidden " .. name end
-		if actor:GetDiffuseAlpha() < 1 then return ("alpha %.2f %s"):format(actor:GetDiffuseAlpha(), name) end
-		if actor:GetTweenTimeLeft() > 0 then return ("tween %.2f %s"):format(actor:GetTweenTimeLeft(), name) end
-		actor = actor:GetParent()
-	end
-	return "none"
+-- VOLT26.Cutout draws a string only while every ancestor of its slot is
+-- visible, opaque and still, and an ActorFrame counts the tweens of all its
+-- descendants as its own.  The song select's overlay always has one running
+-- somewhere (the leaderboard's looping bounce, among others), so a slot in it
+-- never draws.  The slots therefore live in the screen's background
+-- (P.CutoutHost, loaded by ScreenSelectMusic background.lua, off screen),
+-- and the overlay and the wheel rows show them through ActorProxies
+-- (P.CutoutSlot).  The two find each other by message.
+--
+-- Every slot is declared here once, by id, in design pixels.
+P.CutoutSpecs = {
+	Card1Name = { MaxW=330, MaxH=54, Base=36, Tilt=-3, HAlign=0, MaxChars=16 },
+	Card2Name = { MaxW=330, MaxH=54, Base=36, Tilt=-3, HAlign=0, MaxChars=16 },
+	FooterP1  = { MaxW=320, MaxH=52, Base=36, Tilt=-3, HAlign=1, MaxChars=16 },
+	FooterP2  = { MaxW=320, MaxH=52, Base=36, Tilt=-3, HAlign=1, MaxChars=16 },
+	Pack      = { MaxW=340, MaxH=76, Base=44, Tilt=-4, HAlign=0.5, MaxChars=40 },
+	Length    = { MaxW=170, MaxH=62, Base=46, Tilt=-7, HAlign=1, MaxChars=8 },
+	BackLabel = { MaxW=440, MaxH=96, Base=50, Tilt=-2, HAlign=0, MaxChars=32 },
+}
+
+local function cutoutOpts(spec, s)
+	return { base = spec.Base * s, tiltDeg = spec.Tilt or -3 }
 end
 
+-- The width a string takes in a slot, in design pixels (the slot shrinks a
+-- string to fit MaxW x MaxH).
+function P.CutoutWidth(id, text, s)
+	local spec = P.CutoutSpecs[id]
+	if not spec or not text or text == "" then return 0 end
+	local ok, layout = pcall(function() return VOLT26.Cutout.Layout(text, cutoutOpts(spec, s)) end)
+	if not ok or not layout then return spec.MaxW end
+	local b = layout.bounds
+	local w, h = b[3] - b[1], b[4] - b[2]
+	if w <= 0 or h <= 0 then return 0 end
+	return w * math.min(1, spec.MaxW * s / w, spec.MaxH * s / h) / s
+end
+
+-- The slots themselves, for the background.  `s` is the design scale of the
+-- frame the host is placed in.
+function P.CutoutHost(s)
+	local slots = {}
+	local function announce()
+		MESSAGEMAN:Broadcast("VOLT26SongCutoutHost", { Slots = slots })
+	end
+	local host = Def.ActorFrame{
+		Name = "CutoutHost",
+		-- Off screen: the slots must be drawn to render, but are seen only
+		-- through the proxies.
+		InitCommand = function(self) self:xy(-4000, 0):zoom(1 / s) end,
+		OnCommand = function(self) announce() end,
+		VOLT26SongCutoutQueryMessageCommand = function(self) announce() end,
+	}
+	for id, spec in pairs(P.CutoutSpecs) do
+		host[#host+1] = VOLT26.Cutout.CreateSlot{
+			x = 0, y = 0,
+			maxW = spec.MaxW * s, maxH = spec.MaxH * s,
+			halign = spec.HAlign or 0, valign = spec.VAlign or 0.5,
+			maxChars = spec.MaxChars or 16,
+			opts = cutoutOpts(spec, s),
+			onInit = function(slot) slots[id] = slot end,
+		}..{
+			VOLT26SongCutoutSetMessageCommand = function(self, p)
+				if p.Id == id then self:playcommand("CutoutSet", { text = p.Text }) end
+			end,
+		}
+	end
+	return host
+end
+
+-- Where a slot shows: t = {Name, Id, X, Y, Scale}.  The slot's own alignment
+-- (CutoutSpecs) decides which edge of the lettering sits on X, Y.
 function P.CutoutSlot(t)
 	local s = t.Scale
 	return Def.ActorFrame{
 		Name = t.Name,
 		InitCommand = function(self)
+			self.id, self.text = t.Id, nil
 			self:xy(t.X, t.Y):zoom(1 / s)
-			self.waited = 0
-			self:SetUpdateFunction(function(frame, delta)
-				if frame.ready or not frame.text then return end
-				frame.waited = frame.waited + (delta or 0)
-				if frame.waited < 2 then return end
-				frame.waited = 0
-				Trace(("[VOLT26 cutout] %s '%s' waiting, blocked by: %s"):format(
-					t.Name or "?", frame.text, blocker(frame:GetChild("Slot"))))
-			end)
 		end,
-		VOLT26.Cutout.CreateSlot{
-			x = 0, y = 0,
-			maxW = t.MaxW * s, maxH = t.MaxH * s,
-			halign = t.HAlign or 0, valign = t.VAlign or 0.5,
-			maxChars = t.MaxChars or 16,
-			opts = { base = t.Base * s, tiltDeg = t.Tilt or -3 },
-			onReady = function(slot)
-				local frame = slot:GetParent()
-				if frame and not frame.ready then
-					frame.ready = true
-					Trace(("[VOLT26 cutout] %s '%s' ready"):format(t.Name or "?", tostring(frame.text)))
-				end
-			end,
-		}..{ Name = "Slot" },
+		OnCommand = function(self)
+			if not self.bound then MESSAGEMAN:Broadcast("VOLT26SongCutoutQuery") end
+		end,
+		VOLT26SongCutoutHostMessageCommand = function(self, p)
+			local slot = p.Slots and p.Slots[t.Id]
+			if not slot or self.bound then return end
+			self.bound = true
+			self:GetChild("Proxy"):SetTarget(slot)
+			-- A string set before the host was found.
+			if self.text then
+				MESSAGEMAN:Broadcast("VOLT26SongCutoutSet", { Id = t.Id, Text = self.text })
+			end
+		end,
+		Def.ActorProxy{ Name = "Proxy" },
 	}
 end
 
 function P.SetCutout(frame, text)
-	frame.text, frame.ready, frame.waited = text or "", false, 0
-	frame:GetChild("Slot"):playcommand("CutoutSet", { text = text or "" })
+	text = text or ""
+	if frame.text == text then return end
+	frame.text = text
+	MESSAGEMAN:Broadcast("VOLT26SongCutoutSet", { Id = frame.id, Text = text })
 end
 
 -- Density graphs -------------------------------------------------------------

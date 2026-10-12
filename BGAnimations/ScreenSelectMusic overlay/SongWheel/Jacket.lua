@@ -14,8 +14,7 @@ local SIZE = K.Badge.Size
 local X, Y = K.Badge.X, K.Badge.Y
 local ART_DELAY = 0.10   -- the wheel must rest this long before artwork loads
 -- The length tag: over the frame's lower right corner, tilted against it.
-local LENGTH = { X = frame.X + frame.W / 2 - 18, Y = frame.Y + frame.H / 2 - 6,
-	MaxW = 170, MaxH = 62, Base = 46, Tilt = -7 }
+local LENGTH = { X = frame.X + frame.W / 2 - 18, Y = frame.Y + frame.H / 2 - 6 }
 
 local af = Def.ActorFrame{
 	Name="Jacket",
@@ -57,7 +56,6 @@ local af = Def.ActorFrame{
 }
 
 af[#af+1] = Def.Sprite{ Name="Art", InitCommand=function(self) self:xy(X, Y):visible(false) end }
-af[#af+1] = P.CutoutSlot{ Name="Length", X=LENGTH.X, Y=LENGTH.Y, MaxW=LENGTH.MaxW, MaxH=LENGTH.MaxH,
-	Base=LENGTH.Base, Tilt=LENGTH.Tilt, HAlign=1, VAlign=0.5, MaxChars=8, Scale=K.Scale }
+af[#af+1] = P.CutoutSlot{ Name="Length", Id="Length", X=LENGTH.X, Y=LENGTH.Y, Scale=K.Scale }
 
 return af
