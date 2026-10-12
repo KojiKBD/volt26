@@ -21,6 +21,7 @@ local R = P.Art.Row
 local ARTIST = { X=14, Baseline=48, Cap=30, Width=300 }
 local TITLE = { X=8, Baseline=102, Cap=38, Width=385 }
 local TEXT_ROT = 1.2
+local BPM_SIZE = 0.72
 -- PACK SELECTION: left edge and vertical centre over both bands.
 local LABEL = { X=18, Y=58 }
 local BADGE_ZOOM = 0.52
@@ -91,7 +92,8 @@ return Def.ActorFrame{
 	P.Piece("Rank", R.Anchors[-1][1], R.Anchors[-1][2]),
 	P.Text{ Name="Artist", Cap=ARTIST.Cap, X=ARTIST.X, Baseline=ARTIST.Baseline,
 		Rot=TEXT_ROT, Tint=P.White },
-	P.Text{ Name="Bpm", Cap=ARTIST.Cap, X=ARTIST.X, Baseline=ARTIST.Baseline,
+	-- The BPM, a size smaller than the artist, on the same baseline.
+	P.Text{ Name="Bpm", Cap=ARTIST.Cap * BPM_SIZE, X=ARTIST.X, Baseline=ARTIST.Baseline,
 		Rot=TEXT_ROT, Tint=P.White },
 	P.Text{ Name="Title", Cap=TITLE.Cap, X=TITLE.X, Baseline=TITLE.Baseline,
 		Rot=TEXT_ROT, Tint=P.Black },

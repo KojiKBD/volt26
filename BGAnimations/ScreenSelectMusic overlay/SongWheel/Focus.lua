@@ -17,6 +17,7 @@ local ax, ay = F.Anchor[1], F.Anchor[2]
 local ARTIST = { X=15, Baseline=51, Cap=32.5, Width=330 }
 local TITLE = { X=9, Baseline=110, Cap=41, Width=420 }
 local TEXT_ROT = 1.2
+local BPM_SIZE = 0.72
 local BADGE = { Zoom = 0.56, Rot = 5 }
 local LABEL_ZOOM = 1.08
 
@@ -105,7 +106,8 @@ return Def.ActorFrame{
 	P.Badge{ Name="Badge", X=F.Badge.X, Y=F.Badge.Y, Zoom=BADGE.Zoom, Rot=BADGE.Rot },
 	P.Marquee{ Name="Artist", Cap=ARTIST.Cap, X=ARTIST.X, Baseline=ARTIST.Baseline,
 		Width=ARTIST.Width, MinScale=0.85, Rot=TEXT_ROT, Tint=P.White },
-	P.Text{ Name="Bpm", Cap=ARTIST.Cap, X=ARTIST.X, Baseline=ARTIST.Baseline,
+	-- The BPM, a size smaller than the artist, on the same baseline.
+	P.Text{ Name="Bpm", Cap=ARTIST.Cap * BPM_SIZE, X=ARTIST.X, Baseline=ARTIST.Baseline,
 		Rot=TEXT_ROT, Tint=P.White },
 	-- The focused row is the plain row drawn larger.
 	Def.ActorFrame{
