@@ -65,7 +65,7 @@ local function enterFromPacks()
 	end
 	for _, name in ipairs({ "Details", "Info" }) do
 		layoutPart(name):stoptweening():addx(-DETAILS_SLIDE):diffusealpha(0)
-			:sleep(0.06):decelerate(K.HandoffSeconds):addx(DETAILS_SLIDE):diffusealpha(1)
+			:sleep(0.03):decelerate(K.HandoffSeconds):addx(DETAILS_SLIDE):diffusealpha(1)
 	end
 	layoutPart("Header"):playcommand("SongWheelIn")
 end
@@ -76,8 +76,8 @@ end
 local function enterFresh()
 	local wheel = K.Wheel()
 	if wheel then
-		wheel:stoptweening():addx(WHEEL_SLIDE * K.Scale):sleep(0.12)
-			:decelerate(0.26):addx(-WHEEL_SLIDE * K.Scale)
+		wheel:stoptweening():addx(WHEEL_SLIDE * K.Scale):sleep(0.04)
+			:decelerate(0.18):addx(-WHEEL_SLIDE * K.Scale)
 	end
 end
 
@@ -91,10 +91,10 @@ local function leaveToPacks()
 	VOLT26.PackSelection.SetHandoff("FromSongWheel")
 	local wheel = K.Wheel()
 	if wheel then
-		wheel:stoptweening():accelerate(0.24):addx(WHEEL_SLIDE * K.Scale):diffusealpha(0)
+		wheel:stoptweening():accelerate(0.18):addx(WHEEL_SLIDE * K.Scale):diffusealpha(0)
 	end
 	for _, name in ipairs({ "Details", "Info" }) do
-		layoutPart(name):stoptweening():accelerate(0.2):addx(-DETAILS_SLIDE):diffusealpha(0)
+		layoutPart(name):stoptweening():accelerate(0.15):addx(-DETAILS_SLIDE):diffusealpha(0)
 	end
 	layoutPart("Header"):playcommand("SongWheelOut")
 	screen:Cancel()

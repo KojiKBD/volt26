@@ -38,8 +38,8 @@ if part == "Front" then
 	local af = Def.ActorFrame{ Name = "SceneFront" }
 	for i = 1, 4 do
 		af[#af+1] = piece("Star" .. i, function(self)
-			self:zoom(0):rotationz(-160):sleep(0.28 + i * 0.06)
-				:decelerate(0.2):zoom(1.25):rotationz(10):decelerate(0.1):zoom(1):rotationz(0)
+			self:zoom(0):rotationz(-160):sleep(0.14 + i * 0.04)
+				:decelerate(0.14):zoom(1.25):rotationz(10):decelerate(0.07):zoom(1):rotationz(0)
 				:queuecommand("Idle")
 		end, {
 			IdleCommand = function(self)
@@ -52,8 +52,8 @@ if part == "Front" then
 	end
 	-- The jacket frame drops in from above and kicks on every new song.
 	af[#af+1] = piece("JacketFrame", function(self)
-		self:addy(-460):rotationz(9):sleep(0.12):decelerate(0.3):addy(460):rotationz(-1.5)
-			:decelerate(0.1):rotationz(0)
+		self:addy(-460):rotationz(9):sleep(0.04):decelerate(0.2):addy(460):rotationz(-1.5)
+			:decelerate(0.07):rotationz(0)
 	end, {
 		CurrentSongChangedMessageCommand = function(self)
 			self:finishtweening():rotationz(3.5):zoom(1.04):decelerate(0.2):rotationz(0):zoom(1)
@@ -66,6 +66,8 @@ end
 -- rest on a song before its jacket is loaded.
 local JACKET_ALPHA = 0.28
 local JACKET_DELAY = 0.2
+-- The song select's own entrance, quicker than the figures below as written.
+local TEMPO = 0.7
 
 -- The scenery's choreography.  Each entry takes the piece and a time scale
 -- (1 on the song select; less on the bridge, which must finish within the
@@ -126,28 +128,28 @@ if part == "Bridge" then
 	-- to the left), instead of a fade.  It is sized to cover the screen
 	-- whatever its tilt.
 	local SWEEP_W, SWEEP_H, SWEEP_TILT = K.W * 2.2, K.H * 2.4, -14
-	local BRIDGE_K = 0.72
+	local BRIDGE_K = 0.6
 	af.InitCommand = function(self) self:xy(K.Left, K.Top):zoom(K.Scale):visible(false) end
 	af.VOLT26PackSceneMessageCommand = function(self, p)
 		if p.Phase == "Leave" then
 			self:stoptweening():visible(true)
-			self:GetChild("Ground"):stoptweening():x(K.W / 2 + SWEEP_W):decelerate(0.2):x(K.W / 2)
+			self:GetChild("Ground"):stoptweening():x(K.W / 2 + SWEEP_W):decelerate(0.16):x(K.W / 2)
 			for _, name in ipairs(PIECES) do
 				local a = self:GetChild(name)
 				reset(a, name)
 				ENTER[name](a, BRIDGE_K)
 			end
 			-- SELECT has no motion; on the bridge it fades up with the band.
-			self:GetChild("Select"):diffusealpha(0):sleep(0.12):linear(0.12):diffusealpha(1)
+			self:GetChild("Select"):diffusealpha(0):sleep(0.08):linear(0.08):diffusealpha(1)
 		elseif p.Phase == "Enter" and p.FromSongWheel then
 			self:stoptweening():visible(true)
-			self:GetChild("Ground"):stoptweening():x(K.W / 2):sleep(0.1):accelerate(0.22):x(K.W / 2 - SWEEP_W)
+			self:GetChild("Ground"):stoptweening():x(K.W / 2):sleep(0.05):accelerate(0.16):x(K.W / 2 - SWEEP_W)
 			for _, name in ipairs(PIECES) do
 				local a = self:GetChild(name)
 				reset(a, name)
-				EXIT[name](a, 1)
+				EXIT[name](a, 0.7)
 			end
-			self:sleep(0.4):queuecommand("Hide")
+			self:sleep(0.3):queuecommand("Hide")
 		end
 	end
 	af.HideCommand = function(self) self:visible(false) end
@@ -211,7 +213,7 @@ end
 for _, name in ipairs(PIECES) do
 	af[#af+1] = P.Piece(name, 0, 0, {
 		OnCommand = function(self)
-			if not bridged() then ENTER[name](self, 1) end
+			if not bridged() then ENTER[name](self, TEMPO) end
 			if name == "Glow" then self:queuecommand("Idle") end
 		end,
 		IdleCommand = function(self)

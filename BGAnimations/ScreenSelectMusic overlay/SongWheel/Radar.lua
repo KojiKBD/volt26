@@ -93,8 +93,8 @@ local radar = Def.ActorFrame{
 	InitCommand = function(self) self:xy(RADAR_X, RADAR_Y) end,
 	-- Arriving: the whole star spins in from nothing.
 	OnCommand = function(self)
-		self:stoptweening():zoom(0):rotationz(-150):sleep(0.36)
-			:decelerate(0.24):zoom(1.1):rotationz(6):decelerate(0.1):zoom(1):rotationz(0)
+		self:stoptweening():zoom(0):rotationz(-150):sleep(0.18)
+			:decelerate(0.17):zoom(1.1):rotationz(6):decelerate(0.07):zoom(1):rotationz(0)
 	end,
 	RefreshCommand = function(self)
 		local players = GAMESTATE:GetHumanPlayers()

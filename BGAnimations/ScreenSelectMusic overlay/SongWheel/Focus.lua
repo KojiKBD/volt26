@@ -81,7 +81,7 @@ return Def.ActorFrame{
 	end,
 	-- Arriving: the row sweeps in from the left after the black panel.
 	OnCommand=function(self)
-		self:stoptweening():x(ax - 760):zoom(1):sleep(0.16):decelerate(0.24):x(ax + 24):decelerate(0.08):x(ax)
+		self:stoptweening():x(ax - 760):zoom(1):sleep(0.06):decelerate(0.17):x(ax + 24):decelerate(0.06):x(ax)
 	end,
 	-- The song is chosen: the row swells and its flags flash.
 	SongChosenMessageCommand=function(self)

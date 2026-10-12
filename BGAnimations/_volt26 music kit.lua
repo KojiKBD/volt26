@@ -233,8 +233,8 @@ K.Badge = { X = 1678, Y = 193, Size = 284 }
 -- Seconds of the shared hand-off motion.  The screens' out and cancel
 -- transitions hold for K.HandoffHold so the motion finishes before the next
 -- screen replaces this one.
-K.HandoffSeconds = 0.32
-K.HandoffHold = 0.36
+K.HandoffSeconds = 0.22
+K.HandoffHold = 0.26
 
 function K.ModeText()
 	local style = GAMESTATE:GetCurrentStyle()

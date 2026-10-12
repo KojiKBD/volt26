@@ -15,7 +15,7 @@ return Def.ActorFrame{
 	Name="Footer",
 	-- Arriving: the names slide in from the right edge.
 	OnCommand=function(self)
-		self:stoptweening():x(520):sleep(0.4):decelerate(0.22):x(-10):decelerate(0.08):x(0)
+		self:stoptweening():x(520):sleep(0.2):decelerate(0.16):x(-10):decelerate(0.06):x(0)
 	end,
 	RefreshCommand=function(self)
 		local players = GAMESTATE:GetHumanPlayers()

@@ -12,8 +12,8 @@ return Def.ActorFrame{
 	Name="PackTag",
 	-- Arriving: the tag drops from above the screen and settles.
 	OnCommand=function(self)
-		self:stoptweening():y(-220):rotationz(-6):sleep(0.22)
-			:decelerate(0.22):y(10):rotationz(1):decelerate(0.08):y(0):rotationz(0)
+		self:stoptweening():y(-220):rotationz(-6):sleep(0.1)
+			:decelerate(0.16):y(10):rotationz(1):decelerate(0.06):y(0):rotationz(0)
 	end,
 	RefreshCommand=function(self)
 		local course = S.IsCourseMode()

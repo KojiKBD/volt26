@@ -125,8 +125,8 @@ for c, at in ipairs(CARDS) do
 		InitCommand = function(self) self:xy(at.X, at.Y) end,
 		-- Arriving: the cards slide in from the right edge, one after the other.
 		OnCommand = function(self)
-			self:stoptweening():x(at.X + 760):sleep(0.3 + (c - 1) * 0.09)
-				:decelerate(0.24):x(at.X - 14):decelerate(0.08):x(at.X)
+			self:stoptweening():x(at.X + 760):sleep(0.14 + (c - 1) * 0.06)
+				:decelerate(0.17):x(at.X - 14):decelerate(0.06):x(at.X)
 		end,
 		-- The bands of a song row, stretched to the card's width.
 		Def.Sprite{ Texture=P.PiecePath("RowBands"),

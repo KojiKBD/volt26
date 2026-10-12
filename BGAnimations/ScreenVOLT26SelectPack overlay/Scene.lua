@@ -33,7 +33,7 @@ local K = p.K
 local Focus = { X = 948, Y = 517, Size = 420, Tilt = 0 }
 
 local lively = not VOLT26.Performance.IsEnabled()
-local LEAVE_SECONDS = 0.22      -- must finish within K.HandoffHold
+local LEAVE_SECONDS = 0.18      -- must finish within K.HandoffHold
 
 local function art(name)
 	return THEME:GetPathG("", "VOLT26/PackSelect/" .. name .. ".png")
