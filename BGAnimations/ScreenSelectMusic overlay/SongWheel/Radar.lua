@@ -91,6 +91,11 @@ end
 local radar = Def.ActorFrame{
 	Name = "Radar",
 	InitCommand = function(self) self:xy(RADAR_X, RADAR_Y) end,
+	-- Arriving: the whole star spins in from nothing.
+	OnCommand = function(self)
+		self:stoptweening():zoom(0):rotationz(-150):sleep(0.36)
+			:decelerate(0.24):zoom(1.1):rotationz(6):decelerate(0.1):zoom(1):rotationz(0)
+	end,
 	RefreshCommand = function(self)
 		local players = GAMESTATE:GetHumanPlayers()
 		local versus = #players > 1
@@ -110,9 +115,11 @@ local radar = Def.ActorFrame{
 				local edged = versus and slot == 2
 				reading:GetChild("Edge"):visible(edged)
 				if edged then setVertices(reading:GetChild("Edge"), edgeVertices(tips, valleys, RADAR_R, colours.Lit)) end
+				-- A new chart's star twists up out of the centre.
 				if reading.chart ~= data.chart then
 					reading.chart = data.chart
-					reading:stoptweening():zoom(0.82):decelerate(0.16):zoom(1)
+					reading:stoptweening():zoom(0.45):rotationz(-40)
+						:decelerate(0.18):zoom(1.06):rotationz(3):decelerate(0.08):zoom(1):rotationz(0)
 				end
 			end
 		end
@@ -120,8 +127,12 @@ local radar = Def.ActorFrame{
 }
 local backdrop, labels = radarAsset("backdrop.png"), radarAsset("labels.png")
 if backdrop then
+	-- The dark star and its glow breathe (not in Performance mode).
 	radar[#radar+1] = Def.Sprite{ Texture=backdrop,
-		InitCommand=function(self) self:zoom(RADAR_R / radarArt.ArtRadius) end }
+		InitCommand=function(self) self:zoom(RADAR_R / radarArt.ArtRadius) end,
+		OnCommand=function(self)
+			if P.IdleMotion() then self:pulse():effectmagnitude(1, 1.035, 1):effectperiod(2.4) end
+		end }
 end
 for slot = 1, 2 do
 	radar[#radar+1] = Def.ActorFrame{

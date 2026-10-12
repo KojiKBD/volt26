@@ -75,7 +75,11 @@ local function setSlot(slot, chart)
 	local chosen = p1 or p2
 	slot:diffusealpha(chosen and 1 or DIMMED)
 	if chosen and not slot.chosen then
-		slot:stoptweening():zoom(1.18):decelerate(0.12):zoom(1)
+		-- Newly chosen: the slot punches up and the square spins in behind it.
+		slot:stoptweening():zoom(1.22):decelerate(0.12):zoom(1)
+		for _, half in ipairs({ half1, half2 }) do
+			half:stoptweening():zoom(0.2):rotationz(-120):decelerate(0.16):zoom(1):rotationz(0)
+		end
 	end
 	slot.chosen = chosen
 end
@@ -83,18 +87,27 @@ end
 local af = Def.ActorFrame{
 	Name="Difficulty",
 	RefreshCommand=function(self)
-		local charts = S.Charts(S.Item())
+		local item = S.Item()
+		local newSong = item ~= self.item
+		self.item = item
+		local charts = S.Charts(item)
 		local first = firstShown(charts)
 		local shown = math.min(MAX_SLOTS, #charts)
 		local pitch = shown > 1 and math.min(PITCH, SPAN / (shown - 1)) or 0
 		for i = 1, MAX_SLOTS do
 			local slot = self:GetChild("Slot" .. i)
 			local chart = i <= shown and charts[first + i - 1] or nil
+			local x = CENTRE_X + NUDGE[i]
 			if chart then
-				slot:xy(CENTRE_X + NUDGE[i], CENTRE_Y + (i - (shown + 1) / 2) * pitch)
-					:rotationz(TURN[i])
+				slot:xy(x, CENTRE_Y + (i - (shown + 1) / 2) * pitch):rotationz(TURN[i])
 			end
 			setSlot(slot, chart)
+			-- A new song deals its badges in from the right, top first.
+			if chart and newSong then
+				slot:stoptweening():x(x + 110):diffusealpha(0):sleep(0.03 * i)
+					:decelerate(0.14):x(x - 6):diffusealpha(slot.chosen and 1 or DIMMED)
+					:decelerate(0.06):x(x)
+			end
 		end
 	end,
 }

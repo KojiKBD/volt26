@@ -95,6 +95,14 @@ local function fill(card, player, item)
 
 	P.SetVertices(card:GetChild("Density"),
 		P.DensityVertices(chart and data or nil, W - 20, GRAPH_H - 6, P.PlayerColor(player)))
+
+	-- A new chart: its name slides in and its graph rises from the floor.
+	if card.chart ~= chart then
+		card.chart = chart
+		card:GetChild("Chart"):stoptweening():x(W - 26 + 40):diffusealpha(0)
+			:decelerate(0.14):x(W - 26):diffusealpha(1)
+		card:GetChild("Density"):stoptweening():zoomy(0):decelerate(0.26):zoomy(1)
+	end
 end
 
 local af = Def.ActorFrame{
@@ -115,6 +123,11 @@ for c, at in ipairs(CARDS) do
 	local card = Def.ActorFrame{
 		Name = "Card" .. c,
 		InitCommand = function(self) self:xy(at.X, at.Y) end,
+		-- Arriving: the cards slide in from the right edge, one after the other.
+		OnCommand = function(self)
+			self:stoptweening():x(at.X + 760):sleep(0.3 + (c - 1) * 0.09)
+				:decelerate(0.24):x(at.X - 14):decelerate(0.08):x(at.X)
+		end,
 		-- The bands of a song row, stretched to the card's width.
 		Def.Sprite{ Texture=P.PiecePath("RowBands"),
 			InitCommand=function(self) self:xy(W / 2, bands.H / 2):zoomx(BANDS_ZOOMX) end },

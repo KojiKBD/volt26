@@ -45,7 +45,11 @@ local af = Def.ActorFrame{
 		if not path then art:visible(false); return end
 		if K.LoadStill(art, path, cacheDir) then
 			K.Cover(art, SIZE, SIZE)
-			art:visible(true):diffusealpha(0):linear(0.12):diffusealpha(1)
+			-- The new jacket lands: in from slightly larger, upright (jackets
+			-- are never turned).
+			local zoom = art:GetZoomX()
+			art:visible(true):stoptweening():zoom(zoom * 1.18):diffusealpha(0)
+				:decelerate(0.18):zoom(zoom):diffusealpha(1)
 		else
 			art:visible(false)
 		end

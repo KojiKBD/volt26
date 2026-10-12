@@ -70,6 +70,17 @@ local function enterFromPacks()
 	layoutPart("Header"):playcommand("SongWheelIn")
 end
 
+-- Any other arrival (profile load, back from gameplay or options): the rows
+-- sweep in from the left behind the black panel; the details make their own
+-- entrances (SongWheel/*.lua).
+local function enterFresh()
+	local wheel = K.Wheel()
+	if wheel then
+		wheel:stoptweening():addx(WHEEL_SLIDE * K.Scale):sleep(0.12)
+			:decelerate(0.26):addx(-WHEEL_SLIDE * K.Scale)
+	end
+end
+
 -- Back to the pack step: the reverse.  Everything but the badge leaves; the
 -- pack step then grows its jacket out of the badge.
 local function leaveToPacks()
@@ -121,7 +132,7 @@ local af = Def.ActorFrame{
 			-- places every row at its anchor in the mockup.
 			wheel:xy(K.Left, K.Top):zoom(K.Scale)
 		end
-		if handoff == "ToSongWheel" then enterFromPacks() end
+		if handoff == "ToSongWheel" then enterFromPacks() else enterFresh() end
 		if not GAMESTATE:IsCourseMode() then SCREENMAN:GetTopScreen():AddInputCallback(input) end
 	end,
 	OffCommand=function(self)
