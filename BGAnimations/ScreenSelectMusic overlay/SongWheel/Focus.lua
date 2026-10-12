@@ -51,7 +51,7 @@ return Def.ActorFrame{
 		artistText:settext(artist)
 		if artist ~= "" then artistText:AddAttribute(0, { Length=1, Diffuse=P.Cyan }) end
 		self:GetChild("Title"):settext(title)
-		self:GetChild("Rank"):visible(meter ~= nil)
+		self:GetChild("FocusRank"):visible(meter ~= nil)
 		P.SetBadge(self:GetChild("Badge"), meter, P.Ink.Plain, P.Ink.P1Box)
 		if title ~= self.shown then
 			self.shown = title
@@ -61,7 +61,7 @@ return Def.ActorFrame{
 	end,
 
 	P.Piece("FocusBands", ax, ay),
-	P.Piece("FocusRank", ax, ay)..{ Name="Rank" },
+	P.Piece("FocusRank", ax, ay),
 	P.Text{ Name="Title", Cap=TITLE.Cap, X=TITLE.X, Baseline=TITLE.Baseline,
 		Width=TITLE.Width, Rot=TEXT_ROT, Tint=P.Black },
 	P.Piece("FocusFront", ax, ay),

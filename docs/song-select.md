@@ -57,7 +57,8 @@ The song wheel step follows the owner's Persona-style Illustrator mockup.
 
 | Part | Where |
 | --- | --- |
-| Red ground, light, black left panel, slashes, shards, SELECT logo | `BGAnimations/ScreenSelectMusic background.lua` -> `overlay/SongWheel/Scene.lua` ("Back"), under the engine wheel |
+| Red ground with the chosen song's jacket faint under it, light, black left panel, slashes, shards, SELECT logo | `BGAnimations/ScreenSelectMusic background.lua` -> `overlay/SongWheel/Scene.lua` ("Back"), under the engine wheel |
+| The same red scene fading in over the pack step while a pack opens (and out on the way back), so the old shared backdrop never shows | `ScreenVOLT26SelectPack background.lua` -> `Scene.lua` ("Bridge") |
 | Song rows: "ARTIST - BPM" + RANK on a black band, the title on a white band, the song's highest meter as a badge | `Graphics/VOLT26/SongWheel/Row.lua` (every MusicWheelItem NormalPart) |
 | Row placement on the slant, the hidden focused copy, the last row tipping over | `VOLT26.MusicSelection.Wheel` / `PositionWheelItem` in `Scripts/SL_Init.lua` |
 | The focused row (larger, red band, difference-blend flags) | `overlay/SongWheel/Focus.lua` |
@@ -65,9 +66,12 @@ The song wheel step follows the owner's Persona-style Illustrator mockup.
 | Pack tile under the jacket (pack-step hand-off target, fallback art) | `overlay/SongWheel/Header.lua`, at `K.Badge` |
 | Jacket (upright) and the song length in cutout lettering | `overlay/SongWheel/Jacket.lua` |
 | Difficulty column with the P1/P2 squares | `overlay/SongWheel/Difficulty.lua` |
-| Info panel: names (cutout), chart facts, notes radar, density graphs, stream measures | `overlay/SongWheel/Panel.lua` |
+| Open pack's name (cutout), the song's place in it, the play mode | `overlay/SongWheel/PackTag.lua` |
+| Notes radar, free on the red | `overlay/SongWheel/Radar.lua` |
+| One card per player: name (cutout) and chart; best ITG, EX, grade, steps by, rate; notes/jumps/holds/mines/rolls/hands, peak NPS, stream measures; density graph | `overlay/SongWheel/Cards.lua` |
+| The mockup's own solid info panel (names, facts, radar, graphs in one slab), set aside as too heavy; can replace the cards and the radar in `default.lua` | `overlay/SongWheel/Panel.lua` |
 | Shared pieces, condensed text, meter badge and its palettes | `overlay/SongWheel/P5.lua` |
-| Chart readings (NPS per measure, tech, radar, stream) | `S.ChartData` in `overlay/SongWheel/State.lua` |
+| Chart readings (NPS per measure, tech, radar, stream) and the player's best | `S.ChartData`, `S.Best` in `overlay/SongWheel/State.lua` |
 
 #### Difficulty squares
 

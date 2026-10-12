@@ -253,4 +253,11 @@ function S.StepArtist(chart)
 	return ""
 end
 
+-- The player's best on a chart: PercentDP (ITG), ExPercent and Grade, or nil.
+function S.Best(player, item, chart)
+	if not item or not chart or not VOLT26.ScoreIndex then return nil end
+	local ok, best = pcall(function() return VOLT26.ScoreIndex.GetBest(player, item, chart) end)
+	return ok and best or nil
+end
+
 return S

@@ -68,14 +68,14 @@ function P.Text(t)
 		Name = t.Name,
 		Font = t.Font or P.Font,
 		InitCommand = function(self)
-			self.cap, self.condense, self.width = t.Cap or 20, t.Condense or 0.7, t.Width
-			local zoom = self.cap / P.FontCap
+			local cap, condense = t.Cap or 20, t.Condense or 0.7
+			local zoom = cap / P.FontCap
 			-- Centred on the caps: half a cap height above the baseline.
 			self:halign(t.Align or 0):valign(0.5):shadowlength(0)
-				:xy(t.X or 0, (t.Baseline or 0) - self.cap / 2)
-				:zoomx(zoom * self.condense):zoomy(zoom)
+				:xy(t.X or 0, (t.Baseline or 0) - cap / 2)
+				:zoomx(zoom * condense):zoomy(zoom)
 				:rotationz(t.Rot or 0):diffuse(t.Tint or P.White)
-			if self.width then self:maxwidth(self.width / (zoom * self.condense)) end
+			if t.Width then self:maxwidth(t.Width / (zoom * condense)) end
 			if t.Text then self:settext(t.Text) end
 		end,
 	}
@@ -220,23 +220,107 @@ end
 -- a frame scaled from the 1920x1080 design, so the slot stands in a frame that
 -- undoes that scale and gets its figures converted.  t = {Name, X, Y, MaxW,
 -- MaxH, Base, Tilt, HAlign, VAlign, MaxChars, Scale}
+-- TEMPORARY (2026-10-12): the slots did not show in the first test in
+-- ITGmania.  Until the cause is known, a slot that has not finished after two
+-- seconds writes to the log which of its ancestors keeps it from drawing
+-- (hidden, see-through or tweening: VOLT26.Cutout only draws a pass when all
+-- of them are visible, opaque and still).
+local function blocker(actor)
+	while actor do
+		local name = actor:GetName() or "?"
+		if not actor:GetVisible() then return "hidden " .. name end
+		if actor:GetDiffuseAlpha() < 1 then return ("alpha %.2f %s"):format(actor:GetDiffuseAlpha(), name) end
+		if actor:GetTweenTimeLeft() > 0 then return ("tween %.2f %s"):format(actor:GetTweenTimeLeft(), name) end
+		actor = actor:GetParent()
+	end
+	return "none"
+end
+
 function P.CutoutSlot(t)
 	local s = t.Scale
 	return Def.ActorFrame{
 		Name = t.Name,
-		InitCommand = function(self) self:xy(t.X, t.Y):zoom(1 / s) end,
+		InitCommand = function(self)
+			self:xy(t.X, t.Y):zoom(1 / s)
+			self.waited = 0
+			self:SetUpdateFunction(function(frame, delta)
+				if frame.ready or not frame.text then return end
+				frame.waited = frame.waited + (delta or 0)
+				if frame.waited < 2 then return end
+				frame.waited = 0
+				Trace(("[VOLT26 cutout] %s '%s' waiting, blocked by: %s"):format(
+					t.Name or "?", frame.text, blocker(frame:GetChild("Slot"))))
+			end)
+		end,
 		VOLT26.Cutout.CreateSlot{
 			x = 0, y = 0,
 			maxW = t.MaxW * s, maxH = t.MaxH * s,
 			halign = t.HAlign or 0, valign = t.VAlign or 0.5,
 			maxChars = t.MaxChars or 16,
 			opts = { base = t.Base * s, tiltDeg = t.Tilt or -3 },
+			onReady = function(slot)
+				local frame = slot:GetParent()
+				if frame and not frame.ready then
+					frame.ready = true
+					Trace(("[VOLT26 cutout] %s '%s' ready"):format(t.Name or "?", tostring(frame.text)))
+				end
+			end,
 		}..{ Name = "Slot" },
 	}
 end
 
 function P.SetCutout(frame, text)
+	frame.text, frame.ready, frame.waited = text or "", false, 0
 	frame:GetChild("Slot"):playcommand("CutoutSet", { text = text or "" })
 end
+
+-- Density graphs -------------------------------------------------------------
+--
+-- The NPS of every measure as a filled profile, sampled to a fixed width so a
+-- short chart and a long one read the same way.  Drawn by an
+-- ActorMultiVertex in DrawMode_QuadStrip from its bottom-left corner.
+local DENSITY_SAMPLES = 96
+
+function P.DensityVertices(data, w, h, colour)
+	local vertices = {}
+	if not data or #data.nps == 0 or data.peak <= 0 then return vertices end
+	local count = #data.nps
+	local tint = { colour[1], colour[2], colour[3], 1 }
+	for sample = 0, DENSITY_SAMPLES do
+		local position = sample / DENSITY_SAMPLES
+		local index = math.min(count, math.max(1, math.floor(position * (count - 1)) + 1))
+		local value = data.nps[index] or 0
+		local x = position * w
+		vertices[#vertices+1] = { {x, 0, 0}, tint }
+		vertices[#vertices+1] = { {x, -math.min(h, h * value / data.peak), 0}, tint }
+	end
+	return vertices
+end
+
+function P.SetVertices(actor, vertices)
+	actor:SetNumVertices(#vertices)
+	if #vertices > 0 then actor:SetVertices(vertices) end
+end
+
+-- Grades ---------------------------------------------------------------------
+
+local gradeStars = { Grade_Tier00 = 5, Grade_Tier01 = 4, Grade_Tier02 = 3, Grade_Tier03 = 2, Grade_Tier04 = 1 }
+local gradeLetters = {
+	Grade_Tier05 = "s-plus.png", Grade_Tier06 = "s.png", Grade_Tier07 = "s-minus.png",
+	Grade_Tier08 = "a-plus.png", Grade_Tier09 = "a.png", Grade_Tier10 = "a-minus.png",
+	Grade_Tier11 = "b-plus.png", Grade_Tier12 = "b.png", Grade_Tier13 = "b-minus.png",
+	Grade_Tier14 = "c-plus.png", Grade_Tier15 = "c.png", Grade_Tier16 = "c-minus.png",
+	Grade_Tier17 = "d.png", Grade_Tier99 = "q.png", Grade_Failed = "f.png",
+}
+P.GradeAssetSize = 200
+
+-- Answers the grade's letter picture (a path) or its number of stars.
+function P.Grade(grade)
+	if not grade then return nil, 0 end
+	local file = gradeLetters[grade]
+	if file then return THEME:GetPathG("", "_grades/assets/" .. file), 0 end
+	return nil, gradeStars[grade] or 0
+end
+P.GradeStarPath = THEME:GetPathG("", "_grades/assets/star.png")
 
 return P
