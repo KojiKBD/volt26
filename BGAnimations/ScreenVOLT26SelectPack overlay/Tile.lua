@@ -26,6 +26,23 @@ body[#body+1] = K.Rule{ Name="Ground", AlignX=0.5, AlignY=0.5, Width=size, Heigh
 -- been loaded.
 body[#body+1] = K.Text{ Name="Initials", Role="Display", Px=150, Tint=K.Dim, Align=center, Width=size-60 }
 
+-- A section of another sort (a letter, a BPM range, a meter...) has no
+-- artwork: its tile names it in cutout lettering (project rule: sort titles
+-- are always cutout).  The slot stands in theme units, so its frame undoes
+-- the design scale the tile is drawn in.
+local labelStyle = VOLT26.Cutout.Style("PackTile")
+local labelZoom = size / K.TileSize
+body[#body+1] = Def.ActorFrame{
+	Name="Label",
+	InitCommand=function(self) self:zoom(1 / K.Scale):visible(false) end,
+	VOLT26.Cutout.CreateSlot{
+		maxW = labelStyle.maxW * labelZoom, maxH = labelStyle.maxH * labelZoom,
+		halign = 0.5, valign = 0.5, maxChars = labelStyle.maxChars,
+		opts = labelStyle.opts,
+		fallbackZoom = VOLT26.Type.DisplayZoom(100 * K.Scale),
+	}..{ Name="Slot" },
+}
+
 -- The artwork always fills the whole square: a jacket is cropped to it, and a
 -- banner-only pack has its banner cropped to the square as well.
 body[#body+1] = Def.Sprite{ Name="Art", InitCommand=function(self) self:visible(false) end }
@@ -47,8 +64,11 @@ return Def.ActorFrame{
 		-- A section has no artwork: its tile shows what it stands for (a
 		-- letter, a BPM range, a meter...); a pack shows its initials until
 		-- its artwork loads.
-		local label = group and (PackSelection.ShortName(group) or K.Initials(group)) or ""
-		b:GetChild("Initials"):settext(label)
+		local section = group and PackSelection.ShortName(group) or nil
+		b:GetChild("Initials"):settext(section and "" or (group and K.Initials(group) or ""))
+		local label = b:GetChild("Label")
+		label:visible(section ~= nil)
+		if section then label:GetChild("Slot"):playcommand("CutoutSet", { text = section }) end
 		if self.loadedGroup ~= group then
 			b:GetChild("Art"):visible(false)
 			self.loadedGroup = nil

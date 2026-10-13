@@ -26,6 +26,11 @@ Cutout.StyleDesign = {
 	-- ScreenSelectMusic (overlay/SongWheel/P5.lua, P.CutoutSpecs): the open
 	-- pack, the players' names on their cards and in the footer.
 	SongPack     = { Scale="Fit", MaxW=340, MaxH=76, Base=44, Tilt=-4, MaxChars=40 },
+	-- ScreenVOLT26SelectPack: what a section tile stands for (a letter, a BPM
+	-- range, a meter...) when the pack step follows a sort other than the
+	-- group sort (overlay/Tile.lua, also the song wheel's header badge).  In
+	-- the tile's own 560 px design size; longer labels fall back to plain text.
+	PackTile     = { Scale="Fit", MaxW=480, MaxH=220, Base=120, Tilt=-4, MaxChars=12 },
 	SongCardName = { Scale="Fit", MaxW=330, MaxH=54, Base=36, Tilt=-3, MaxChars=16 },
 	SongFooterName = { Scale="Fit", MaxW=320, MaxH=52, Base=36, Tilt=-3, MaxChars=16 },
 	-- The focused song's grade on the left of the wheel (overlay/SongWheel/
