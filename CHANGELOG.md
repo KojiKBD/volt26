@@ -6,6 +6,17 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ### Added
 
+- The song wheel shows the focused song's grade on the left beside the focused row, in place of the mockup's four decorative stars, which are no longer drawn (`BGAnimations/ScreenSelectMusic overlay/SongWheel/Grade.lua`). It is the player's best grade on the selected chart. Lettered grades (S+ .. D, Q, F) are cutout lettering, always upper case, pre-rendered once at startup and kept in the cutout cache for the whole session (`VOLT26.Cutout.GradeLetters`; styles `SongGrade`, `SongGradeP1`, `SongGradeP2`). Star grades use the grade star picture laid out as on the evaluation screen (`Graphics/_grades/Grade_Tier00-04`: one large star, two on a diagonal, three in a triangle, four in the corners, five in a circle), popping in and turning with the song's BPM as the decorative stars did; five stars are holographic foil (a rainbow running from star to star and a travelling white glint). With one player the grade is white; with two, each player's grade is in their colour (red P1, blue P2) and the grade turns over like a card every 2.5 s between them; a player without a grade is left out. Verified outside the engine only (Lua 5.1 syntax, harness running the real `Grade.lua`, `P5.lua`, `Scene.lua` and cache code against a mocked actor tree).
+- Cutout lettering is cached and warmed up at startup (`VOLT26.Cutout.Cache`, `Scripts/VOLT26_CutoutCache.lua`). Rendered strings live in up to four shared 2048x1024 page textures (two in Performance mode) owned by `ScreenSystemLayer`, so a string that comes back shows at once instead of after three invisible frames, and the six cutout faces stay loaded all session. `ScreenVOLT26Warmup` pre-renders the credit line, every local profile's name and the pack names around the packs the profiles last played (waiting at most 3 s, the rest continues in the background). The slots whose strings are warmed take their size from `Scripts/VOLT26_CutoutStyles.lua`. See `docs/cutout-lettering.md`. Verified outside the engine only (Lua 5.1 syntax, harness on the real code with a mocked actor tree).
+- Song Select's notes radar is the owner's Illustrator star artwork, kept as drawn: the dark star and its glow are `Graphics/VOLT26/SongSelection/NotesRadar/backdrop.png`, the axis names and icons `labels.png`, and the chart's reading is an orange star aimed at the dark star's own points and valleys (from the generated `RadarArt.lua`), so a chart full on every axis fills it exactly. Each point has a lit and a shaded half and a dotted seam, and the star grows in when the chart changes. The radar now has five axes in the artwork's order (STREAM, XOVER, FOOTSWITCH, BRACKETS, SIDESWITCH); JACK is dropped. `VOLT26.ChartRadar.StarRadii` supplies the point and valley readings. Everything is rebuilt from the artwork by `tools/notes-radar/build_radar_art.py`; see `docs/notes-radar.md`. Verified outside the engine only (Lua 5.1 syntax, geometry harness on the real code, offline preview).
+- Style selection progressively draws the owner's red `Graphics/VOLT26/line.svg`
+  ribbon along its zigzag path when changing between Single, Versus, and Double,
+  and on confirmation. The shape stays fixed while it forms, then fades; left
+  navigation reverses the drawing direction. Rapid input restarts the effect,
+  and Solo uses the same transition when enabled.
+  The ribbon renders above the background and below characters, labels, and
+  arrows; native foreground geometry keeps the original face PNGs intact.
+
 - Easter egg: a five-star (100% EX) result brings the Double face's cigar-smoking cat up from the bottom-right corner of the stage evaluation once its sequence finishes; it sways for a few seconds and ducks back down (`Modules/VOLT26-FiveStarCat.lua`).
 - Cutout ("ransom note") lettering for runtime strings (`VOLT26.Cutout`, `Scripts/VOLT26_Cutout.lua`): every letter takes its own face, case, size, tilt and baseline offset, white on a merged black backing with a drop shadow, and some letters are inverted inside a box. The choices are seeded from the string, so a name always comes out the same way. Each string is drawn once into an `ActorFrameTexture` and shown as a sprite fitted to its slot; strings the faces cannot draw (for example CJK names) fall back to plain text. For now it replaces the credit texts and the centre footer ("PRESS START", profile/GrooveStats names, "EVENT MODE") on the title screen only (`VOLT26.Cutout.Screens`). The six faces are SIL OFL stand-ins (Tinos, Caprasimo, League Spartan, Besley, Jost, Archivo) baked into bitmap fonts in `Fonts/Cutout` by `tools/cutout-fonts/generate.py`, one 1024 px page per face. See `docs/cutout-lettering.md`.
 - Menu-only glitch bursts (`VOLT26.Glitch`, `Scripts/VOLT26_Glitch.lua`), adapted from the volt26.it overlay at a fraction of its weight: two or three red/cyan tears, a few solid blocks, a grain flash and, on the title screen only, a two-frame inversion of the picture. Bursts last roughly 0.1–0.6 s and appear on the title (about every 7–16 s), on music/course select (every 22–48 s) and once as the results screen opens. The layer lives in `ScreenSystemLayer`, is built from pooled Quads plus one 128 px texture, and runs from an update function, so it queues no tweens and cannot lengthen `ScreenSelectMaster`'s input lock. Screens are opt-in, and gameplay, practice, demonstration, sync and edit screens are refused outright. `Theme Options → Glitch Effects` selects Off / Light (default) / Full; `Visual Quality: Performance` turns it off. The inverting pieces are skipped under Direct3D. The title's closing logo also gets the site's power flicker and sideways tear, softened because the logo is a single texture.
@@ -16,11 +27,38 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 - The 3D title menu has a hidden sixth `Special Thanks` stop at the end of the road. Its static `Serious_Thanks.png` artwork becomes readable only from the selected overhead camera pose; the entry has no Start interaction and does not leave the title screen.
 - The 3D title menu plays the new 18.093-second `Sounds/intro.ogg` exclusively during the opening vow, then starts `menuost.ogg` only after the camera has landed in the interactive menu. The closing beat fades the VOLT26 logo in and back out. The `afk.mp4` idle presentation remains available outside paid play; the train audio remains excluded, the idle timer begins after the opening cinematic, and the dismissal input cannot also activate a menu action.
 
+### Fixed
+
+- The song select's best-score index (`VOLT26.ScoreIndex`: best ITG and EX per chart) is updated after every result, not only when `WriteCustomScores` is on. It used to be updated only as a side effect of writing the per-play JSON score files, so with the preference off (the usual case) the song select never learned an EX score: the cards showed no EX and a 100 % EX chart showed four stars. The evaluation now calls `VOLT26.ScoreExport.RecordCurrentBest()` when the files are not written; `WriteCustomScores` governs only the JSON history. EX results set before this fix were never saved anywhere the theme can read (the engine's high scores have no FA+ window), so those charts show their EX and five stars after the next play.
+- A chart's best grade shows five stars when the best EX result is 100 %. The engine's high score stops at Grade_Tier01 (four stars); the evaluation's promotion to Grade_Tier00 is now applied by `VOLT26.ScoreIndex.GetBest` too, so the song wheel's grade, the player cards and `PlayerColumn` agree with the results screen.
+- Song select: scrolling the wheel fast no longer slides the focused row's red band and flags further left with every song. Their kick on a new song used relative moves (`addx`), which `stoptweening` cut short whenever the next song arrived first; it now moves to absolute positions (`SongWheel/Focus.lua`).
+- Profile names on `ScreenSelectProfile` no longer vanish when the cursor returns
+  to the name it just left.  The slot still holding that name was swapped back in
+  mid fade-out, and `finishtweening()` dropped its queued `Retire`, leaving the
+  name at alpha 0 until the next move; `SwapNames` now sets the incoming slot's
+  alpha itself.
+- Cutout lettering (`VOLT26.Cutout`) renders a new string in three
+  `ActorFrameTexture` frames instead of 35: the letters are stamped at every
+  backing offset of a pass through `ActorProxy`s.  A newly focused profile name
+  used to stay invisible for about 0.6 s at 60 Hz (longer on slow machines).
+
 ### Removed
+
+- The title menu's Special Thanks choice and its overhead camera stop on the
+  road date. The title now has five choices, ending at Event Countdown.
 
 - `ScreenSelectColor` and the per-session colour choice it drove. The screen is gone from the screen graph (`metrics.ini`), from navigation (`Navigation.AllowScreenSelectColor` / `AfterScreenSelectColor` are folded into `Navigation.AfterSelectProfile`), and from the Theme Options menu, along with the `AllowScreenSelectColor`, `VOLT26Color` and legacy `SimplyLoveColor` preferences and their strings in every shipped language. `VOLT26/SelectColor.png` is no longer warmed up.
 
 ### Changed
+
+- The current combined Regular/Marathon and ITG/FA+ mode selection hides the
+  shared footer, player labels/avatars, and centered Event Mode/credit text,
+  including their cutout presentation. The legacy mode screen also hides it.
+
+- The 3D home sky follows the machine's local time with smoothly blended dawn,
+  daylight, sunset, and deep-blue night gradients. Stars fade in at night and
+  twinkle gently; Performance mode uses fewer stars and a slower animation rate.
+  The sky refreshes while the home stays open and remains continuous at midnight.
 
 - Style selection shows the owner's full-screen faces (1 Player, 2 Players, Double) from the Illustrator mockups: one face at a time, sliding in from the side the cursor moved towards, with its cutout label slamming into place and two arrows bobbing towards the previous and next choice. Credits, joining and the solo option keep their existing behaviour (solo borrows the single face with a cutout label).
 - The title's menu theme (menuost.ogg) now plays as the engine's music and carries on, without restarting, through profile, style and play-mode selection and profile load, until song selection. Simply Love's "_common menu music" is removed, including on the song wheel's Random item.

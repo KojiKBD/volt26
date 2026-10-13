@@ -228,7 +228,10 @@ local function input(event)
 					child:queuecommand("LoseFocus")
 				end
 			end
-			if prev_index ~= current_index then af:GetChild("Change"):play() end
+			if prev_index ~= current_index then
+				af:GetChild("Change"):play()
+				af:GetChild("LineTransition"):playcommand("Reveal", {direction=shared.direction})
+			end
 
 		elseif event.GameButton == "Start" then
 			StyleSelected = true
@@ -294,6 +297,7 @@ local t = Def.ActorFrame{
 	end,
 	FinishCommand=function(self, params)
 		local style = choices[current_index].name
+		self:GetChild("LineTransition"):playcommand("Reveal", {direction=shared.direction, confirm=true})
 
 		ManageCredits(style)
 		JoinOrUnjoinPlayersMaybe(style, (params and params.PlayerNumber or nil))
@@ -321,6 +325,8 @@ local t = Def.ActorFrame{
 for i,choice in ipairs(choices) do
 	t[#t+1] = LoadActor("./choice.lua", {choice, i, shared} )
 end
+
+t[#t+1] = LoadActor("./LineTransition.lua")
 
 t[#t+1] = LoadActor( THEME:GetPathS("ScreenSelectMaster", "change") )..{ Name="Change", IsAction=true, SupportPan=false }
 t[#t+1] = LoadActor( THEME:GetPathS("common", "start") )..{ Name="Start", IsAction=true, SupportPan=false }

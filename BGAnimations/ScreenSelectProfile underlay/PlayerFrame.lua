@@ -73,13 +73,17 @@ local function cy(v) return (v - cardH / 2) * sy end
 
 -- ----------------------------------------------------------------------------
 -- The name: two cutout slots used alternately, so the name on screen stays
--- until its successor has finished rendering (about half a second).
+-- until its successor has finished rendering (a few frames).
 
 local names = { slots = {}, active = 1, shown = nil, wanted = nil, pending = nil, direction = 0 }
 local nameX, nameY = L.name.x * sx, L.name.y * sy
 local slide = 40 * sx
-local nameOpts = { base = 66 * sy, tiltDeg = -2 }
-local nameMaxW, nameMaxH, nameMaxChars = 430 * sx, 120 * sy, 20
+-- The name's size lives in VOLT26.Cutout.StyleDesign.ProfileName
+-- (Scripts/VOLT26_CutoutStyles.lua), shared with the startup warm-up that
+-- pre-renders every local profile's name.
+local nameStyle = VOLT26.Cutout.Style("ProfileName")
+local nameOpts = nameStyle.opts
+local nameMaxW, nameMaxH, nameMaxChars = nameStyle.maxW, nameStyle.maxH, nameStyle.maxChars
 
 -- ----------------------------------------------------------------------------
 -- The browse arrows sit either side of the name.  A long name would run over
@@ -123,10 +127,17 @@ end
 -- towards, and the old one flicks out the other way.  The old slot is reset
 -- once its fade ends, because a slot only renders while fully opaque and
 -- still.
+--
+-- The incoming slot sets its own alpha rather than trusting that reset: a
+-- slot can be swapped back in while it is still fading out (the cursor
+-- returns to the name it just left, which that slot still holds), and
+-- finishtweening() jumps to the end of the fade and drops the queued
+-- "Retire", which would leave the name on screen at alpha 0.
 local function SwapNames(incoming, outgoing)
 	local dir = names.direction
 	incoming:finishtweening():playcommand("CutoutHold", {held = false})
-	incoming:xy(nameX + dir * slide, nameY):zoom(1.3):rotationz(L.name.rot - dir * 6)
+	incoming:diffusealpha(1)
+		:xy(nameX + dir * slide, nameY):zoom(1.3):rotationz(L.name.rot - dir * 6)
 		:decelerate(0.18):xy(nameX, nameY):zoom(1):rotationz(L.name.rot)
 	outgoing:finishtweening():linear(0.12)
 		:xy(nameX - dir * slide, nameY):zoom(0.8):diffusealpha(0)

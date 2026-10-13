@@ -7,6 +7,13 @@ local t = Def.ActorFrame{}
 -- top of it. See Scripts/VOLT26_Glitch.lua for where it is allowed to appear.
 t[#t+1] = VOLT26.Glitch.CreateLayer()
 
+-- The cutout lettering's shared texture cache (Scripts/VOLT26_CutoutCache.lua).
+-- It lives here because this layer outlasts every screen: the six cutout
+-- faces stay loaded for the whole session, and strings rendered once (or at
+-- startup by ScreenVOLT26Warmup) appear at once wherever they come back.  It
+-- draws nothing on screen.
+t[#t+1] = VOLT26.Cutout.Cache.CreateHost()
+
 -- Cutout lettering (Scripts/VOLT26_Cutout.lua) for the credit line: the
 -- player names and the centre text (EVENT MODE, credits, free play).
 --
@@ -27,6 +34,12 @@ local function MirrorToCutout(actor, key)
 	local slot = cutoutSlots[key]
 	if not slot then return end
 	local screen = SCREENMAN:GetTopScreen()
+	if screen and (screen:GetName() == "ScreenSelectPlayMode2"
+		or screen:GetName() == "ScreenVOLT26SelectMode") then
+		actor:visible(false)
+		slot:visible(false)
+		return
+	end
 	if screen then
 		local text = actor:GetText()
 		slot:zoom(cutoutZoom[screen:GetName()] or 1)
@@ -168,18 +181,25 @@ t[#t+1] = Def.ActorFrame {
 }
 
 -- Cutout counterparts of the credit texts and of the centre footer text.
+-- Their size lives in VOLT26.Cutout.StyleDesign (CreditPlayer, CreditCentre),
+-- shared with the startup warm-up.
+local creditPlayer = VOLT26.Cutout.Style("CreditPlayer")
+local creditCentre = VOLT26.Cutout.Style("CreditCentre")
 t[#t+1] = Def.ActorFrame{
 	CutoutSlot(PLAYER_1, {
 		x = SCREEN_LEFT + WideScale(38, 45), y = _screen.h - 4,
-		maxW = 260, maxH = 44, halign = 0, valign = 1, opts = {base = 22},
+		maxW = creditPlayer.maxW, maxH = creditPlayer.maxH, maxChars = creditPlayer.maxChars,
+		halign = 0, valign = 1, opts = creditPlayer.opts,
 	}),
 	CutoutSlot(PLAYER_2, {
 		x = SCREEN_RIGHT - WideScale(38, 45), y = _screen.h - 4,
-		maxW = 260, maxH = 44, halign = 1, valign = 1, opts = {base = 22},
+		maxW = creditPlayer.maxW, maxH = creditPlayer.maxH, maxChars = creditPlayer.maxChars,
+		halign = 1, valign = 1, opts = creditPlayer.opts,
 	}),
 	CutoutSlot("Footer", {
 		x = _screen.cx, y = _screen.h - 3,
-		maxW = 300, maxH = 50, halign = 0.5, valign = 1, opts = {base = 26},
+		maxW = creditCentre.maxW, maxH = creditCentre.maxH, maxChars = creditCentre.maxChars,
+		halign = 0.5, valign = 1, opts = creditCentre.opts,
 	}),
 }
 

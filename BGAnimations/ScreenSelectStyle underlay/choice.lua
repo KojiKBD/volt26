@@ -135,11 +135,7 @@ return Def.ActorFrame{
 		self:finishtweening():visible(false)
 	end,
 
-	Def.Sprite{
-		Name="Art",
-		Texture=asset("face_" .. face),
-		InitCommand=function(self) self:Center():zoomto(SCREEN_WIDTH, SCREEN_HEIGHT) end,
-	},
+	LoadActor("./Foreground.lua", face),
 	arrow(arrows[1]),
 	arrow(arrows[2]),
 	labelActor,

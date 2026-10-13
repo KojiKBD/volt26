@@ -1,5 +1,43 @@
 # VOLT26 3D menu handoff
 
+## Removed road-date menu stop (2026-10-09)
+
+On `codex/remove-date-menu-stop`, the owner's requested removal of the date
+selection removes `Choice6` (Special Thanks) from `ScreenTitleMenu` and its sixth
+camera pose from `Prototype3D.lua`. Native selection now wraps through five
+choices, ending at Event Countdown. The date sprite remains decorative road
+artwork. Static choice/pose alignment and Lua 5.1 compilation passed; in-engine
+navigation review remains pending. No upstream synchronization was performed.
+
+## Local-time sky (2026-10-09)
+
+The temporary 03:00 preview from `codex/home-sky-preview-3am` was removed on
+`codex/restore-real-time-sky` at the owner's request. `TimeOfDaySky.lua` reads
+the machine's actual local `Hour()` and `Minute()` again.
+
+On `codex/home-time-of-day-sky`, `TimeOfDaySky.lua` replaces the solid red
+screen-space backdrop in `Prototype3D.lua`, behind the existing city perspective.
+Its three-color vertical gradient follows the machine's local `Hour()` and
+`Minute()`: midnight navy, pre-dawn purple, peach/pink sunrise, blue daylight,
+orange/violet sunset, and navy night. Palette anchors are at 00:00, 05:00,
+07:00, 10:00, 15:00, 18:00, 20:00, 22:00, and 24:00. Smooth interpolation
+keeps the colors and star visibility continuous, including across midnight.
+These are fixed local-clock times, not astronomical sunrise/sunset calculations.
+
+The clock is reread every 15 seconds while the home remains open. No persistent
+preference is needed. Stars fade in during the evening and disappear by 07:00;
+their positions are deterministic and do not consume gameplay randomness.
+Enhanced uses 72 small stars with opacity animation at up to 20 Hz; Performance
+uses 36 at up to approximately 6.7 Hz. Both update callbacks are removed on exit.
+The background stays in screen space behind the city rather than moving with the
+camera. Navigation, cinematic timing, and banner artwork retain their behavior.
+
+Verification: Lua 5.1 compilation and actor-contract simulation passed in both
+modes over every minute of a full day, including midnight continuity, gradient
+seams, color/opacity bounds, daytime star exclusion, manual clock changes, child
+references, and update cleanup. Visual rendering in ITGmania remains pending
+owner review. No upstream Simply Love synchronization was performed.
+
 ## Options road arrows (2026-09-15)
 
 `CreateRoadArrows()` in `Prototype3D.lua` mounts `Graphics/VOLT26/arrow3d.png`

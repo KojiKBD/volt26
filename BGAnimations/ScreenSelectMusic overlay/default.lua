@@ -251,10 +251,13 @@ local function modalAware(def)
 	return def
 end
 
--- The focused row and the scenery over the wheel (stars, jacket frame).
+-- The focused row, the scenery over the wheel (stars, jacket frame) and the
+-- focused song's grade among the stars.
 local details = modalAware(Def.ActorFrame{ Name="Details" })
 details[#details+1] = part("Focus.lua", { K=K, S=S })
 details[#details+1] = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/Scene.lua"), "Front")
+-- The focused song's grade among the stars (one plate per player, in turn).
+details[#details+1] = part("Grade.lua", { K=K, S=S })
 layout[#layout+1] = details
 -- The pack tile in the jacket frame, apart from the details so it can stand
 -- still while the pack step's jacket lands on it.

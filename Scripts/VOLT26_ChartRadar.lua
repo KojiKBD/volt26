@@ -1,7 +1,7 @@
 -- VOLT26 chart radar.
 --
--- Turns the engine's per-chart tech counts and NPS-per-measure data into six
--- normalized axes, so Song Select can draw an IIDX-style notes radar instead of
+-- Turns the engine's per-chart tech counts and NPS-per-measure data into five
+-- normalized axes, so Song Select can draw a star-shaped notes radar instead of
 -- a line of raw counters.
 --
 -- Behavior only: this module never creates actors and never reads GAMESTATE.
@@ -11,8 +11,11 @@ VOLT26 = VOLT26 or {}
 
 local ChartRadar = {}
 
--- Axis order is also the drawing order: axis 1 sits at the top vertex and the
--- rest run clockwise.
+-- Axis order is also the drawing order: axis 1 sits at the top point of the
+-- star and the rest run clockwise.  The order follows the owner's artwork:
+-- STREAM, XOVER, FOOTSWITCH, BRACKETS, SIDESWITCH.  JACK is not on the star;
+-- the engine still reports it and Layout.lua still collects it, but no axis
+-- reads it.
 --
 -- Every axis is a fraction, so nothing here depends on how long a chart is or
 -- what rate it is played at.  The tech axes are "how much of this chart is
@@ -27,8 +30,7 @@ local axes = {
 	{ Key="Stream",       Label="STREAM",     Short="ST", Category=nil,                              Cap=1.00, OfNotes=false },
 	{ Key="Crossovers",   Label="XOVER",      Short="XO", Category="TechCountsCategory_Crossovers",   Cap=0.10, OfNotes=true  },
 	{ Key="Footswitches", Label="FOOTSWITCH", Short="FS", Category="TechCountsCategory_Footswitches", Cap=0.10, OfNotes=true  },
-	{ Key="Jacks",        Label="JACK",       Short="JA", Category="TechCountsCategory_Jacks",        Cap=0.06, OfNotes=true  },
-	{ Key="Brackets",     Label="BRACKET",    Short="BR", Category="TechCountsCategory_Brackets",     Cap=0.06, OfNotes=true  },
+	{ Key="Brackets",     Label="BRACKETS",   Short="BR", Category="TechCountsCategory_Brackets",     Cap=0.06, OfNotes=true  },
 	{ Key="Sideswitches", Label="SIDESWITCH", Short="SW", Category="TechCountsCategory_Sideswitches", Cap=0.03, OfNotes=true  },
 }
 
@@ -65,7 +67,7 @@ function ChartRadar.GetAxes()
 	return axes
 end
 
--- GetAxisCount() -> how many axes the radar has (the polygon's side count).
+-- GetAxisCount() -> how many axes the radar has (the star's point count).
 function ChartRadar.GetAxisCount()
 	return #axes
 end
@@ -146,6 +148,35 @@ function ChartRadar.Build(source)
 		}
 	end
 	return built
+end
+
+-- StarRadii(built, innerRatio) -> tips, valleys
+--
+-- The radar is drawn as a star: one point per axis, and between every two
+-- points a valley that pulls back towards the centre.  Both come back as
+-- fractions of the full radius, so the caller only multiplies by its own size.
+--
+-- tips[i]    - built[i].Scaled, the reading of axis i
+-- valleys[i] - the valley between axis i and axis i+1 (the last one closes
+--              back to axis 1): innerRatio times the mean of its two
+--              neighbours.  A valley follows the points either side of it, so a
+--              chart at full on every axis draws exactly the full star, and a
+--              strong axis rises as a point instead of dragging its neighbours'
+--              valleys out with it.
+function ChartRadar.StarRadii(built, innerRatio)
+	built = built or {}
+	innerRatio = tonumber(innerRatio) or 0.4
+	local count = #axes
+	local tips, valleys = {}, {}
+	for i=1, count do
+		local entry = built[i]
+		tips[i] = entry and tonumber(entry.Scaled) or baseRadius
+	end
+	for i=1, count do
+		local nextTip = tips[i % count + 1]
+		valleys[i] = innerRatio * (tips[i] + nextTip) / 2
+	end
+	return tips, valleys
 end
 
 VOLT26.ChartRadar = ChartRadar

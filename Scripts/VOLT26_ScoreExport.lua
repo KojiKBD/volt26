@@ -223,6 +223,8 @@ function VOLT26.ScoreExport.WriteCurrent()
 					local indexOk, indexError = pcall(VOLT26.ScoreIndex.RecordSnapshot, player, snapshot)
 					if not indexOk then
 						Warn("VOLT26 score export: could not update the score index: " .. tostring(indexError))
+					elseif stage then
+						stage.score_index_recorded = true
 					end
 				else
 					summary.errors[#summary.errors + 1] = pathOrError
@@ -235,4 +237,31 @@ function VOLT26.ScoreExport.WriteCurrent()
 		VOLT26.Util.SystemMessage(THEME:GetString("VOLT26ScoreExport", "WriteFailed"):format(#summary.errors))
 	end
 	return summary
+end
+
+-- Keeps the song select's best-score index (VOLT26.ScoreIndex: best ITG and
+-- EX per chart, the grades the song wheel shows) up to date with the current
+-- results, without writing a score file.  The evaluation calls it when
+-- WriteCustomScores is off: that preference governs only the per-play JSON
+-- history, and the index used to be updated only as a side effect of it, so
+-- with the preference off the song select never learned a single EX score
+-- (and never showed five stars).  Each player's result is recorded once.
+function VOLT26.ScoreExport.RecordCurrentBest()
+	for player in ivalues(GAMESTATE:GetHumanPlayers()) do
+		local stage = VOLT26.Gameplay.GetPlayerStageState(player)
+		if not (stage and (stage.score_index_recorded or stage.score_export_path))
+		and VOLT26.ScoreExport.IsEligible(player) then
+			local buildOk, snapshot, buildError = pcall(VOLT26.ScoreExport.BuildSnapshot, player)
+			if not buildOk or not snapshot then
+				Warn("VOLT26 score index: could not build the result: " .. tostring(buildOk and buildError or snapshot))
+			else
+				local indexOk, indexError = pcall(VOLT26.ScoreIndex.RecordSnapshot, player, snapshot)
+				if not indexOk then
+					Warn("VOLT26 score index: could not update the score index: " .. tostring(indexError))
+				elseif stage then
+					stage.score_index_recorded = true
+				end
+			end
+		end
+	end
 end

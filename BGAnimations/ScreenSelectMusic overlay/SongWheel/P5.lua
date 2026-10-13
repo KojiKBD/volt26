@@ -389,19 +389,33 @@ end
 -- and the overlay and the wheel rows show them through ActorProxies
 -- (P.CutoutSlot).  The two find each other by message.
 --
--- Every slot is declared here once, by id, in design pixels.
+-- Every slot is declared here once, by id, in design pixels.  The pack and the
+-- player names take their size from VOLT26.Cutout.StyleDesign
+-- (Scripts/VOLT26_CutoutStyles.lua), where the startup warm-up reads it too,
+-- so the strings it pre-renders are the ones these slots ask for.
+local function shared(name, halign)
+	local d = VOLT26.Cutout.StyleDesign[name]
+	return { MaxW=d.MaxW, MaxH=d.MaxH, Base=d.Base, Tilt=d.Tilt, HAlign=halign, MaxChars=d.MaxChars, Opts=d.Opts }
+end
 P.CutoutSpecs = {
-	Card1Name = { MaxW=330, MaxH=54, Base=36, Tilt=-3, HAlign=0, MaxChars=16 },
-	Card2Name = { MaxW=330, MaxH=54, Base=36, Tilt=-3, HAlign=0, MaxChars=16 },
-	FooterP1  = { MaxW=320, MaxH=52, Base=36, Tilt=-3, HAlign=1, MaxChars=16 },
-	FooterP2  = { MaxW=320, MaxH=52, Base=36, Tilt=-3, HAlign=1, MaxChars=16 },
-	Pack      = { MaxW=340, MaxH=76, Base=44, Tilt=-4, HAlign=0.5, MaxChars=40 },
+	Card1Name = shared("SongCardName", 0),
+	Card2Name = shared("SongCardName", 0),
+	FooterP1  = shared("SongFooterName", 1),
+	FooterP2  = shared("SongFooterName", 1),
+	Pack      = shared("SongPack", 0.5),
+	-- The focused song's grade (Grade.lua): white with one player, in each
+	-- player's colour with two.
+	Grade     = shared("SongGrade", 0.5),
+	GradeP1   = shared("SongGradeP1", 0.5),
+	GradeP2   = shared("SongGradeP2", 0.5),
 	Length    = { MaxW=170, MaxH=62, Base=46, Tilt=-7, HAlign=1, MaxChars=8 },
 	BackLabel = { MaxW=440, MaxH=96, Base=50, Tilt=-2, HAlign=0, MaxChars=32 },
 }
 
 local function cutoutOpts(spec, s)
-	return { base = spec.Base * s, tiltDeg = spec.Tilt or -3 }
+	local opts = { base = spec.Base * s, tiltDeg = spec.Tilt or -3 }
+	if spec.Opts then for k, v in pairs(spec.Opts) do opts[k] = v end end
+	return opts
 end
 
 -- The width a string takes in a slot, in design pixels (the slot shrinks a

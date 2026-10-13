@@ -207,10 +207,14 @@ end
 
 -- The backing is drawn by stamping each black letter around a circle of radius
 -- `outline`, once around the letter and once around the drop-shadow offset.
--- Each stamp is one frame of the texture's render, so a string costs one
--- ActorFrameTexture pass per offset, once, and nothing afterwards.  Eight
--- directions left visibly serrated edges in the engine; sixteen keep the
+-- Eight directions left visibly serrated edges in the engine; sixteen keep the
 -- outline's deviation from a true circle under a tenth of its radius.
+--
+-- The letters are laid out once per pass and stamped at every offset of that
+-- pass through ActorProxies, so a string costs three ActorFrameTexture frames
+-- (centre backing, ring backing, letters) and nothing afterwards.  Rendering
+-- one offset per frame took 35 frames, over half a second at 60 Hz and twice
+-- that on a slow machine, which is how long a new name stayed invisible.
 local RING = 16
 
 local function backingOffsets(outline)
@@ -225,52 +229,91 @@ local function backingOffsets(outline)
 	return list
 end
 
-local slotCount = 0
-
--- params:
---   maxW, maxH   the space the lettering must fit, in theme units
---   halign       0 left, 0.5 centre, 1 right: which edge of the lettering sits
---                on the slot's x
---   valign       0 top, 0.5 centre, 1 bottom, likewise for y
---   maxChars     longest string drawn in cutout (longer strings fall back)
---   opts         overrides for Cutout.Defaults
---   fallbackFont font for strings the cutout faces cannot draw
---   x, y         optional position
---   onInit       optional function(slot) called from the slot's InitCommand
---                (a caller's own InitCommand would replace the slot's)
---   onReady      optional function(slot) called when a string has finished
---                rendering (or fallen back to plain text), e.g. to swap two
---                slots so a name never disappears while its successor renders
---   held         start held: the string is rendered but not shown until
---                "CutoutHold" releases it, so it can be prepared off-stage
---
--- Commands: "CutoutSet" with {text=...} draws a string (no-op when unchanged);
--- "CutoutHold" with {held=true|false} hides or shows the finished lettering.
-function Cutout.CreateSlot(params)
-	params = params or {}
-	slotCount = slotCount + 1
-	local textureName = "VOLT26Cutout" .. slotCount
-	local opts = merge(params.opts)
-	local maxW, maxH = params.maxW or 240, params.maxH or opts.base * 2
-	local halign, valign = params.halign or 0.5, params.valign or 0.5
-	local maxChars = params.maxChars or 16
-	local perFace = math.ceil(maxChars / 2)
-	local faces = VOLT26.CutoutMetrics and VOLT26.CutoutMetrics.faces or {}
-
-	-- Draw at the display's resolution, not the theme's, so the sprite maps
-	-- 1:1 onto screen pixels.
-	local scale = 1
-	if DISPLAY and DISPLAY.GetDisplayHeight then
-		scale = math.min(3, math.max(1, DISPLAY:GetDisplayHeight() / SCREEN_HEIGHT))
+-- The three passes of a string: every stamp in a backing pass is black, so
+-- the order of the stamps within a pass does not matter.
+local function backingPasses(outline)
+	local centres, ring = {}, {}
+	for _, offset in ipairs(backingOffsets(outline)) do
+		if offset[3] then centres[#centres+1] = offset else ring[#ring+1] = offset end
 	end
-	local margin = 2
-	local texW = math.ceil(maxW * scale) + margin * 2
-	local texH = math.ceil(maxH * scale) + margin * 2
-
-	local state = {
-		text = nil, layout = nil, passes = nil, pass = 0, held = params.held == true,
-		stamps = {}, -- stamps[face][k] = {frame, quad, text}
+	return {
+		{ style = {0, 0, true},  offsets = centres },
+		{ style = {0, 0, false}, offsets = ring },
+		{ style = nil,           offsets = {{0, 0}} },
 	}
+end
+
+-- The passes that draw `layout` (for the texture cache).
+function Cutout.Passes(layout)
+	return backingPasses(layout.outline)
+end
+
+-- Enough proxies for the largest pass (the ring around both centres).
+local PROXIES = 2 * RING
+
+-- Pixels of empty border around the lettering in a texture.
+Cutout.Margin = 2
+
+-- Display pixels per theme unit.  Lettering is drawn at the display's
+-- resolution, not the theme's, so its sprite maps 1:1 onto screen pixels.
+function Cutout.DisplayScale()
+	if DISPLAY and DISPLAY.GetDisplayHeight then
+		return math.min(3, math.max(1, DISPLAY:GetDisplayHeight() / SCREEN_HEIGHT))
+	end
+	return 1
+end
+
+-- The zoom from layout units to texture pixels for a layout shrunk (never
+-- grown) to fit maxW x maxH theme units, drawn at `scale` pixels per unit.
+function Cutout.FitZoom(layout, maxW, maxH, scale)
+	local b = layout.bounds
+	return math.min(1, maxW / (b[3] - b[1]), maxH / (b[4] - b[2])) * (scale or 1)
+end
+
+-- Cutout.Defaults merged with a slot's overrides.
+Cutout.MergeOptions = merge
+
+-- A string that identifies a set of merged options, for the texture cache's
+-- keys.  Numbers are rounded so the same size worked out in two places (a
+-- screen and the warm-up) still matches.
+local SIGNATURE_KEYS = {
+	"base", "chaos", "boxChance", "upperChance", "sizeMin", "sizeMax",
+	"lowerBoost", "outline", "tiltDeg", "fg", "bk",
+}
+
+local function signaturePart(value)
+	if type(value) == "number" then return ("%.3f"):format(value) end
+	if type(value) == "table" then
+		return ("%.3f,%.3f,%.3f,%.3f"):format(value[1] or 0, value[2] or 0, value[3] or 0, value[4] or 1)
+	end
+	return tostring(value)
+end
+
+function Cutout.Signature(o)
+	local parts = {}
+	for i, key in ipairs(SIGNATURE_KEYS) do parts[i] = signaturePart(o[key]) end
+	return table.concat(parts, ";")
+end
+
+-- The stamper: the actors that draw one layout, pass by pass, into whatever
+-- ActorFrameTexture draws them.  Shared by the slots (each has its own) and
+-- the texture cache (one for the whole session, Scripts/VOLT26_CutoutCache.lua).
+--
+-- One BitmapText (with its box Quad) per face per letter: a BitmapText's face
+-- is fixed when it is built, and no face can appear more than every other
+-- letter, so `maxChars` letters need ceil(maxChars / 2) stamps of each face.
+-- The block itself is never drawn directly: the proxies stamp it at every
+-- offset of a pass.
+--
+--   stamper.Actor()                  the Def to place (once), a tilt frame
+--   stamper.Frame(layout, x, y, zoom) puts the block's centre at (x, y) in
+--                                    texture pixels, `zoom` pixels per unit
+--   stamper.Pass(layout, pass)       sets the stamps and proxies for a pass
+--                                    (one of Cutout.Passes(layout))
+function Cutout.NewStamper(maxChars)
+	local faces = VOLT26.CutoutMetrics and VOLT26.CutoutMetrics.faces or {}
+	local perFace = math.ceil(maxChars / 2)
+	local S = { stamps = {}, proxies = {}, capacity = maxChars }
 
 	local function place(layout, offset)
 		local o = layout.options
@@ -278,11 +321,11 @@ function Cutout.CreateSlot(params)
 		local used = {}
 		for f = 1, #faces do used[f] = 0 end
 		for f = 1, #faces do
-			for _, stamp in ipairs(state.stamps[f]) do stamp.frame:visible(false) end
+			for _, stamp in ipairs(S.stamps[f]) do stamp.frame:visible(false) end
 		end
 		for i, g in ipairs(layout.glyphs) do
 			used[g.face] = used[g.face] + 1
-			local stamp = state.stamps[g.face][used[g.face]]
+			local stamp = S.stamps[g.face][used[g.face]]
 			if stamp then
 				local dx, dy = 0, 0
 				if offset then dx, dy = offset[1], offset[2] end
@@ -309,28 +352,182 @@ function Cutout.CreateSlot(params)
 				end
 			end
 		end
-		state.block:SortByDrawOrder()
+		S.block:SortByDrawOrder()
 	end
+
+	function S.Frame(layout, x, y, zoom)
+		S.tilt:xy(x, y):zoom(zoom):rotationz(layout.options.tiltDeg)
+		S.block:xy(-layout.width / 2, -layout.height / 2)
+	end
+
+	function S.Pass(layout, pass)
+		place(layout, pass.style)
+		for i, proxy in ipairs(S.proxies) do
+			local offset = pass.offsets[i]
+			proxy:visible(offset ~= nil)
+			if offset then proxy:xy(offset[1], offset[2]) end
+		end
+	end
+
+	function S.Actor()
+		local block = Def.ActorFrame{
+			Name="Block",
+			InitCommand=function(self) S.block = self; self:visible(false) end,
+		}
+		for f, face in ipairs(faces) do
+			for k = 1, perFace do
+				block[#block+1] = Def.ActorFrame{
+					InitCommand=function(self)
+						S.stamps[f] = S.stamps[f] or {}
+						S.stamps[f][k] = {
+							frame = self,
+							quad = self:GetChild("Box"),
+							text = self:GetChild("Letter"),
+						}
+						self:visible(false)
+					end,
+					Def.Quad{ Name="Box" },
+					LoadFont(face.font)..{
+						Name="Letter",
+						-- Bottom alignment puts the baseline of a single line at y=0.
+						InitCommand=function(self) self:halign(0.5):valign(1):settext("") end,
+					},
+				}
+			end
+		end
+		local tilt = Def.ActorFrame{
+			InitCommand=function(self) S.tilt = self end,
+			block,
+		}
+		for i = 1, PROXIES do
+			tilt[#tilt+1] = Def.ActorProxy{
+				InitCommand=function(self)
+					S.proxies[i] = self
+					self:SetTarget(self:GetParent():GetChild("Block"))
+					self:visible(false)
+				end,
+			}
+		end
+		return tilt
+	end
+
+	return S
+end
+
+local slotCount = 0
+
+-- params:
+--   maxW, maxH   the space the lettering must fit, in theme units
+--   halign       0 left, 0.5 centre, 1 right: which edge of the lettering sits
+--                on the slot's x
+--   valign       0 top, 0.5 centre, 1 bottom, likewise for y
+--   maxChars     longest string drawn in cutout (longer strings fall back)
+--   opts         overrides for Cutout.Defaults
+--   fallbackFont font for strings the cutout faces cannot draw
+--   x, y         optional position
+--   onInit       optional function(slot) called from the slot's InitCommand
+--                (a caller's own InitCommand would replace the slot's)
+--   onReady      optional function(slot) called when a string has finished
+--                rendering (or fallen back to plain text), e.g. to swap two
+--                slots so a name never disappears while its successor renders
+--   held         start held: the string is rendered but not shown until
+--                "CutoutHold" releases it, so it can be prepared off-stage
+--
+-- Commands: "CutoutSet" with {text=...} draws a string (no-op when unchanged);
+-- "CutoutHold" with {held=true|false} hides or shows the finished lettering.
+--
+-- A string is taken from the shared texture cache (VOLT26.Cutout.Cache,
+-- Scripts/VOLT26_CutoutCache.lua) when it can hold it: a string already
+-- there, rendered earlier or by the startup warm-up, shows at once, and a new
+-- one is rendered there in three frames.  The slot renders a string itself
+-- only when the cache cannot take it (no cache, string too large, every page
+-- in use).
+function Cutout.CreateSlot(params)
+	params = params or {}
+	slotCount = slotCount + 1
+	local textureName = "VOLT26Cutout" .. slotCount
+	local opts = merge(params.opts)
+	local signature = Cutout.Signature(opts)
+	local maxW, maxH = params.maxW or 240, params.maxH or opts.base * 2
+	local halign, valign = params.halign or 0.5, params.valign or 0.5
+	local maxChars = params.maxChars or 16
+	local stamper = Cutout.NewStamper(maxChars)
+
+	local scale = Cutout.DisplayScale()
+	local margin = Cutout.Margin
+	local texW = math.ceil(maxW * scale) + margin * 2
+	local texH = math.ceil(maxH * scale) + margin * 2
+
+	local state = {
+		text = nil, layout = nil, passes = nil, pass = 0, held = params.held == true,
+		-- The cache entry shown (or awaited, while `waiting`).
+		entry = nil, waiting = false,
+	}
 
 	local function frameBlock(layout)
 		local b = layout.bounds
-		local fit = math.min(1, maxW / (b[3] - b[1]), maxH / (b[4] - b[2]))
-		local zoom = fit * scale
+		local zoom = Cutout.FitZoom(layout, maxW, maxH, scale)
 		local x = (margin - b[1] * zoom) * (1 - halign) + (texW - margin - b[3] * zoom) * halign
 		if halign == 0.5 then x = texW / 2 - (b[1] + b[3]) / 2 * zoom end
 		local y = (margin - b[2] * zoom) * (1 - valign) + (texH - margin - b[4] * zoom) * valign
 		if valign == 0.5 then y = texH / 2 - (b[2] + b[4]) / 2 * zoom end
-		state.tilt:xy(x, y):zoom(zoom):rotationz(layout.options.tiltDeg)
-		state.block:xy(-layout.width / 2, -layout.height / 2)
+		stamper.Frame(layout, x, y, zoom)
 	end
 
 	local function showPlain(text)
 		state.sprite:visible(false)
+		state.cached:visible(false)
 		state.aft:visible(false)
 		state.passes = nil
 		state.layout = nil
+		state.entry, state.waiting = nil, false
 		state.plain:visible(not state.held):settext(text or "")
 		if params.onReady then params.onReady(state.self) end
+	end
+
+	-- Shows the cache entry's region of its page: the region holds the
+	-- lettering with the same margin the slot's own texture would, so it is
+	-- aligned on the slot the same way.
+	local function showEntry(slot)
+		local e = state.entry
+		state.waiting = false
+		local W, H = e.pageW, e.pageH
+		state.cached:SetTexture(e.texture)
+			:cropleft(e.x / W):cropright(1 - (e.x + e.w) / W)
+			:croptop(e.y / H):cropbottom(1 - (e.y + e.h) / H)
+			:xy(-(e.x + halign * e.w) / scale, -(e.y + valign * e.h) / scale)
+			:visible(not state.held)
+		if params.onReady then params.onReady(slot) end
+	end
+
+	local function setText(slot, text)
+		state.text = text
+		state.passes = nil
+		state.entry, state.waiting = nil, false
+		state.cached:visible(false)
+		local chars = select(2, text:gsub("[^\128-\191]", ""))
+		local layout = chars <= maxChars and Cutout.Layout(text, opts) or nil
+		if not layout then
+			showPlain(text)
+			return
+		end
+		state.plain:visible(false)
+		state.sprite:visible(false)
+		state.layout = layout
+
+		local cache = Cutout.Cache
+		local entry = cache and cache.Acquire
+			and cache.Acquire(text, signature, layout, Cutout.FitZoom(layout, maxW, maxH, scale))
+		if entry then
+			state.aft:visible(false)
+			state.entry = entry
+			if entry.ready then showEntry(slot) else state.waiting = true end
+			return
+		end
+
+		frameBlock(layout)
+		state.passes = backingPasses(layout.outline)
+		state.pass = 0
 	end
 
 	-- A pass only lands in the texture if the slot is actually drawn, and a
@@ -348,6 +545,19 @@ function Cutout.CreateSlot(params)
 	end
 
 	local function update(slot)
+		local e = state.entry
+		if e then
+			if e.dead then
+				-- The cache dropped it (the display was reset): ask again.
+				setText(slot, state.text)
+				return
+			end
+			-- Marks the entry in use, so the cache does not reclaim it.
+			Cutout.Cache.Touch(e)
+			if state.waiting and e.ready then showEntry(slot) end
+			return
+		end
+
 		if not state.passes or not drawnOpaque(slot) then return end
 		state.pass = state.pass + 1
 		local pass = state.passes[state.pass]
@@ -361,35 +571,8 @@ function Cutout.CreateSlot(params)
 		-- The first pass starts from an empty texture; later passes add to it.
 		state.aft:EnablePreserveTexture(state.pass > 1)
 		state.clear:visible(state.pass == 1)
-		place(state.layout, pass.offset)
+		stamper.Pass(state.layout, pass)
 		state.aft:visible(true)
-	end
-
-	-- One BitmapText per face per stamp: a BitmapText's face is fixed when it is
-	-- built, and no face can appear more than every other letter.
-	local block = Def.ActorFrame{
-		InitCommand=function(self) state.block = self end,
-	}
-	for f, face in ipairs(faces) do
-		for k = 1, perFace do
-			block[#block+1] = Def.ActorFrame{
-				InitCommand=function(self)
-					state.stamps[f] = state.stamps[f] or {}
-					state.stamps[f][k] = {
-						frame = self,
-						quad = self:GetChild("Box"),
-						text = self:GetChild("Letter"),
-					}
-					self:visible(false)
-				end,
-				Def.Quad{ Name="Box" },
-				LoadFont(face.font)..{
-					Name="Letter",
-					-- Bottom alignment puts the baseline of a single line at y=0.
-					InitCommand=function(self) self:halign(0.5):valign(1):settext("") end,
-				},
-			}
-		end
 	end
 
 	return Def.ActorFrame{
@@ -401,7 +584,9 @@ function Cutout.CreateSlot(params)
 		end,
 		CutoutHoldCommand=function(self, p)
 			state.held = p and p.held == true
-			if state.layout and not state.passes then
+			if state.entry then
+				if not state.waiting then state.cached:visible(not state.held) end
+			elseif state.layout and not state.passes then
 				state.sprite:visible(not state.held)
 			elseif not state.layout and state.text then
 				state.plain:visible(not state.held)
@@ -411,26 +596,10 @@ function Cutout.CreateSlot(params)
 			local text = p and p.text or ""
 			if text == state.text then
 				-- Already drawn (or drawing): a finished slot still reports ready.
-				if not state.passes and params.onReady then params.onReady(self) end
+				if not state.passes and not state.waiting and params.onReady then params.onReady(self) end
 				return
 			end
-			state.text = text
-			local chars = select(2, text:gsub("[^\128-\191]", ""))
-			local layout = chars <= maxChars and Cutout.Layout(text, opts) or nil
-			if not layout then
-				showPlain(text)
-				return
-			end
-			state.plain:visible(false)
-			state.layout = layout
-			frameBlock(layout)
-			state.passes = {}
-			for _, offset in ipairs(backingOffsets(layout.outline)) do
-				state.passes[#state.passes+1] = {offset = offset}
-			end
-			state.passes[#state.passes+1] = {offset = nil}
-			state.pass = 0
-			state.sprite:visible(false)
+			setText(self, text)
 		end,
 
 		Def.ActorFrameTexture{
@@ -456,16 +625,20 @@ function Cutout.CreateSlot(params)
 						:diffuse(0, 0, 0, 0.001):blend("BlendMode_CopySrc"):visible(false)
 				end,
 			},
-			Def.ActorFrame{
-				InitCommand=function(self) state.tilt = self end,
-				block,
-			},
+			stamper.Actor(),
 		},
 		Def.Sprite{
 			InitCommand=function(self)
 				state.sprite = self
 				self:SetTexture(state.aft:GetTexture())
 				self:align(halign, valign):zoom(1 / scale):visible(false)
+			end,
+		},
+		-- A string from the texture cache: a region of one of its pages.
+		Def.Sprite{
+			InitCommand=function(self)
+				state.cached = self
+				self:align(0, 0):zoom(1 / scale):visible(false)
 			end,
 		},
 		LoadFont(params.fallbackFont or "Common Normal")..{

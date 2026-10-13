@@ -81,8 +81,12 @@ return Def.ActorFrame{
 			-- after it and the badge punches up.
 			self:stoptweening():x(ax - 46):zoom(1.05)
 				:decelerate(0.1):x(ax + 6):zoom(1):decelerate(0.06):x(ax)
-			self:GetChild("FocusFront"):stoptweening():addx(-34):diffusealpha(0.4)
-				:sleep(0.04):decelerate(0.1):addx(34):diffusealpha(1)
+			-- Absolute positions: the wheel can change songs faster than this
+			-- plays, and relative moves (addx) cut short by stoptweening would
+			-- leave the flags a little further left every time.
+			local frontX = P.Art.Pieces.FocusFront.X - ax
+			self:GetChild("FocusFront"):stoptweening():x(frontX - 34):diffusealpha(0.4)
+				:sleep(0.04):decelerate(0.1):x(frontX):diffusealpha(1)
 			local badge = self:GetChild("Badge")
 			badge:stoptweening():zoom(BADGE.Zoom * 1.45):rotationz(BADGE.Rot + 18)
 				:decelerate(0.16):zoom(BADGE.Zoom):rotationz(BADGE.Rot)

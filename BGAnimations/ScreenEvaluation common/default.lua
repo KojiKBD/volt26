@@ -5,7 +5,11 @@ local callbackController = VOLT26.EvaluationInput.NewCallbackController()
 local inputHandler, diagnosticInputHandler, eventOverlayInputHandler, shortcutInputHandler, screenshotInputHandler
 
 if ThemePrefs.Get("WriteCustomScores") then
+	-- Writes the score files and updates the song select's best-score index.
 	VOLT26.ScoreExport.WriteCurrent()
+else
+	-- No score files, but the song select still needs the best EX and grade.
+	VOLT26.ScoreExport.RecordCurrentBest()
 end
 
 local t = Def.ActorFrame{Name="ScreenEval Common"}

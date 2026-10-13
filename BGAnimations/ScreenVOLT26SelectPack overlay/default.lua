@@ -160,17 +160,22 @@ end
 -- the name on screen stays until its successor has finished rendering.
 local names = { slots = {}, active = 1, shown = nil, wanted = nil, pending = nil }
 
+-- The name's size lives in VOLT26.Cutout.StyleDesign.PackName
+-- (Scripts/VOLT26_CutoutStyles.lua), shared with the startup warm-up that
+-- pre-renders the names of the packs around the one the carousel opens on.
+-- Pack names run long ("Anime Stamina Sessions for the Energetically Slow" is
+-- 49 characters).  Every character of headroom costs stamp actors in both
+-- slots, so the limit (64) is generous but finite; longer names fall back to
+-- plain text.
+local nameStyle = VOLT26.Cutout.Style("PackName")
+
 local function nameSlot(index)
 	return VOLT26.Cutout.CreateSlot{
 		-- The slots stand in theme units (NameLayer undoes the design scale),
 		-- so their texture matches the screen's pixels.
-		maxW = 1600 * K.Scale, maxH = 130 * K.Scale, halign = 0.5, valign = 0.5,
-		-- Pack names run long ("Anime Stamina Sessions for the Energetically
-		-- Slow" is 49 characters).  Every character of headroom costs stamp
-		-- actors in both slots, so the limit is generous but finite; longer
-		-- names fall back to plain text.
-		maxChars = 64, held = true,
-		opts = { base = 70 * K.Scale, tiltDeg = -2 },
+		maxW = nameStyle.maxW, maxH = nameStyle.maxH, halign = 0.5, valign = 0.5,
+		maxChars = nameStyle.maxChars, held = true,
+		opts = nameStyle.opts,
 		fallbackZoom = VOLT26.Type.DisplayZoom(56 * K.Scale),
 		onInit = function(slot) names.slots[index] = slot end,
 		onReady = function(slot)
