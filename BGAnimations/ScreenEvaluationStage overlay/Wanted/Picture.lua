@@ -1,15 +1,12 @@
 -- The song's background in a shape of the WANTED page, under a colour the
--- artwork lays over it.  Used twice by the background layer:
---
---   * the frame's spiky window, the picture turned as in the artwork, under a
---     #f11600 fill in hard light at 70 % opacity.  Per channel that is a
---     straight line in the picture's value d (hard light: screen for a
---     source above one half, multiply below):
---         red   0.3 d + 0.7 (0.890 + 0.110 d) = 0.623 + 0.377 d
---         green 0.3 d + 0.7 (0.173 d)         =         0.421 d
---         blue  0.3 d + 0.7 (0)               =         0.300 d
---   * the top band, the picture unturned, under the artwork's dark red:
---     measured on the owner's export as 0.16 d + (104, 9, 3) / 255.
+-- artwork lays over it.  The background layer uses it for the frame's spiky
+-- window: the picture turned as in the artwork, under a #f11600 fill in hard
+-- light at 70 % opacity.  Per channel that is a straight line in the
+-- picture's value d (hard light: screen for a source above one half,
+-- multiply below):
+--     red   0.3 d + 0.7 (0.890 + 0.110 d) = 0.623 + 0.377 d
+--     green 0.3 d + 0.7 (0.173 d)         =         0.421 d
+--     blue  0.3 d + 0.7 (0)               =         0.300 d
 --
 -- So the picture is drawn with the vertex colour `multiply` and the constant
 -- `add` is added over it.  Without a picture the shape shows `add` alone, as
