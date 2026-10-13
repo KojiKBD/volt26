@@ -54,6 +54,9 @@ Cutout.StyleDesign = {
 	-- ScreenSystemLayer: the credit line (theme units already).
 	CreditPlayer = { Scale="Theme", MaxW=260, MaxH=44, Base=22, MaxChars=16 },
 	CreditCentre = { Scale="Theme", MaxW=300, MaxH=50, Base=26, MaxChars=16 },
+	-- ScreenSystemLayer: the menu timer's number, top right (ScreenSystemLayer
+	-- timer.lua).  Digits only, up to three.
+	MenuTimer    = { Scale="Theme", MaxW=90, MaxH=40, Base=26, Tilt=-4, MaxChars=3 },
 }
 
 -- The letters of the lettered grades, drawn in cutout lettering (styles

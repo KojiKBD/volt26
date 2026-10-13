@@ -206,6 +206,9 @@ t[#t+1] = Def.ActorFrame{
 	}),
 }
 
+-- The menu timer's number, in cutout lettering.
+t[#t+1] = LoadActor(THEME:GetPathB("ScreenSystemLayer", "timer"))
+
 -- "Event Mode" or CreditText at lower-center of screen
 t[#t+1] = LoadFont("Common Footer")..{
 	InitCommand=function(self) self:xy(_screen.cx, _screen.h-16):zoom(0.5):horizalign(center) end,
