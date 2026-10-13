@@ -4,6 +4,10 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ## Unreleased
 
+### Fixed
+
+- Song Select no longer freezes on entry, the song wheel animates again, and cutout lettering (profile names, pack names) no longer shows letters of the previous string. The 0.2.0 performance work hibernated hidden actors (`hibernate(1e9)`: Quick Mods, the unused wheel row kinds, cutout stampers, the cutout cache stage, still marquees), but ITGmania counts hibernation in `GetTweenTimeLeft()` for the actor and every frame above it, so screens locked their input at BeginScreen, tweens waiting on them never ended and cutout passes ran on timeouts. All of it is removed; still marquees now stop redrawing by turning their texture invisible instead.
+
 ## 0.2.0 - 2026-10-13
 
 ### Added
