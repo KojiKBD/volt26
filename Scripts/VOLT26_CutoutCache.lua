@@ -34,6 +34,8 @@ local Cache = Cutout.Cache
 
 local PAGE_W, PAGE_H = 2048, 1024   -- 8 MB of video memory per page
 local SHELF_STEP = 8                -- shelf heights are rounded up to this
+local GAP = 0.3                     -- empty border around a string, as a share
+                                    -- of its height (see request())
 local STALE = 0.5                   -- seconds untouched before an entry may go
 local CAPACITY = 64                 -- longest string (letters) the stamper draws
 local DISPLAY_CHECK = 1             -- seconds between display-reset checks
@@ -165,11 +167,19 @@ local function request(text, signature, layout, zoom, urgent, mayEvict)
 	local b, m = layout.bounds, Cutout.Margin
 	local w = math.ceil((b[3] - b[1]) * zoom) + 2 * m
 	local h = math.ceil((b[4] - b[2]) * zoom) + 2 * m
-	local page, x, y = allocate(w, h, mayEvict)
+	-- Each string keeps an empty border around its region (GAP), cleared with
+	-- it: the letters' ink can reach past the bounds the layout computes from
+	-- the font metrics (tall caps, overhangs in the display faces), and with
+	-- strings packed edge to edge a neighbour's overhang landed inside this
+	-- region -- the white fragments seen above and below names on the cab.
+	local gy = math.ceil(h * GAP) + 2
+	local gx = math.max(0, math.min(gy, math.floor((PAGE_W - w) / 2)))
+	local page, x, y = allocate(w + 2 * gx, h + 2 * gy, mayEvict)
 	if not page then return nil end
 	e = {
 		key = key, page = page, texture = page.texture,
-		x = x, y = y, w = w, h = h, pageW = PAGE_W, pageH = PAGE_H,
+		x = x + gx, y = y + gy, w = w, h = h, pageW = PAGE_W, pageH = PAGE_H,
+		box = { x, y, w + 2 * gx, h + 2 * gy },
 		layout = layout, zoom = zoom, passes = Cutout.Passes(layout), pass = 0,
 		used = now(), ready = false, dead = false,
 	}
@@ -482,7 +492,7 @@ local function update(host)
 	page.aft:EnablePreserveTexture(not (first and page.fresh))
 	if first then page.fresh = false end
 	C.clear:visible(first)
-	if first then C.clear:xy(job.x, job.y):zoomto(job.w, job.h) end
+	if first then C.clear:xy(job.box[1], job.box[2]):zoomto(job.box[3], job.box[4]) end
 	local b, m, zoom = job.layout.bounds, Cutout.Margin, job.zoom
 	C.stamper.Frame(job.layout, job.x + m - b[1] * zoom, job.y + m - b[2] * zoom, zoom)
 	C.stamper.Pass(job.layout, job.passes[job.pass])
