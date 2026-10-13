@@ -313,12 +313,12 @@ function Cache.WarmStartup()
 		if ok then add(message, "CreditPlayer") end
 	end
 
-	-- The lettered grades of the song wheel (overlay/SongWheel/Grade.lua),
-	-- drawn once and kept for the whole session.
+	-- The lettered grades of the song wheel (overlay/SongWheel/Grade.lua) and
+	-- of the evaluation's WANTED page, drawn once and kept for the session.
 	local letters = {}
 	for _, letter in pairs(Cutout.GradeLetters or {}) do letters[#letters+1] = letter end
 	table.sort(letters)
-	for _, style in ipairs({ "SongGrade", "SongGradeP1", "SongGradeP2" }) do
+	for _, style in ipairs({ "SongGrade", "SongGradeP1", "SongGradeP2", "EvalGrade" }) do
 		for _, letter in ipairs(letters) do
 			items[#items+1] = { text = letter, style = style, keep = true }
 		end
@@ -342,6 +342,7 @@ function Cache.WarmStartup()
 		add(name, "ProfileName")
 		add(name, "SongCardName")
 		add(name, "SongFooterName")
+		add(name, "EvalName")
 	end
 	for _, short in ipairs({ "P1", "P2" }) do
 		add(short, "SongCardName")

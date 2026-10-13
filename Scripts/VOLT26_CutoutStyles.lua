@@ -38,6 +38,12 @@ Cutout.StyleDesign = {
 		Opts={ upperChance=1, fg=color("#fe0003") } },
 	SongGradeP2  = { Scale="Fit", MaxW=124, MaxH=92, Base=70, Tilt=-6, MaxChars=2,
 		Opts={ upperChance=1, fg=color("#00b1ff") } },
+	-- ScreenEvaluationStage, the WANTED page (overlay/Wanted/Side.lua): the
+	-- player's name on the top-left plate and the letter grade beside the
+	-- judgment ladder.  Player 2's are the same, mirrored in place.
+	EvalName     = { Scale="Fit", MaxW=360, MaxH=118, Base=62, Tilt=3, MaxChars=16 },
+	EvalGrade    = { Scale="Fit", MaxW=250, MaxH=170, Base=120, Tilt=-10, MaxChars=2,
+		Opts={ upperChance=1 } },
 	-- ScreenSystemLayer: the credit line (theme units already).
 	CreditPlayer = { Scale="Theme", MaxW=260, MaxH=44, Base=22, MaxChars=16 },
 	CreditCentre = { Scale="Theme", MaxW=300, MaxH=50, Base=26, MaxChars=16 },
