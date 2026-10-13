@@ -40,8 +40,14 @@ local function sectionName(params)
 	return params.Label or ""
 end
 
+-- Every wheel item builds one of these per kind, and shows one.  The hidden
+-- kinds hibernate: a hidden actor is still updated every frame, and with 17
+-- items that is some 70 full rows nobody can see.  Commands (SetCommand)
+-- still reach a hibernating actor.
+local ASLEEP = 1e9
+
 return Def.ActorFrame{
-	InitCommand=function(self) self:visible(false) end,
+	InitCommand=function(self) self:visible(false):hibernate(ASLEEP) end,
 	SetCommand=function(self, params)
 		local isSong = params.Song ~= nil
 		local isCourse = params.Course ~= nil
@@ -51,7 +57,11 @@ return Def.ActorFrame{
 			or (kind == "Custom" and isCustom)
 			or (kind == "Section" and not isSong and not isCourse and not isCustom)
 		self:visible(matches and true or false)
-		if not matches then return end
+		if not matches then
+			self:hibernate(ASLEEP)
+			return
+		end
+		self:hibernate(0)
 
 		local artist, bpm, title, meter = "", "", "", nil
 		if isSong then

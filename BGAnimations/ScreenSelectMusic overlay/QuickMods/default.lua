@@ -44,13 +44,22 @@ local shared = {}
 local input = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/QuickMods/InputHandler.lua"),
 	{State = state, Rows = rows})
 
+-- While the menu is closed the whole overlay hibernates.  A hidden actor is
+-- still updated every frame, and this one holds a sample of every note skin
+-- installed (NoteSkinSources.lua: several hundred actors) and two previews
+-- whose update functions lay out their notes each frame; together they cost
+-- Song Select a large share of its frame rate while nobody could see them.
+-- A hibernating actor skips its own update and its children's.
+local ASLEEP = 1e9
+
 local af = Def.ActorFrame{
 	Name = "QuickMods",
 	InitCommand = function(self)
-		self:draworder(6):visible(false)
+		self:draworder(6):visible(false):hibernate(ASLEEP)
 	end,
 	ShowQuickModsCommand = function(self)
 		if self:GetVisible() then return end
+		self:hibernate(0)
 		-- The cursor starts at the top every time, which is what makes Start's
 		-- walk through the settings a walk rather than a resumption.
 		for _, side in pairs(state) do
@@ -67,7 +76,7 @@ local af = Def.ActorFrame{
 	end,
 	HideQuickModsCommand = function(self)
 		if not self:GetVisible() then return end
-		self:finishtweening():visible(false):diffusealpha(1)
+		self:finishtweening():visible(false):diffusealpha(1):hibernate(ASLEEP)
 		local screen = SCREENMAN:GetTopScreen()
 		if screen then screen:RemoveInputCallback(input) end
 	end,
