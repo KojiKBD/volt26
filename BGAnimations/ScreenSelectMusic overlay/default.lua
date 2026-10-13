@@ -279,7 +279,9 @@ right[#right+1] = part("Difficulty.lua", { K=K, S=S })
 -- The notes radar on the red between the wheel and the cards, larger;
 -- the pack tag (PackTag.lua) is no longer shown.  Its labels reach
 -- 0.93 R up and 1.12 R sideways (RadarArt Reach).
-right[#right+1] = part("Radar.lua", { K=K, S=S, X=1098, Y=278, R=170 })
+-- With one player it sits in the second player's empty card place, lower
+-- right (the owner's mockup).
+right[#right+1] = part("Radar.lua", { K=K, S=S, X=1098, Y=278, R=170, SoloX=1687, SoloY=805 })
 right[#right+1] = part("Cards.lua", { K=K, S=S })
 right[#right+1] = part("Jacket.lua", { K=K, S=S, Part="Length" })
 right[#right+1] = part("Footer.lua", { K=K, S=S })

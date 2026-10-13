@@ -4,12 +4,27 @@
 -- shapes read where they differ.
 --
 -- params: K, S, X, Y (centre, design pixels), R (radius: the mean distance of
--- the dark star's points).
+-- the dark star's points), SoloX, SoloY (the centre with one player).
 local p = ...
 local K, S = p.K, p.S
 local P = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/P5.lua"))
 
 local RADAR_X, RADAR_Y, RADAR_R = p.X, p.Y, p.R
+-- With one player the star moves to where the second player's card would be
+-- (p.SoloX, p.SoloY); a second player joining puts it back.
+local SOLO_X, SOLO_Y = p.SoloX or RADAR_X, p.SoloY or RADAR_Y
+
+local function place(self, animate)
+	local solo = #GAMESTATE:GetHumanPlayers() < 2
+	local x, y = solo and SOLO_X or RADAR_X, solo and SOLO_Y or RADAR_Y
+	if self.placedSolo == solo then return end
+	self.placedSolo = solo
+	if animate then
+		self:finishtweening():decelerate(0.2):xy(x, y)
+	else
+		self:xy(x, y)
+	end
+end
 local RADAR_P2_ALPHA = 0.45
 local RADAR_EDGE = 3
 local radarArt = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/VOLT26/RadarArt.lua"))
@@ -90,7 +105,9 @@ end
 
 local radar = Def.ActorFrame{
 	Name = "Radar",
-	InitCommand = function(self) self:xy(RADAR_X, RADAR_Y) end,
+	InitCommand = function(self) place(self, false) end,
+	PlayerJoinedMessageCommand = function(self) place(self, true) end,
+	PlayerUnjoinedMessageCommand = function(self) place(self, true) end,
 	-- Arriving: the whole star spins in from nothing.
 	OnCommand = function(self)
 		self:stoptweening():zoom(0):rotationz(-150):sleep(0.18)
