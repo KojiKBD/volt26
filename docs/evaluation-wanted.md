@@ -8,8 +8,11 @@ artwork.
 
 | Part | Source |
 | --- | --- |
-| Ground, star pattern, curves, black frame, "WANTED" | `Graphics/VOLT26/Wanted/backdrop.png`, drawn by `BGAnimations/ScreenEvaluationStage background.lua`. Shared by both players. |
-| Song background in the frame's spiky window | `overlay/Wanted/Window.lua`, in the background layer. A textured `ActorMultiVertex` on the window polygon, turned -10.5° and covering the window at the picture's own aspect. The artwork's red overlay (#f11600, hard light, 70 %) is reproduced exactly: picture × (0.377, 0.421, 0.300) plus (0.623, 0, 0) added. Movie backgrounds fall back to the jacket or banner. Without any picture the window is the overlay on black. |
+| White ground, shaded star pattern, black curve | `Graphics/VOLT26/Wanted/backdrop.png`, drawn by `BGAnimations/ScreenEvaluationStage background.lua`. Shared by both players. The stars come from the owner's own Illustrator export (`bg_wanted.png`), since the SVG loses their shading. |
+| Top band | `overlay/Wanted/Picture.lua`: the song's background in the band's shape, unturned, at the artwork's box, under its dark red: picture × 0.16 + (104, 9, 3), measured on the owner's export (rms error about 1 level per channel). |
+| Black frame | An `ActorMultiVertex` on the frame's polygon. |
+| "WANTED" | `Graphics/VOLT26/Wanted/wanted.png`, cropped to its ink. |
+| Song background in the frame's spiky window | `overlay/Wanted/Picture.lua`, in the background layer. A textured `ActorMultiVertex` on the window polygon, turned -10.5° and covering the window at the picture's own aspect. The artwork's red overlay (#f11600, hard light, 70 %) is reproduced exactly: picture × (0.377, 0.421, 0.300) plus (0.623, 0, 0) added. Movie backgrounds fall back to the jacket or banner. Without any picture the window is the overlay on black. |
 | Plates (name, level, scores) | `Graphics/VOLT26/Wanted/panel_head.png` |
 | Judgment ladder, holds box, graph frame | `Graphics/VOLT26/Wanted/panel_body.png` |
 | All text, the level, the scores, the counts | `overlay/Wanted/Side.lua` through `overlay/Wanted/Text.lua`, at the artwork's text anchors (position, rotation, horizontal scale). |
@@ -104,13 +107,13 @@ plates name the players.
 
 ## Rebuilding from Illustrator
 
-The backdrop must come from Illustrator itself: the SVG export loses the
-raster images (its linked files come out misnumbered) and the effects of the
-top-left red area and the star pattern's shading. Run
-`tools/evaluation/export_eval_art.jsx` in Illustrator (File > Scripts > Other
-Script...) and copy `tools/evaluation/art/backdrop.png` to
-`Graphics/VOLT26/Wanted/backdrop.png`. The script leaves the document alone
-and also writes `full.png` (the whole artboard) and `items.json`.
+The SVG export loses the raster images (its linked files come out
+misnumbered) and the star pattern's shading. So the band and the stars are
+also exported from Illustrator as a PNG at 1:1, any crop, holding only those
+two: `tools/notes-radar/art/bg_wanted.png`. The build registers it against the
+SVG's shapes automatically (99.9 % of pixels agree) and takes the stars from it.
+`tools/evaluation/export_eval_art.jsx` can export the artboard from a document
+that holds it, but the owner's export is what the build uses.
 
 The plates, the anchors and the geometry still come from the SVG:
 
@@ -119,7 +122,8 @@ The plates, the anchors and the geometry still come from the SVG:
 2. Run `python tools/evaluation/build_eval_art.py`. It needs Playwright with
    Chromium and lxml, plus the Tinos and Archivo fonts installed where
    Chromium finds them, with "Times New Roman" aliased to Tinos for "WANTED".
-   It writes the three pictures and the generated
+   With `--illustrator tools/notes-radar/art/bg_wanted.png` (the default), it
+   writes the four pictures and the generated
    `overlay/Wanted/Art.lua`: the window polygon and its triangles, the graph
    quad, every text anchor, and the name and grade boxes.
 3. To regenerate the fonts, run

@@ -32,6 +32,7 @@ local groups = {
 		"VOLT26/Eval/Victory.png",
 		"VOLT26/Eval/defeat.png",
 		"VOLT26/Wanted/backdrop.png",
+		"VOLT26/Wanted/wanted.png",
 		"VOLT26/Wanted/panel_head.png",
 		"VOLT26/Wanted/panel_body.png",
 	},

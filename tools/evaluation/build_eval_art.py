@@ -9,7 +9,10 @@ ARTBOARD below, drawn by the top-level items listed in BACKDROP / PANEL.
 Outputs (paths relative to the theme root):
 
   Graphics/VOLT26/Wanted/backdrop.png   1920x1080, shared by both players:
-      white ground, star pattern, curves, the black WANTED frame, "WANTED".
+      white ground, the shaded star pattern and the black curve.  The star
+      pattern comes from the owner's own Illustrator export (ILLUSTRATOR,
+      below): the SVG export loses its shading.
+  Graphics/VOLT26/Wanted/wanted.png     "WANTED", cropped to its ink.
   Graphics/VOLT26/Wanted/panel_head.png player 1's top plates (name,
       level, scores) without text, cropped to HEAD_CROP.
   Graphics/VOLT26/Wanted/panel_body.png player 1's judgment ladder, holds
@@ -17,18 +20,27 @@ Outputs (paths relative to the theme root):
       when a player turns to another page; the head is on every page.
       Player 2 draws both mirrored.
   BGAnimations/ScreenEvaluationStage overlay/Wanted/Art.lua   generated
-      anchors: the song window polygon and its triangulation, the song
-      picture's box, the graph quad, every text's position/rotation/scale,
+      anchors: the song window and the top band (polygons and their
+      triangulations, the song picture's box in each), the black frame, the
+      "WANTED" picture's place, the graph quad, every text's position/rotation/scale,
       and the name and grade boxes.  All in artboard pixels (1920x1080).
 
-Text, the song picture, the name, the grade and the graph are drawn by the
-screen, so they are hidden when the pictures are rendered.
+Text, the song picture (in the window and in the top band), the black frame,
+the name, the grade and the graph are drawn by the screen, so they are not in
+the pictures.
+
+ILLUSTRATOR is a PNG the owner exports from Illustrator holding only the top
+band and the star pattern, at 1:1 (any crop: it is registered automatically
+against the SVG's shapes).  The band's colours in it were measured as
+0.16 x picture + (104, 9, 3), which is what the screen draws over the song's
+background (BAND_MULTIPLY, BAND_ADD).
 
 Usage (from the theme root):
     python tools/evaluation/build_eval_art.py [--svg tools/notes-radar/art/radar.svg]
+        [--illustrator tools/notes-radar/art/bg_wanted.png]
 
 Requires Playwright with Chromium (it renders the SVG exactly as a browser
-does) and lxml.  Fonts: install Tinos and Archivo where Chromium finds them
+does), lxml, numpy, Pillow and svgpathtools.  Fonts: install Tinos and Archivo where Chromium finds them
 (fontconfig) and alias "Times New Roman" to Tinos, so "WANTED" renders in the
 stand-in the screen's title uses.
 
@@ -42,8 +54,11 @@ import math
 import os
 import re
 
+import numpy as np
 from lxml import etree
+from PIL import Image
 from playwright.sync_api import sync_playwright
+from svgpathtools import parse_path
 
 ARTBOARD = (87.2, 2804.0)          # top-left of the evaluation artboard
 W, H = 1920, 1080
@@ -53,7 +68,6 @@ ITEM_WHITE, ITEM_STARS, ITEM_BLACK_CURVE, ITEM_STRIP, ITEM_RED_CURVE = 428, 429,
 ITEM_FRAME, ITEM_WANTED, ITEM_SONG, ITEM_WINDOW = 434, 435, 436, 437
 ITEM_PLATES, ITEM_LADDER, ITEM_GRAPH, ITEM_MODS, ITEM_TITLE = 438, 439, 440, 441, 442
 
-BACKDROP = [ITEM_WHITE, ITEM_STARS, ITEM_BLACK_CURVE, ITEM_STRIP, ITEM_RED_CURVE, ITEM_FRAME, ITEM_WANTED]
 HEAD = [ITEM_PLATES]
 BODY = [ITEM_LADDER, ITEM_GRAPH]
 # Paths (child indices below a Layer_1 item) hidden in the panel picture.
@@ -70,6 +84,12 @@ PANEL_HIDE = [
 HEAD_CROP = (0, 0, 832, 400)     # x, y, w, h in artboard pixels
 BODY_CROP = (0, 360, 832, 720)
 
+# The song picture in the top band: the box the artwork places it in
+# (unturned, artboard pixels) and the band's colour over it.
+BAND_PICTURE = {"x": -315.4, "y": -507.3, "w": 2325.6, "h": 1308.6}
+BAND_MULTIPLY = 0.16
+BAND_ADD = [104 / 255, 9 / 255, 3 / 255]
+
 SVG_NS = "{http://www.w3.org/2000/svg}"
 
 
@@ -81,6 +101,41 @@ def layer_items(root):
 def points(attr):
     v = [float(n) for n in re.split(r"[\s,]+", attr.strip())]
     return [(v[i] - ARTBOARD[0], v[i + 1] - ARTBOARD[1]) for i in range(0, len(v), 2)]
+
+
+def path_polygon(d, step=12):
+    """A closed SVG path as a polygon, in artboard pixels."""
+    pts = []
+    for seg in parse_path(d):
+        n = max(1, int(seg.length() / step))
+        for k in range(n):
+            z = seg.point(k / n)
+            pts.append((round(z.real - ARTBOARD[0], 1), round(z.imag - ARTBOARD[1], 1)))
+    out = []
+    for p in pts:
+        if not out or abs(p[0] - out[-1][0]) + abs(p[1] - out[-1][1]) > 0.5:
+            out.append(p)
+    return out
+
+
+def register(picture_alpha, shapes_alpha, guess, search=24):
+    """Offset of the owner's picture (its top-left, in artboard pixels) that
+    best matches the shapes rendered from the SVG over the artboard."""
+    ph, pw = picture_alpha.shape
+    best = None
+    for oy in range(guess[1] - search, guess[1] + search + 1):
+        for ox in range(guess[0] - search, guess[0] + search + 1):
+            # The artboard window inside the picture.
+            x0, y0 = max(0, -ox), max(0, -oy)
+            x1, y1 = min(pw, W - ox), min(ph, H - oy)
+            if x1 - x0 < 100 or y1 - y0 < 100:
+                continue
+            a = picture_alpha[y0:y1:4, x0:x1:4]
+            b = shapes_alpha[y0 + oy:y1 + oy:4, x0 + ox:x1 + ox:4]
+            score = (a == b).mean()
+            if best is None or score > best[0]:
+                best = (score, ox, oy)
+    return best
 
 
 def area(poly):
@@ -222,6 +277,7 @@ def lua(value, indent=0):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--svg", default="tools/notes-radar/art/radar.svg")
+    ap.add_argument("--illustrator", default="tools/notes-radar/art/bg_wanted.png")
     ap.add_argument("--theme", default=os.path.join(os.path.dirname(__file__), "..", ".."))
     args = ap.parse_args()
     theme = os.path.abspath(args.theme)
@@ -261,9 +317,16 @@ def main():
                 const g = document.getElementById('Layer_1').children[i].children[2];
                 return [...g.children].map(e => { const r = e.getBoundingClientRect();
                     return [r.x, r.y, r.width, r.height]; }); }""", ITEM_PLATES)
-            page.evaluate(RENDER_JS, [BACKDROP, []])
-            page.wait_for_timeout(100)
-            page.screenshot(path=os.path.join(out_dir, "backdrop.png"))
+            layers = {}
+            for name, keep in (("white", [ITEM_WHITE]), ("stars", [ITEM_STARS]), ("curve", [ITEM_BLACK_CURVE]),
+                               ("band", [ITEM_RED_CURVE]), ("wanted", [ITEM_WANTED])):
+                page.evaluate(RENDER_JS, [keep, []])
+                page.wait_for_timeout(100)
+                shot = os.path.join(out_dir, "_layer.png")
+                page.screenshot(path=shot, omit_background=True)
+                layers[name] = Image.open(shot).convert("RGBA")
+                layers[name].load()
+                os.remove(shot)
             for name, keep, crop in (("panel_head", HEAD, HEAD_CROP), ("panel_body", BODY, BODY_CROP)):
                 page.evaluate(RENDER_JS, [keep, PANEL_HIDE])
                 page.wait_for_timeout(100)
@@ -273,6 +336,35 @@ def main():
             browser.close()
     finally:
         os.remove(work)
+
+    # The backdrop: white, the owner's shaded stars, the black curve.
+    owner = Image.open(os.path.abspath(args.illustrator)).convert("RGBA")
+    owner_alpha = np.asarray(owner)[..., 3] > 128
+    shapes = (np.asarray(layers["stars"])[..., 3] > 128) | (np.asarray(layers["band"])[..., 3] > 128)
+    score, ox, oy = register(owner_alpha, shapes, (-150, -219))
+    print("Illustrator picture at (%d, %d), %.2f %% of pixels agree" % (ox, oy, score * 100))
+    placed = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    placed.paste(owner, (ox, oy))
+    # Keep only the stars (the band is drawn by the screen over the song).
+    star_mask = Image.fromarray(((np.asarray(layers["stars"])[..., 3] > 0) * 255).astype(np.uint8)).filter(
+        __import__("PIL.ImageFilter", fromlist=["MaxFilter"]).MaxFilter(5))
+    stars = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    stars.paste(placed, (0, 0), star_mask)
+    backdrop = Image.new("RGBA", (W, H), (255, 255, 255, 255))
+    backdrop.alpha_composite(layers["white"])
+    backdrop.alpha_composite(stars)
+    backdrop.alpha_composite(layers["curve"])
+    backdrop.convert("RGB").save(os.path.join(out_dir, "backdrop.png"), optimize=True)
+
+    # "WANTED", cropped to its ink.
+    bbox = layers["wanted"].getbbox()
+    wx0, wy0 = max(0, bbox[0] - 4), max(0, bbox[1] - 4)
+    wx1, wy1 = min(W, bbox[2] + 4), min(H, bbox[3] + 4)
+    layers["wanted"].crop((wx0, wy0, wx1, wy1)).save(os.path.join(out_dir, "wanted.png"), optimize=True)
+
+    band_poly = path_polygon(items[ITEM_RED_CURVE].get("d"))
+    band_pts, band_tris = triangulate(band_poly)
+    frame_pts, frame_tris = triangulate(points(items[ITEM_FRAME].get("points")))
 
     plates, ladder = texts["plates"], texts["ladder"]
     rows = [dict(placement(t["m"]), size=t["spans"][0]["size"]) for t in ladder[:7]]
@@ -309,6 +401,11 @@ def main():
     art = {
         "window": {"points": [list(p) for p in window_pts], "triangles": [list(t) for t in window_tris]},
         "song": cover_box(window_pts, song_rot, 16 / 9),
+        # The top band: the song picture at 16 % under the artwork's dark red.
+        "band": {"points": [list(p) for p in band_pts], "triangles": [list(t) for t in band_tris],
+                 "picture": BAND_PICTURE, "multiply": BAND_MULTIPLY, "add": BAND_ADD},
+        "frame": {"points": [list(p) for p in frame_pts], "triangles": [list(t) for t in frame_tris]},
+        "wanted": {"x": wx0, "y": wy0, "w": wx1 - wx0, "h": wy1 - wy0},
         "graph": {"topLeft": list(graph_poly[1]), "topRight": list(graph_poly[2]),
                   "bottomRight": list(graph_poly[3]), "bottomLeft": list(graph_poly[0])},
         "head": dict(zip("xywh", HEAD_CROP)),
@@ -345,7 +442,7 @@ def main():
         f.write("-- GENERATED by tools/evaluation/build_eval_art.py from the owner's artwork.\n")
         f.write("-- Do not edit by hand.  Artboard pixels (1920x1080); angles in degrees.\n")
         f.write("return " + lua(art) + "\n")
-    print("window %d points, %d triangles; backdrop.png, panel_head.png, panel_body.png, Art.lua written" % (len(window_pts), len(window_tris)))
+    print("window %d points, %d triangles; backdrop.png, wanted.png, panel_head.png, panel_body.png, Art.lua written" % (len(window_pts), len(window_tris)))
     print(json.dumps({k: art[k] for k in ("song", "name", "grade", "level", "ex", "title")}, indent=1))
 
 
