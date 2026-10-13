@@ -96,9 +96,12 @@ page[#page+1] = LoadFont(covered and T.Font.Title or T.Font.Fallback)..{
 	end,
 }
 
+-- A single player's side is always the left one, whichever side they joined
+-- on; with two players each has their own.
 for _, player in ipairs(players) do
-	local side = LoadActor("./Wanted/Side.lua", { Art = Art, Text = T, player = player, side = player, S = S, OX = OX })
-	local away = player == PLAYER_1 and -1 or 1
+	local where = #players == 1 and PLAYER_1 or player
+	local side = LoadActor("./Wanted/Side.lua", { Art = Art, Text = T, player = player, side = where, S = S, OX = OX })
+	local away = where == PLAYER_1 and -1 or 1
 	side.art.OnCommand = function(self)
 		self:addx(away * 260):decelerate(0.3):addx(-away * 260)
 	end

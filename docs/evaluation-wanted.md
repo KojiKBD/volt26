@@ -28,8 +28,8 @@ pictures flipped and placed in mirror. Player 2's text sits at the mirrored
 anchors, turned the other way, still reads left to right, and ends where
 player 1's starts. Player 2's graph frame is mirrored too, but the song still
 runs left to right. Player 2's side covers part of the window and the title,
-as agreed. A single player uses their own side: player 1 on the left,
-player 2 on the right.
+as agreed. A single player is always on the left, whichever side they
+joined on.
 
 ### The graph
 
@@ -78,7 +78,8 @@ of `InputHandler.lua` when the common evaluation is loaded with
 `{WantedPage=true}`.
 
 - With two players, each controller turns its own side.
-- With one player, either controller turns the player's side.
+- With one player, the page is always on the left side, and either
+  controller turns it. The left side's panes carry the player's data.
 - Every change is broadcast as `VOLT26EvaluationPage {Side, Page, Count}`.
 
 On any page other than 0 the side hides the ladder's text, the grade and the

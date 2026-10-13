@@ -4,8 +4,9 @@
 -- Each side of the screen (P1 left, P2 right) shows a page: 0 is the screen's
 -- own page, 1..n the inherited Simply Love panes of that side, in pane order.
 -- MenuLeft / MenuRight turn a side's page.  With two players each controller
--- turns its own side; with one player either controller turns the player's
--- side, and the other side's panes are never shown.
+-- turns its own side; with one player the page is always on the left side
+-- (its panes carry the player's data, see Panes/default.lua), either
+-- controller turns it, and the right side's panes are never shown.
 --
 -- Every change is broadcast as VOLT26EvaluationPage {Side=PlayerNumber,
 -- Page=number, Count=number}; the screen hides or shows its own actors from it.
@@ -14,9 +15,12 @@ local af, numPanes = unpack(...)
 if not af or type(numPanes) ~= "number" then return end
 
 local players = GAMESTATE:GetHumanPlayers()
-local master = GAMESTATE:GetMasterPlayerNumber()
 local sides = {}
-for _, player in ipairs(players) do sides[#sides+1] = player end
+if #players == 1 then
+	sides[1] = PLAYER_1
+else
+	for _, player in ipairs(players) do sides[#sides+1] = player end
+end
 
 local panes, page = {}, {}
 local paneFrames = af:GetChild("Panes")
@@ -53,7 +57,7 @@ return function(event)
 	if #players > 1 then
 		side = ("PlayerNumber_P%s"):format(ToEnumShortString(event.controller):match("%d") or "1")
 	else
-		side = master
+		side = PLAYER_1
 	end
 	if not used(side) then return false end
 
