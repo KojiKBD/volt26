@@ -111,9 +111,6 @@ L.Tag = "VOLT26 Eval Bold"
 local tagCap = 33
 function L.TagZoom(px) return px/tagCap end
 L.TagText = textActor(L.Tag, L.TagZoom, L.White)
-function L.SetTag(actor, text, px, width)
-	return setText(actor, L.Upper(text), L.TagZoom(px), width)
-end
 
 local function setText(actor, text, zoom, width)
 	if not actor then return zoom end
@@ -128,6 +125,11 @@ end
 
 function L.SetDisplay(actor, text, px, width)
 	return setText(actor, text, L.Zoom(px), width)
+end
+
+-- After setText, which it uses: a local is only visible below its own line.
+function L.SetTag(actor, text, px, width)
+	return setText(actor, L.Upper(text), L.TagZoom(px), width)
 end
 
 function L.Rule(t)
