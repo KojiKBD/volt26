@@ -40,14 +40,15 @@ function Tile.Build(index)
 	box[#box+1] = Def.Quad{
 		Name="Backing",
 		InitCommand=function(self)
-			self:y(-L.TileSize/2):zoomto(L.TileSize*BACKING, L.TileSize*BACKING)
+			-- setsize, not zoomto: the card's own zoom is animated.
+			self:y(-L.TileSize/2):setsize(L.TileSize*BACKING, L.TileSize*BACKING)
 				:rotationz(BACKING_TURN):diffuse(L.Red):visible(false)
 		end,
 	}
 	box[#box+1] = Def.Quad{
 		Name="Card",
 		InitCommand=function(self)
-			self:y(-L.TileSize/2):zoomto(L.TileSize*CARD, L.TileSize*CARD)
+			self:y(-L.TileSize/2):setsize(L.TileSize*CARD, L.TileSize*CARD)
 				:rotationz(CARD_TURN):diffuse(L.White):visible(false)
 		end,
 	}
@@ -61,9 +62,9 @@ function Tile.Build(index)
 	af[#af+1] = box
 	af[#af+1] = Def.Quad{
 		Name="TagFill",
-		InitCommand=function(self) self:y(L.LabelY):skewx(L.Slant):diffuse(L.White):visible(false) end,
+		InitCommand=function(self) self:y(L.LabelY):diffuse(L.White):visible(false) end,
 	}
-	af[#af+1] = L.TagText{Name="Label", Px=L.LabelPx, Y=L.LabelY, Tint=L.White, Align=center, Width=L.TileSize + L.TileGap}
+	af[#af+1] = L.TagText{Name="Label", Px=L.LabelPx, Y=L.LabelY, Tint=L.White, Align=center, Width=L.LabelW}
 
 	return af
 end
@@ -99,7 +100,7 @@ function Tile.Apply(af, descriptor, state)
 		showing[af] = path
 	end
 
-	L.SetTag(label, descriptor.Short or descriptor.Name or "", L.LabelPx, L.TileSize + L.TileGap)
+	L.SetTag(label, descriptor.Short or descriptor.Name or "", L.LabelPx, L.LabelW)
 
 	local zoom = L.TileZoom[(state.Distance or 9) + 1] or 1
 
@@ -136,8 +137,8 @@ function Tile.Apply(af, descriptor, state)
 			icon:rotationz(-12):zoom(iconZoom()*0.8)
 				:decelerate(0.14):rotationz(0):zoom(iconZoom())
 		end
-		local width = math.min(label:GetZoomedWidth(), L.TileSize + L.TileGap) + 18
-		tag:visible(true):zoomto(width, L.LabelPx + 12):diffuse(enabled and L.White or GREY)
+		local width = math.min(label:GetZoomedWidth(), L.LabelW) + 18
+		L.SlantTo(tag:visible(true), width, L.LabelPx + 12):diffuse(enabled and L.White or GREY)
 		label:diffuse(L.Black)
 	elseif state.Open then
 		-- The category whose strip is showing keeps its red card while the

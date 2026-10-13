@@ -190,6 +190,13 @@ function L.SizeFrame(af, width, height, thickness, tint)
 	end
 end
 
+-- A quad sized w x h and slanted by L.Slant.  A Quad is a unit square zoomed
+-- to its size and the skew is applied before the zoom, so the skew that gives
+-- the same slant at any width is L.Slant * h / w.
+function L.SlantTo(quad, width, height)
+	return quad:zoomto(width, height):skewx(L.Slant * height / math.max(width, 1))
+end
+
 -- A slab: a black parallelogram edged in white over a red one set off to
 -- the lower right, the way the theme's panels are cut.  Built around its own
 -- centre; L.SizeSlab gives it a size.
@@ -197,7 +204,7 @@ function L.Slab(name)
 	local function part(partName, tint)
 		return Def.Quad{
 			Name=partName,
-			InitCommand=function(self) self:skewx(L.Slant):diffuse(tint) end,
+			InitCommand=function(self) self:diffuse(tint) end,
 		}
 	end
 	return Def.ActorFrame{
@@ -221,7 +228,7 @@ function L.SizeSlab(af, width, height, tween)
 		if quad then
 			quad:finishtweening()
 			if tween then quad:decelerate(tween) end
-			quad:zoomto(part[2], part[3]):xy(part[4], part[5])
+			L.SlantTo(quad, part[2], part[3]):xy(part[4], part[5])
 		end
 	end
 end
@@ -238,7 +245,8 @@ L.TileGap     = 26
 L.IconSize    = 72
 L.IconSource  = 192                   -- the icon PNGs are square at this size
 L.LabelGap    = 14
-L.LabelPx     = 17
+L.LabelPx     = 16
+L.LabelW      = 118                   -- a word squeezes to fit its tile's pitch
 
 L.DockH       = L.BarPadY*2 + L.TileSize + L.LabelGap + L.LabelPx + 4
 L.DockTop     = L.BarBottom - L.DockH

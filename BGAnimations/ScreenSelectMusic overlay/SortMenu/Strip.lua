@@ -45,19 +45,19 @@ function Strip.Build()
 		pill[#pill+1] = Def.Quad{
 			Name="Shadow",
 			InitCommand=function(self)
-				self:skewx(L.Slant):xy(8, 6):zoomto(100, L.PillH):diffuse(L.Red):visible(false)
+				L.SlantTo(self, 100, L.PillH):xy(8, 6):diffuse(L.Red):visible(false)
 			end,
 		}
 		pill[#pill+1] = Def.Quad{
 			Name="Edge",
 			InitCommand=function(self)
-				self:skewx(L.Slant):zoomto(104, L.PillH + 4):diffuse(L.White)
+				L.SlantTo(self, 104, L.PillH + 4):diffuse(L.White)
 			end,
 		}
 		pill[#pill+1] = Def.Quad{
 			Name="Fill",
 			InitCommand=function(self)
-				self:skewx(L.Slant):zoomto(100, L.PillH):diffuse(L.Black)
+				L.SlantTo(self, 100, L.PillH):diffuse(L.Black)
 			end,
 		}
 		pill[#pill+1] = Def.Quad{
@@ -175,9 +175,9 @@ function Strip.Apply(af, descriptors, index, focused)
 			local isCursor = focused and (first + slot - 1) == index
 
 			pill:finishtweening()
-			pillFill:zoomto(width, L.PillH)
-			edge:zoomto(width + 4, L.PillH + 4)
-			shadow:zoomto(width, L.PillH)
+			L.SlantTo(pillFill, width, L.PillH)
+			L.SlantTo(edge, width + 4, L.PillH + 4)
+			L.SlantTo(shadow, width, L.PillH)
 			pill:decelerate(0.09):zoom(isCursor and L.PillZoom or 1)
 
 			if isCursor then
