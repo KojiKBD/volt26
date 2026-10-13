@@ -262,7 +262,7 @@ layout[#layout+1] = details
 -- The pack tile in the jacket frame, apart from the details so it can stand
 -- still while the pack step's jacket lands on it.
 layout[#layout+1] = part("Header.lua", { K=K, S=S })
--- The song's jacket and length, the difficulty column, the open pack's name,
+-- The song's jacket and length, the difficulty column,
 -- the notes radar on the red, one card per player and the names footer.  SongWheel/Panel.lua
 -- is the mockup's own solid info panel (names, facts, radar and graphs in
 -- one slab); it was set aside as too heavy, but can stand in for the cards
@@ -270,8 +270,10 @@ layout[#layout+1] = part("Header.lua", { K=K, S=S })
 local info = modalAware(Def.ActorFrame{ Name="Info" })
 info[#info+1] = part("Jacket.lua", { K=K, S=S })
 info[#info+1] = part("Difficulty.lua", { K=K, S=S })
-info[#info+1] = part("PackTag.lua", { K=K, S=S })
-info[#info+1] = part("Radar.lua", { K=K, S=S, X=1045, Y=460, R=122 })
+-- The notes radar where the pack tag used to be (top centre-right), larger;
+-- the pack tag (PackTag.lua) is no longer shown.  R=170 keeps its labels
+-- (RadarArt Reach) clear of the top edge and the difficulty column.
+info[#info+1] = part("Radar.lua", { K=K, S=S, X=1240, Y=190, R=170 })
 info[#info+1] = part("Cards.lua", { K=K, S=S })
 info[#info+1] = part("Jacket.lua", { K=K, S=S, Part="Length" })
 info[#info+1] = part("Footer.lua", { K=K, S=S })
