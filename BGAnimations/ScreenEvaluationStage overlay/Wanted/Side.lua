@@ -143,6 +143,7 @@ ladder[#ladder+1] = LoadActor("./Graph.lua", {
 	Art = Art, quad = graphQuad(), graph = VOLT26.EvaluationPage.GetGraph(player),
 	colors = { W0 = ROW.W0[1], W1 = ROW.W1[1], W2 = ROW.W2[1], W3 = ROW.W3[1], W4 = ROW.W4[1], W5 = ROW.W5[1] },
 	font = T.Font.Bold, fontZoom = 20 / T.EM.Bold,
+	palette = side == PLAYER_2 and "blue" or "red",
 })
 
 art.VOLT26EvaluationPageMessageCommand = function(self, params)

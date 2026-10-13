@@ -37,8 +37,9 @@ The graph is Simply Love's end-of-song graph, drawn in perspective in the
 slanted frame. Each point (u along the song, v from the bottom) is placed by
 bilinear interpolation between the frame's four corners. It shows:
 
-- the chart's density per measure, as a red profile with a gradient (dark at
-  the bottom, bright at the peaks) and a light edge;
+- the chart's density per measure, as a profile with a gradient (dark at the
+  bottom, bright at the peaks) and a light edge: red on player 1's side,
+  always blue on player 2's;
 - the on-time line, where the artwork has its white line;
 - the judgment scatter plot, in the page's judgment colours, with misses as
   faint red lines across the graph;

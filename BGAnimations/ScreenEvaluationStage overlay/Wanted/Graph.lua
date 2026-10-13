@@ -21,10 +21,14 @@ local function vertex(u, v, colour)
 	return { {x, y, 0}, colour }
 end
 
--- Density: a red profile, dark at the bottom and bright at its peaks.
-local DEEP = color("#3a0000")
-local PEAK = color("#ff2a12")
-local EDGE = color("#ff7a5c")
+-- Density: a profile dark at the bottom and bright at its peaks, red for
+-- player 1's side and always blue for player 2's.
+local PALETTES = {
+	red  = { deep = color("#3a0000"), peak = color("#ff2a12"), edge = color("#ff7a5c") },
+	blue = { deep = color("#00103a"), peak = color("#0a7dff"), edge = color("#66c6ff") },
+}
+local palette = PALETTES[p.palette or "red"] or PALETTES.red
+local DEEP, PEAK, EDGE = palette.deep, palette.peak, palette.edge
 
 local function lerpColour(a, b, t, alpha)
 	return { a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t, alpha or 1 }
