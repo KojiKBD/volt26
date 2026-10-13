@@ -145,7 +145,7 @@ Left and right together on the song wheel open the options dock (`BGAnimations/S
 - An open category keeps the red card and a red word.
 - In the strip, pills are black parallelograms. The pill under the cursor is white with a black name over a red shadow.
 
-**Icons.** The icons are `Graphics/VOLT26/SortMenu/<name>.png` and `<name>_hover.png` (192 px square), drawn from the owner's `icons.ai` by `tools/sort-menu/build_icons.py`:
+**Icons.** The hover twins are in their own folder because the engine finds graphics by prefix: a `profile_hover.png` next to `profile.png` makes `profile` ambiguous. The icons are `Graphics/VOLT26/SortMenu/<name>.png` and `hover/<name>.png` (192 px square), drawn from the owner's `icons.ai` by `tools/sort-menu/build_icons.py`:
 
 ```
 python tools/sort-menu/build_icons.py path/to/icons.ai

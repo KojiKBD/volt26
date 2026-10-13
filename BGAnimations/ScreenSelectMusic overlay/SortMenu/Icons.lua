@@ -7,10 +7,12 @@
 -- tile that looks broken instead of merely generic.
 --
 -- The icons are the owner's (icons.ai): red cut-paper marks on transparency,
--- 192 px square, each with a "_hover" twin outlined in black that the tile
--- under the cursor shows.  They are drawn in their own colours.  BACK and the
--- neutral mark have no new artwork: they stay white line art, tinted by the
--- tile, and have no hover twin.
+-- 192 px square, each with a hover twin outlined in black (same name, in
+-- hover/) that the tile under the cursor shows.  The twins live in their own
+-- folder because the engine looks graphics up by prefix: "profile" would
+-- match both profile.png and a profile_hover.png beside it.  They are drawn
+-- in their own colours.  BACK and the neutral mark have no new artwork: they
+-- stay white line art, tinted by the tile, and have no hover twin.
 
 local Icons = {}
 
@@ -49,7 +51,7 @@ end
 -- The hover twin when there is one, the plain icon otherwise.
 function Icons.Path(name, hover)
 	name = name or Icons.Fallback
-	if hover and not tinted[name] then name = name .. "_hover" end
+	if hover and not tinted[name] then return THEME:GetPathG("", folder .. "hover/" .. name) end
 	return THEME:GetPathG("", folder .. name)
 end
 

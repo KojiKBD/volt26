@@ -9,8 +9,10 @@ icons.ai holds twelve icons in two rows: plain on top, the hover twin
 advanced, styles, playlists.  The file's PDF preview only shows what is on its
 artboards, so the artwork is read from Illustrator's own data inside the file
 (the zstd-compressed AIPrivateData streams) and its paths are redrawn as SVG.
-Each icon is written as <name>.png and <name>_hover.png, 192 px square, the
-pair at one scale so the larger of the two fills 170 px.
+Each icon is written as <name>.png and hover/<name>.png, 192 px square, the
+pair at one scale so the larger of the two fills 170 px.  (The hover twins
+are in their own folder: the engine finds graphics by prefix, so a
+profile_hover.png beside profile.png would make "profile" ambiguous.)
 
 Needs pikepdf, zstandard and cairosvg.
 """
@@ -141,11 +143,12 @@ def main():
     for name, _, _ in COLUMNS:
         pair = [bbox(groups[(name, 'plain')]), bbox(groups[(name, 'hover')])]
         scale = FILL / max(max(b[2] - b[0], b[3] - b[1]) for b in pair)
-        for row, suffix in (('plain', ''), ('hover', '_hover')):
+        os.makedirs(os.path.join(out_dir, 'hover'), exist_ok=True)
+        for row, sub in (('plain', ''), ('hover', 'hover')):
             b = bbox(groups[(name, row)])
             cx, cy, half = (b[0] + b[2]) / 2, (b[1] + b[3]) / 2, SIZE / scale / 2
             doc = svg(groups[(name, row)], [cx - half, cy - half, cx + half, cy + half], scale)
-            cairosvg.svg2png(bytestring=doc.encode(), write_to=os.path.join(out_dir, name + suffix + '.png'),
+            cairosvg.svg2png(bytestring=doc.encode(), write_to=os.path.join(out_dir, sub, name + '.png'),
                              output_width=SIZE, output_height=SIZE)
         print(name)
 
