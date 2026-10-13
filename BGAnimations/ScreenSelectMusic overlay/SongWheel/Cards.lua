@@ -3,7 +3,7 @@
 -- BY" the chart's author, "LV" and the meter; the player's best EX and ITG on
 -- the black frame; a box of the chart's counts (notes, jumps, holds, mines,
 -- rolls, peak NPS, stream); and the chart's density in the slanted graph frame
--- with its stream breakdown.
+-- with its stream breakdown, in white over the graph.
 --
 -- The cards' pictures and every anchor come from the artwork
 -- (tools/song-select/build_cards_art.py -> Graphics/VOLT26/SongSelect/
@@ -219,7 +219,7 @@ for c, art in ipairs(Art.cards) do
 			InitCommand = function(self) self:SetDrawState{ Mode = "DrawMode_QuadStrip" } end },
 		Def.ActorMultiVertex{ Name = "DensityEdge",
 			InitCommand = function(self) self:SetDrawState{ Mode = "DrawMode_LineStrip" }:SetLineWidth(1.5) end },
-		-- The name, centred where the artwork has it; the lettering's own tilt
+		-- The name, centred on the upper white plate; the lettering's own tilt
 		-- (-3 degrees) plus the frame's turn make the artwork's.
 		Def.ActorFrame{
 			Name = "NameFrame",
@@ -255,7 +255,7 @@ for c, art in ipairs(Art.cards) do
 		run("Itg", art.itg, {
 			{ "Tag", "Score", art.itg.small, ITG_TINT, "ITG " }, { "Value", "Score", art.itg.size, ITG_TINT },
 			{ "Tail", "Score", art.itg.tail, ITG_TINT, " / 100" } }, art.itg.width * 1.18),
-		run("Breakdown", art.breakdown, { { "Text", "Bold", art.breakdown.size, BLACK } }, nil, true),
+		run("Breakdown", art.breakdown, { { "Text", "Bold", art.breakdown.size, WHITE } }, nil, true),
 	}
 	for i, stat in ipairs(STATS) do
 		local a = art.stats

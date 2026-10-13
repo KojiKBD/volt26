@@ -26,6 +26,7 @@ import math
 import os
 import re
 
+import numpy as np
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
@@ -37,10 +38,20 @@ ROLES = ["plate", "name", "level", "frame", "ex", "itg", "steps", "box", "stats"
 CARD1 = [[i] for i in range(402, 413)]
 CARD2 = [[413, k] for k in range(11)]
 
-# Where the player's name sits: the centre and turn of the lettering in the
-# owner's own Illustrator export (the SVG holds a placeholder picture whose
-# lettering is off-centre), artboard pixels.
-NAME_PLACES = {1: {"cx": 1675, "cy": 378, "rot": -5}, 2: {"cx": 1690, "cy": 704, "rot": -3}}
+# The player's name is centred on the upper white plate: the white of the
+# card picture above the "STEPS BY" line (the SVG's placeholder picture has
+# its lettering off-centre).  NAME_TURN is the lettering's turn.
+NAME_TURN = -2
+
+
+def plate_centre(img, x0, y0, below):
+    """Centre of the white of a card picture (placed at x0, y0) above `below`."""
+    a = np.asarray(img).astype(int)
+    white = (a[..., 0] > 240) & (a[..., 1] > 240) & (a[..., 2] > 240) & (a[..., 3] > 240)
+    ys, xs = np.nonzero(white)
+    keep = ys + y0 < below
+    return float(xs[keep].mean() + x0), float(ys[keep].mean() + y0)
+
 
 # What the card pictures keep, and what they hide inside what they keep.
 KEEP = ["plate", "frame", "ex", "itg", "box", "graph"]
@@ -191,7 +202,8 @@ def main():
                 card = {
                     "picture": "card%d" % number,
                     "x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0,
-                    "name": NAME_PLACES[number],
+                    "name": dict(zip(("cx", "cy"), plate_centre(img.crop((x0, y0, x1, y1)), x0, y0,
+                                                               placement(m["steps"]["m"])["y"] - 28)), rot=NAME_TURN),
                     "level": {"x": ell[0], "y": ell[1] + ell[3], "rot": level_rot,
                               "lvCap": ell[3], "lvWidth": vee[0] + vee[2] - ell[0],
                               "gap": math.hypot(one[0] - (vee[0] + vee[2]), (one[1] + one[3]) - (vee[1] + vee[3])),
