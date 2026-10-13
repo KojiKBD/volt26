@@ -101,6 +101,16 @@ VOLT26_Prefs.Get = function()
 			},
 			Values = { "Off", "Light", "Full" }
 		},
+		-- A frame-time readout on every screen (ScreenSystemLayer
+		-- framemeter.lua), for measuring a cabinet.  Off by default.
+		FrameMeter = {
+			Default = false,
+			Choices = {
+				THEME:GetString("ThemePrefs", "On"),
+				THEME:GetString("ThemePrefs", "Off")
+			},
+			Values = { true, false }
+		},
 		PerformanceModeConfigured = {
 			Default = false,
 			Choices = { true, false },

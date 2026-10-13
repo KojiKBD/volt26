@@ -310,6 +310,14 @@ end
 --                                    texture pixels, `zoom` pixels per unit
 --   stamper.Pass(layout, pass)       sets the stamps and proxies for a pass
 --                                    (one of Cutout.Passes(layout))
+-- A stamper is several hundred actors (six faces, half the letters each, a
+-- box per letter, the ring of proxies) that are only needed for the three
+-- frames a string takes to render.  Hidden actors are still updated every
+-- frame, so whatever holds a stamper hibernates it between renders
+-- (Cutout.ASLEEP; a hibernating actor skips its update and its children's
+-- and is not drawn) and wakes it for each pass.
+Cutout.ASLEEP = 1e9
+
 function Cutout.NewStamper(maxChars)
 	local faces = VOLT26.CutoutMetrics and VOLT26.CutoutMetrics.faces or {}
 	local perFace = math.ceil(maxChars / 2)
@@ -563,7 +571,7 @@ function Cutout.CreateSlot(params)
 		local pass = state.passes[state.pass]
 		if not pass then
 			state.passes = nil
-			state.aft:visible(false)
+			state.aft:visible(false):hibernate(Cutout.ASLEEP)
 			state.sprite:visible(not state.held)
 			if params.onReady then params.onReady(slot) end
 			return
@@ -572,7 +580,7 @@ function Cutout.CreateSlot(params)
 		state.aft:EnablePreserveTexture(state.pass > 1)
 		state.clear:visible(state.pass == 1)
 		stamper.Pass(state.layout, pass)
-		state.aft:visible(true)
+		state.aft:hibernate(0):visible(true)
 	end
 
 	return Def.ActorFrame{
@@ -612,7 +620,7 @@ function Cutout.CreateSlot(params)
 				-- (see update()).
 				self:EnablePreserveTexture(true)
 				self:Create()
-				self:visible(false)
+				self:visible(false):hibernate(Cutout.ASLEEP)
 			end,
 			Def.Quad{
 				InitCommand=function(self)

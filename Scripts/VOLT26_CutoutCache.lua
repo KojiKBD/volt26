@@ -469,11 +469,22 @@ local function update(host)
 	if not job then
 		job = table.remove(C.queue, 1)
 		while job and job.dead do job = table.remove(C.queue, 1) end
-		if not job then return end
+		if not job then
+			-- Nothing to render: the stage's stamper sleeps (Cutout.ASLEEP).
+			if C.stage and C.stageAwake then
+				C.stage:hibernate(Cutout.ASLEEP)
+				C.stageAwake = false
+			end
+			return
+		end
 		C.current = job
 	end
 	if not drawable(host) then return end
 
+	if C.stage and not C.stageAwake then
+		C.stage:hibernate(0)
+		C.stageAwake = true
+	end
 	job.pass = job.pass + 1
 	local page, first = job.page, job.pass == 1
 	-- A page's very first pass clears it whole; afterwards only the region
@@ -511,7 +522,10 @@ function Cache.CreateHost()
 		end,
 		Def.ActorFrame{
 			Name = "Stage",
-			InitCommand = function(self) self:visible(false) end,
+			InitCommand = function(self)
+				live.stage, live.stageAwake = self, false
+				self:visible(false):hibernate(Cutout.ASLEEP)
+			end,
 			Def.Quad{
 				InitCommand = function(self)
 					live.clear = self

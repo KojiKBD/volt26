@@ -206,6 +206,9 @@ t[#t+1] = Def.ActorFrame{
 	}),
 }
 
+-- The frame meter (Theme Options -> Frame Meter), off by default.
+t[#t+1] = LoadActor(THEME:GetPathB("ScreenSystemLayer", "framemeter"))
+
 -- The menu timer's number, in cutout lettering.
 t[#t+1] = LoadActor(THEME:GetPathB("ScreenSystemLayer", "timer"))
 

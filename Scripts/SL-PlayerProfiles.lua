@@ -88,6 +88,65 @@ local permitted_profile_settings = {
 local theme_name = THEME:GetThemeDisplayName()
 local filename =  theme_name .. " UserPrefs.ini"
 
+-- Importing a profile's settings from the theme it was used with before.
+--
+-- Simply Love keeps a profile's modifiers in "Simply Love UserPrefs.ini",
+-- section [Simply Love]; VOLT26 keeps them in its own file and never read the
+-- old one, so a cabinet moving from Simply Love to VOLT26 lost every player's
+-- speed mod, note skin, judgment graphic and the rest.  The first time a
+-- profile loads under VOLT26 (no LegacyImported flag in its VOLT26 file), the
+-- old file's values are copied over -- they win over what VOLT26 may already
+-- have saved, which before this import could only be the defaults -- and the
+-- VOLT26 file is written at once with the flag set, so it happens once.  The
+-- old file is only read, never changed.  Values go through the same checks as
+-- VOLT26's own, so settings VOLT26 does not offer are dropped.
+local legacy_profile_files = {
+	{ file = "Simply Love UserPrefs.ini", section = "Simply Love" },
+}
+local LEGACY_FLAG = "LegacyImported"
+
+local function ReadLegacyProfile(dir)
+	for _, legacy in ipairs(legacy_profile_files) do
+		local legacyPath = dir .. legacy.file
+		if FILEMAN:DoesFileExist(legacyPath) then
+			local ok, ini = pcall(IniFile.ReadFile, legacyPath)
+			local contents = ok and type(ini) == "table" and ini[legacy.section] or nil
+			if type(contents) == "table" and next(contents) ~= nil then
+				return contents, legacyPath
+			end
+		end
+	end
+	return nil
+end
+
+-- The VOLT26 settings to load for a profile, importing the legacy ones the
+-- first time.  Answers a table (possibly empty).
+local function ReadProfileSettings(dir)
+	local path = dir .. filename
+	local current = {}
+	if FILEMAN:DoesFileExist(path) then
+		current = (IniFile.ReadFile(path) or {})[theme_name] or {}
+	end
+	if current[LEGACY_FLAG] then return current end
+
+	local legacy, legacyPath = ReadLegacyProfile(dir)
+	if not legacy then return current end
+
+	local merged = {}
+	for k, v in pairs(current) do merged[k] = v end
+	local imported = 0
+	for k, v in pairs(legacy) do
+		if permitted_profile_settings[k] and type(v) == permitted_profile_settings[k] then
+			merged[k] = v
+			imported = imported + 1
+		end
+	end
+	merged[LEGACY_FLAG] = true
+	IniFile.WriteFile(path, {[theme_name] = merged})
+	Trace(("VOLT26: imported %d profile setting(s) from %s"):format(imported, legacyPath))
+	return merged
+end
+
 
 -- Function called when a [GUEST] joins during SSM, either by late joining or via the fast
 -- profile switcher. It does two things:
@@ -130,8 +189,8 @@ LoadProfileCustom = function(profile, dir)
 		SL[pn].Stages = stages
 	end
 
-	if pn and FILEMAN:DoesFileExist(path) then
-		filecontents = IniFile.ReadFile(path)[theme_name]
+	if pn then
+		filecontents = ReadProfileSettings(dir)
 
 		-- for each key/value pair read in from the player's profile
 		for k,v in pairs(filecontents) do
@@ -196,6 +255,9 @@ SaveProfileCustom = function(profile, dir)
 			-- these values are saved outside the SL[pn].ActiveModifiers tables
 			-- and thus won't be handled in the loop above
 			output.PlayerOptionsString = SL[pn].PlayerOptionsString
+			-- This profile has been through the legacy import (see
+			-- ReadProfileSettings); a later save must not undo that.
+			output[LEGACY_FLAG] = true
 
 			IniFile.WriteFile( path, {[theme_name]=output} )
 
