@@ -100,7 +100,10 @@ local function CreditsText( player )
 				end
 
 				local screenName = screen:GetName()
-				if (screen:GetName() == "ScreenEvaluationStage") or (screen:GetName() == "ScreenEvaluationNonstop") or (screen:GetName() == Branch.GameplayScreen()) then
+				if screenName == "ScreenEvaluationStage" or screenName == "ScreenEvaluationNonstop" then
+					-- The WANTED page names the players on its own plates.
+					bShow = false
+				elseif screenName == Branch.GameplayScreen() then
 					-- ignore ShowCreditDisplay metric for ScreenEval
 					-- only show this BitmapText actor on Evaluation if the player is joined
 					bShow = GAMESTATE:IsHumanPlayer(player)

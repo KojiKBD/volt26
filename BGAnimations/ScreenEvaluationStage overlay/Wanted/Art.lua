@@ -153,6 +153,7 @@ return {
 			sx = 0.9,
 			sy = 1,
 			size = 42.3,
+			width = 302,
 		},
 		{
 			x = 186.1,
@@ -161,6 +162,7 @@ return {
 			sx = 0.9,
 			sy = 1,
 			size = 42.3,
+			width = 280,
 		},
 		{
 			x = 188.8,
@@ -169,6 +171,7 @@ return {
 			sx = 0.9,
 			sy = 1,
 			size = 42.3,
+			width = 280,
 		},
 		{
 			x = 247.6,
@@ -212,5 +215,7 @@ return {
 		sx = 1,
 		sy = 1,
 		size = 107.4,
+		centre = 492.83,
+		length = 1100,
 	},
 }

@@ -151,6 +151,8 @@ for name, f in pairs({
 	rainbow = function() end, effectperiod = function() end, effectoffset = function() end,
 	diffuseshift = function() end, effectcolor1 = function() end, effectcolor2 = function() end,
 	spin = function() end, wag = function() end, effectmagnitude = function() end,
+	-- Masks are not drawn; the preview does not clip to them.
+	MaskSource = function(s) s.shown = false end, MaskDest = function() end,
 	FullScreen = function(s) s.px, s.py, s.w, s.h = _screen.cx, _screen.cy, SCREEN_WIDTH, SCREEN_HEIGHT end,
 	Center = function(s) s.px, s.py = _screen.cx, _screen.cy end,
 }) do Actor[name] = ret(f) end

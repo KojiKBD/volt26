@@ -67,34 +67,85 @@ local page = Def.ActorFrame{
 }
 local cutouts = Def.ActorFrame{ Name="WantedCutouts" }
 
--- The song title along the frame's bottom edge, cut by the screen as drawn.
--- It goes under the players' sides: with two players, player 2's covers it.
+-- The song title along the frame's bottom edge, centred on the artwork's
+-- title.  A title longer than the band scrolls through it as a marquee,
+-- clipped at the band's ends by two z-buffer masks.  It goes under the
+-- players' sides: with two players, player 2's covers it.
 local title = titleText()
 local covered = T.Covered(title)
-page[#page+1] = LoadFont(covered and T.Font.Title or T.Font.Fallback)..{
+local TITLE_GAP = 160      -- between the marquee's copies, artboard pixels
+local TITLE_SPEED = 140    -- artboard pixels per second
+
+local function titleText_(name)
+	return LoadFont(covered and T.Font.Title or T.Font.Fallback)..{
+		Name=name,
+		InitCommand=function(self)
+			local a = Art.title
+			self:halign(0.5):valign(1):diffuse(color("#f11600")):settext(title)
+			local zoom = covered and a.size / T.EM.Title or a.size * T.CAP.Title / math.max(1, self:GetHeight())
+			self:zoom(zoom)
+		end,
+	}
+end
+
+local band = Def.ActorFrame{
 	Name="Title",
 	InitCommand=function(self)
 		local a = Art.title
-		local maxLength = 1100
-		self:halign(0):valign(1):xy(a.x, a.y):rotationz(a.rot):diffuse(color("#f11600")):settext(title)
-		local zoom = covered and a.size / T.EM.Title or a.size * T.CAP.Title / math.max(1, self:GetHeight())
-		self:zoom(zoom)
-		local width = self:GetZoomedWidth()
-		if width > maxLength then
-			-- Smaller down to 60 %, then narrower.  A smaller title keeps the
-			-- top of its capitals where the full size has it, so it does not
-			-- sink below the screen's edge.
-			local fit = math.max(0.6, maxLength / width)
-			self:zoom(zoom * fit)
-			if width * fit > maxLength then self:zoomx(zoom * fit * maxLength / (width * fit)) end
-			local lift, r = a.size * T.CAP.Title * (1 - fit), math.rad(a.rot)
-			self:xy(a.x + lift * math.sin(r), a.y - lift * math.cos(r))
-		end
+		local r = math.rad(a.rot)
+		self:xy(a.x + a.centre * math.cos(r), a.y + a.centre * math.sin(r)):rotationz(a.rot)
 	end,
 	OnCommand=function(self)
 		self:addy(140):decelerate(0.35):addy(-140)
+		local first, second = self:GetChild("First"), self:GetChild("Second")
+		local width = first:GetZoomedWidth()
+		local length = Art.title.length
+		if width <= length then
+			second:visible(false)
+			self:GetChild("MaskLeft"):visible(false)
+			self:GetChild("MaskRight"):visible(false)
+			return
+		end
+		-- Two copies one period apart, starting with the title's start at the
+		-- band's left end, moving left forever.
+		local period = width + TITLE_GAP
+		self.start = -length / 2 + width / 2
+		self.period = period
+		first:MaskDest():x(self.start)
+		second:MaskDest():x(self.start + period)
+		self:sleep(1.5):queuecommand("Scroll")
 	end,
+	ScrollCommand=function(self)
+		local seconds = self.period / TITLE_SPEED
+		for _, name in ipairs({ "First", "Second" }) do
+			local text = self:GetChild(name)
+			text:linear(seconds):addx(-self.period)
+		end
+		self:sleep(seconds):queuecommand("Wrap")
+	end,
+	WrapCommand=function(self)
+		self:GetChild("First"):x(self.start)
+		self:GetChild("Second"):x(self.start + self.period)
+		self:queuecommand("Scroll")
+	end,
+	-- Masks first: they hide what is outside the band from the copies.
+	Def.Quad{
+		Name="MaskLeft",
+		InitCommand=function(self)
+			self:halign(1):valign(0.5):x(-Art.title.length / 2):zoomto(3000, 600):MaskSource(true)
+		end,
+	},
+	Def.Quad{
+		Name="MaskRight",
+		InitCommand=function(self)
+			self:halign(0):valign(0.5):x(Art.title.length / 2):zoomto(3000, 600):MaskSource()
+		end,
+	},
+	titleText_("First"),
+	titleText_("Second"),
 }
+page[#page+1] = band
+
 
 -- A single player's side is always the left one, whichever side they joined
 -- on; with two players each has their own.

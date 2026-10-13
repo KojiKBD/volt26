@@ -254,6 +254,9 @@ def main():
             # Measure while everything is shown (hidden text has no geometry).
             texts = page.evaluate(TEXT_JS, {"plates": ITEM_PLATES, "ladder": ITEM_LADDER,
                                              "mods": ITEM_MODS, "title": ITEM_TITLE})
+            # The title's length.
+            title_length = page.evaluate("""(i) => document.getElementById('Layer_1')
+                .children[i].getBBox().width""", ITEM_TITLE)
             digits = page.evaluate("""(i) => {
                 const g = document.getElementById('Layer_1').children[i].children[2];
                 return [...g.children].map(e => { const r = e.getBoundingClientRect();
@@ -273,6 +276,33 @@ def main():
 
     plates, ladder = texts["plates"], texts["ladder"]
     rows = [dict(placement(t["m"]), size=t["spans"][0]["size"]) for t in ladder[:7]]
+    # A row beside the holds box may run at most to a little short of the box's
+    # left edge at the row's height: its width, along the row, before the
+    # row's horizontal scale.
+    box = points(items[ITEM_LADDER][0][0][0].get("points"))
+
+    def left_edge(y):
+        xs = []
+        for (x0, y0), (x1, y1) in zip(box, box[1:] + box[:1]):
+            if (y0 <= y <= y1 or y1 <= y <= y0) and y0 != y1:
+                xs.append(x0 + (x1 - x0) * (y - y0) / (y1 - y0))
+        return min(xs) if xs else None
+
+    for row in rows:
+        r, sx = math.radians(row["rot"]), row["sx"]
+        # Walk along the row (u in the row's own units) until its baseline or
+        # cap line comes within 14 px of the box.
+        for u in range(0, 420, 2):
+            hit = False
+            for d in (0, row["size"] * 0.72):
+                x = row["x"] + u * sx * math.cos(r) + d * math.sin(r)
+                y = row["y"] + u * sx * math.sin(r) - d * math.cos(r)
+                e = left_edge(y)
+                if e is not None and x > e - 14:
+                    hit = True
+            if hit:
+                row["width"] = float(u)
+                break
     extra = ladder[7]
     ell, vee, one, five = digits
     level_rot = math.degrees(math.atan2((five[1] + five[3]) - (one[1] + one[3]), five[0] - one[0]))
@@ -304,7 +334,10 @@ def main():
                       lineGap=extra["spans"][2]["y"] - extra["spans"][0]["y"]),
         "mods": dict(placement(texts["mods"][0]["m"]), size=texts["mods"][0]["spans"][0]["size"],
                      lineGap=texts["mods"][0]["spans"][1]["y"]),
-        "title": dict(placement(texts["title"][0]["m"]), size=texts["title"][0]["spans"][0]["size"]),
+        # The title is centred on the artwork's title ("centre" along the
+        # line from its start) and scrolls when longer than `length`.
+        "title": dict(placement(texts["title"][0]["m"]), size=texts["title"][0]["spans"][0]["size"],
+                      centre=title_length / 2, length=1100),
     }
     lua_path = os.path.join(theme, "BGAnimations", "ScreenEvaluationStage overlay", "Wanted", "Art.lua")
     os.makedirs(os.path.dirname(lua_path), exist_ok=True)

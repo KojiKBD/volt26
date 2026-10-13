@@ -113,10 +113,11 @@ for index, row in ipairs(card.rows) do
 		local bright, dim = tints[1], tints[2]
 		if not row.enabled then bright, dim = OFF, OFF end
 		local digits, lead = T.Padded(row.count, COUNT_DIGITS)
+		-- Rows beside the holds box stop short of it (anchor.width).
 		ladder[#ladder+1] = T.Run(anchor, {
 			{ font = "Label", size = anchor.size, color = bright, text = row.label .. " · " },
 			{ font = "Label", size = anchor.size, color = bright, text = digits, dim = { lead, dim } },
-		}, mirror)
+		}, mirror, anchor.width)
 	end
 end
 

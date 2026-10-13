@@ -15,7 +15,7 @@ artwork.
 | All text, the level, the scores, the counts | `overlay/Wanted/Side.lua` through `overlay/Wanted/Text.lua`, at the artwork's text anchors (position, rotation, horizontal scale). |
 | Player name, letter grade | Cutout lettering (`VOLT26.Cutout`), styles `EvalName` and `EvalGrade` in `Scripts/VOLT26_CutoutStyles.lua`; warmed at startup. Star grades (Tier00-04) use the grade star picture. |
 | Graph | `overlay/Wanted/Graph.lua` |
-| Song title | `overlay/default.lua`, along the frame's bottom edge. |
+| Song title | `overlay/default.lua`, along the frame's bottom edge, centred on the artwork's title. A title longer than 1100 px scrolls as a marquee (two copies, clipped at the band's ends by z-buffer masks). |
 | Data | `VOLT26.EvaluationPage` (`Scripts/VOLT26_EvaluationPage.lua`): `GetCard(player)` and `GetGraph(player)`. No actors. |
 
 All drawing is in artboard pixels (1920x1080) under one frame zoomed to the
@@ -97,7 +97,22 @@ list.
 opens, for the modules that waited for the old result sequence (for example
 the five-star cat).
 
+The judgment rows beside the holds box are held short of its left edge
+(`rows[i].width` in `Art.lua`, measured on the box's outline). The credit
+line's player names (ScreenSystemLayer) are not shown on this screen; the
+plates name the players.
+
 ## Rebuilding from Illustrator
+
+The backdrop must come from Illustrator itself: the SVG export loses the
+raster images (its linked files come out misnumbered) and the effects of the
+top-left red area and the star pattern's shading. Run
+`tools/evaluation/export_eval_art.jsx` in Illustrator (File > Scripts > Other
+Script...) and copy `tools/evaluation/art/backdrop.png` to
+`Graphics/VOLT26/Wanted/backdrop.png`. The script leaves the document alone
+and also writes `full.png` (the whole artboard) and `items.json`.
+
+The plates, the anchors and the geometry still come from the SVG:
 
 1. Export the Illustrator document as SVG to `tools/notes-radar/art/radar.svg`.
    This is the same document and export as the notes radar.
