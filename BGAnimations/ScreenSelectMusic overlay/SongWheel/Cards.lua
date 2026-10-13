@@ -172,19 +172,22 @@ local function fill(card, art, player, item)
 	end
 
 	local strip, edge = densityVertices(art.graph, chart and data or nil, DENSITY[player] or DENSITY[PLAYER_1])
-	P.SetVertices(card:GetChild("Density"), strip)
-	P.SetVertices(card:GetChild("DensityEdge"), edge)
+	local graph = card:GetChild("Graph")
+	P.SetVertices(graph:GetChild("Density"), strip)
+	P.SetVertices(graph:GetChild("DensityEdge"), edge)
 	local breakdown = card:GetChild("Breakdown")
 	local graphWidth = art.graph.topRight[1] - art.graph.topLeft[1]
 	breakdownText(chart, player, breakdown:GetChild("Text"), graphWidth * 0.8)
 	breakdown.layout()
 
-	-- A new chart: its graph rises from the floor.
+	-- A new chart: its graph fades in.  The fade is on the frame around the
+	-- two ActorMultiVertex, never on them: an AMV tweens its vertices along
+	-- with its colour, and vertices set while such a tween runs (fast wheel
+	-- scrolling) were interpolated from the origin, leaving a streak across
+	-- the screen.
 	if card.chart ~= chart then
 		card.chart = chart
-		for _, child in ipairs({ "Density", "DensityEdge" }) do
-			card:GetChild(child):stoptweening():diffusealpha(0):decelerate(0.22):diffusealpha(1)
-		end
+		graph:stoptweening():diffusealpha(0):decelerate(0.22):diffusealpha(1)
 	end
 end
 
@@ -215,10 +218,13 @@ for c, art in ipairs(Art.cards) do
 			Texture = THEME:GetPathG("", "VOLT26/SongSelect/" .. art.picture .. ".png"),
 			InitCommand = function(self) self:align(0, 0):xy(art.x, art.y) end,
 		},
-		Def.ActorMultiVertex{ Name = "Density",
-			InitCommand = function(self) self:SetDrawState{ Mode = "DrawMode_QuadStrip" } end },
-		Def.ActorMultiVertex{ Name = "DensityEdge",
-			InitCommand = function(self) self:SetDrawState{ Mode = "DrawMode_LineStrip" }:SetLineWidth(1.5) end },
+		Def.ActorFrame{
+			Name = "Graph",
+			Def.ActorMultiVertex{ Name = "Density",
+				InitCommand = function(self) self:SetDrawState{ Mode = "DrawMode_QuadStrip" } end },
+			Def.ActorMultiVertex{ Name = "DensityEdge",
+				InitCommand = function(self) self:SetDrawState{ Mode = "DrawMode_LineStrip" }:SetLineWidth(1.5) end },
+		},
 		-- The name, centred on the upper white plate; the lettering's own tilt
 		-- (-3 degrees) plus the frame's turn make the artwork's.
 		Def.ActorFrame{
