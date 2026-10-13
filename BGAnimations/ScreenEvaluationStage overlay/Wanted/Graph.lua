@@ -174,50 +174,78 @@ local function each(self, names, f)
 end
 
 if p.introDelay then
+	-- The sweep is driven by an update function installed with the screen,
+	-- not by a command queued on this frame's tweens: anything that stopped
+	-- those tweens used to leave the graph hidden for good.  If the intro
+	-- never arrives, the whole graph is shown after SAFETY seconds.
+	local SAFETY = 8
+	local intro, wait, started, done, elapsed, life = false, 0, false, false, 0, 0
+
+	local function sweepTo(frame, progress, final)
+		for _, entry in ipairs(SWEPT) do
+			local child = frame:GetChild(entry[1])
+			if child then
+				if final then
+					child:visible(true):SetDrawState{ Num = -1 }
+				else
+					local step, least = entry[2], entry[3]
+					local n = math.floor(progress * child:GetNumVertices() / step) * step
+					child:visible(n >= least)
+					if n >= least then child:SetDrawState{ Num = n } end
+				end
+			end
+		end
+	end
+
+	local function finish(frame, blink)
+		done = true
+		sweepTo(frame, 1, true)
+		each(frame, FADED, function(child) child:finishtweening():diffusealpha(1) end)
+		each(frame, LAST, function(child)
+			child:visible(true):finishtweening()
+			if blink then
+				-- A quick blink: these actors are placed in the frame's own
+				-- units, so they are not zoomed.
+				child:diffusealpha(0):linear(0.05):diffusealpha(1):linear(0.05):diffusealpha(0.25)
+					:linear(0.05):diffusealpha(1)
+			else
+				child:diffusealpha(1)
+			end
+		end)
+	end
+
 	af.OnCommand = function(self)
+		-- Hidden until the sweep (the intro may already have been announced;
+		-- its wait then runs from here).
 		for _, entry in ipairs(SWEPT) do
 			local child = self:GetChild(entry[1])
 			if child then child:visible(false) end
 		end
 		each(self, FADED, function(child) child:diffusealpha(0) end)
 		each(self, LAST, function(child) child:visible(false) end)
+		self:SetUpdateFunction(function(frame, delta)
+			if done then return end
+			delta = tonumber(delta) or 0
+			life = life + delta
+			if not intro then
+				if life >= SAFETY then finish(frame, false) end
+				return
+			end
+			if not started then
+				wait = wait - delta
+				if wait > 0 then return end
+				started, elapsed = true, 0
+				each(frame, FADED, function(child) child:finishtweening():diffusealpha(0):linear(0.25):diffusealpha(1) end)
+			end
+			elapsed = elapsed + delta
+			local t = math.min(1, elapsed / SWEEP)
+			if t >= 1 then finish(frame, true) return end
+			sweepTo(frame, 1 - (1 - t) * (1 - t), false)
+		end)
 	end
 	af.VOLT26EvaluationWantedIntroMessageCommand = function(self)
-		self:stoptweening():sleep(p.introDelay):queuecommand("Sweep")
-	end
-	af.SweepCommand = function(self)
-		each(self, FADED, function(child) child:finishtweening():diffusealpha(0):linear(0.25):diffusealpha(1) end)
-		local elapsed = 0
-		self.sweeping = true
-		self:SetUpdateFunction(function(frame, delta)
-			if not frame.sweeping then return end
-			elapsed = elapsed + (tonumber(delta) or 0)
-			local t = math.min(1, elapsed / SWEEP)
-			local progress = 1 - (1 - t) * (1 - t)
-			for _, entry in ipairs(SWEPT) do
-				local child = frame:GetChild(entry[1])
-				if child then
-					if t >= 1 then
-						child:visible(true):SetDrawState{ Num = -1 }
-					else
-						local step, least = entry[2], entry[3]
-						local n = math.floor(progress * child:GetNumVertices() / step) * step
-						child:visible(n >= least)
-						if n >= least then child:SetDrawState{ Num = n } end
-					end
-				end
-			end
-			if t >= 1 then
-				frame.sweeping = false
-				each(frame, LAST, function(child)
-					-- A quick blink: these actors are placed in the frame's
-					-- own units, so they are not zoomed.
-					child:visible(true):finishtweening():diffusealpha(0)
-						:linear(0.05):diffusealpha(1):linear(0.05):diffusealpha(0.25)
-						:linear(0.05):diffusealpha(1)
-				end)
-			end
-		end)
+		if intro then return end
+		intro, wait = true, p.introDelay
 	end
 end
 

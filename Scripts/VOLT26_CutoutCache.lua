@@ -349,9 +349,11 @@ function Cache.WarmStartup()
 		add(name, "SongFooterName")
 		add(name, "EvalName")
 	end
+	-- A guest is named by its side.
 	for _, short in ipairs({ "P1", "P2" }) do
 		add(short, "SongCardName")
 		add(short, "SongFooterName")
+		add(short, "EvalName")
 	end
 
 	-- Packs, nearest first around the packs the profiles last played and the

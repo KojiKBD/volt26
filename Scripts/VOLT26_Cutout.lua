@@ -318,6 +318,13 @@ end
 -- and is not drawn) and wakes it for each pass.
 Cutout.ASLEEP = 1e9
 
+-- How long a slot waits, in seconds, before it stops waiting for the cache
+-- (PATIENCE_CACHE), for the tweens above it (PATIENCE_TWEEN) and for its
+-- ancestors to be fully opaque (PATIENCE_ALPHA) before drawing its string.
+Cutout.PATIENCE_CACHE = 1.5
+Cutout.PATIENCE_TWEEN = 1.0
+Cutout.PATIENCE_ALPHA = 3.0
+
 function Cutout.NewStamper(maxChars)
 	local faces = VOLT26.CutoutMetrics and VOLT26.CutoutMetrics.faces or {}
 	local perFace = math.ceil(maxChars / 2)
@@ -510,6 +517,7 @@ function Cutout.CreateSlot(params)
 
 	local function setText(slot, text)
 		state.text = text
+		state.since = GetTimeSinceStart()
 		state.passes = nil
 		state.entry, state.waiting = nil, false
 		state.cached:visible(false)
@@ -543,13 +551,26 @@ function Cutout.CreateSlot(params)
 	-- slot and every ancestor are visible, fully opaque and not tweening.
 	-- GetDiffuseAlpha reports where a tween is heading, not where it is, so a
 	-- fade in progress is caught by its remaining tween time instead.
-	local function drawnOpaque(actor)
+	--
+	-- A screen that keeps something moving above the slot (an intro, a
+	-- marquee, a long sleep on its root) would hold the string back for good,
+	-- so the wait is limited: after PATIENCE_TWEEN seconds a tween no longer
+	-- stops a pass, and after PATIENCE_ALPHA neither does an ancestor's alpha
+	-- (faint lettering is better than none).  Visibility always counts.
+	local function drawnOpaque(actor, waited)
+		local ignoreTween = waited >= Cutout.PATIENCE_TWEEN
+		local ignoreAlpha = waited >= Cutout.PATIENCE_ALPHA
 		while actor do
-			if not actor:GetVisible() or actor:GetDiffuseAlpha() < 1
-			or actor:GetTweenTimeLeft() > 0 then return false end
+			if not actor:GetVisible()
+			or (not ignoreAlpha and actor:GetDiffuseAlpha() < 1)
+			or (not ignoreTween and actor:GetTweenTimeLeft() > 0) then return false end
 			actor = actor:GetParent()
 		end
 		return true
+	end
+
+	local function waited()
+		return GetTimeSinceStart() - (state.since or 0)
 	end
 
 	local function update(slot)
@@ -562,11 +583,19 @@ function Cutout.CreateSlot(params)
 			end
 			-- Marks the entry in use, so the cache does not reclaim it.
 			Cutout.Cache.Touch(e)
-			if state.waiting and e.ready then showEntry(slot) end
+			if state.waiting and e.ready then showEntry(slot) return end
+			-- The cache is taking too long (a long queue, or it cannot draw
+			-- at all just now): the slot renders the string itself.
+			if state.waiting and state.layout and waited() >= Cutout.PATIENCE_CACHE then
+				state.entry, state.waiting = nil, false
+				frameBlock(state.layout)
+				state.passes = backingPasses(state.layout.outline)
+				state.pass = 0
+			end
 			return
 		end
 
-		if not state.passes or not drawnOpaque(slot) then return end
+		if not state.passes or not drawnOpaque(slot, waited()) then return end
 		state.pass = state.pass + 1
 		local pass = state.passes[state.pass]
 		if not pass then
