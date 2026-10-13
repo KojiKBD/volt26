@@ -31,6 +31,16 @@ L.Accent  = color("#e03a2f")
 L.Deep    = color("#3d1114")
 L.Border  = color("#482426")
 
+-- The Persona dress of the dock and the strip: the theme's red (the WANTED
+-- page's #f11600), black slabs edged in white, and white for whatever the
+-- cursor is on.
+L.Red     = color("#f11600")
+L.Black   = color("#000000")
+L.White   = color("#ffffff")
+L.Slant   = -0.18                     -- the slabs' skew (x per unit of y)
+L.SlabEdge = 5                        -- the white edge around a slab
+L.SlabShadow = {14, 10}               -- the red slab behind, offset
+
 -- Typography.  Two faces, the same glyphs: the letter-spaced "VOLT26 Light
 -- Label" for every uppercase label, and plain Helvetica Normal for names.  Both
 -- share Helvetica's 26-unit cap height, so a design pixel size lands by
@@ -95,6 +105,13 @@ end
 L.LabelText   = textActor(L.Label,   L.LabelZoom, L.Mute)
 L.DisplayText = textActor(L.Display, L.Zoom,      L.Ink)
 
+-- The tiles' words and the pills' names are set in the WANTED page's bold
+-- face (Archivo 700, "VOLT26 Eval Bold"): 48 px to the em, capitals 33 px.
+L.Tag = "VOLT26 Eval Bold"
+local tagCap = 33
+function L.TagZoom(px) return px/tagCap end
+L.TagText = textActor(L.Tag, L.TagZoom, L.White)
+
 local function setText(actor, text, zoom, width)
 	if not actor then return zoom end
 	actor:settext(tostring(text or "")):zoom(zoom)
@@ -108,6 +125,11 @@ end
 
 function L.SetDisplay(actor, text, px, width)
 	return setText(actor, text, L.Zoom(px), width)
+end
+
+-- After setText, which it uses: a local is only visible below its own line.
+function L.SetTag(actor, text, px, width)
+	return setText(actor, L.Upper(text), L.TagZoom(px), width)
 end
 
 function L.Rule(t)
@@ -168,6 +190,49 @@ function L.SizeFrame(af, width, height, thickness, tint)
 	end
 end
 
+-- A quad sized w x h and slanted by L.Slant.  A Quad is a unit square zoomed
+-- to its size and the skew is applied before the zoom, so the skew that gives
+-- the same slant at any width is L.Slant * h / w.
+function L.SlantTo(quad, width, height)
+	return quad:zoomto(width, height):skewx(L.Slant * height / math.max(width, 1))
+end
+
+-- A slab: a black parallelogram edged in white over a red one set off to
+-- the lower right, the way the theme's panels are cut.  Built around its own
+-- centre; L.SizeSlab gives it a size.
+function L.Slab(name)
+	local function part(partName, tint)
+		return Def.Quad{
+			Name=partName,
+			InitCommand=function(self) self:diffuse(tint) end,
+		}
+	end
+	return Def.ActorFrame{
+		Name=name,
+		part("Shadow", L.Red),
+		part("Edge", L.White),
+		part("Body", L.Black),
+	}
+end
+
+function L.SizeSlab(af, width, height, tween)
+	if not af then return end
+	local edge, shadow = L.SlabEdge, L.SlabShadow
+	local parts = {
+		{"Shadow", width + edge*2, height + edge*2, shadow[1], shadow[2]},
+		{"Edge",   width + edge*2, height + edge*2, 0, 0},
+		{"Body",   width,          height,          0, 0},
+	}
+	for _, part in ipairs(parts) do
+		local quad = af:GetChild(part[1])
+		if quad then
+			quad:finishtweening()
+			if tween then quad:decelerate(tween) end
+			L.SlantTo(quad, part[2], part[3]):xy(part[4], part[5])
+		end
+	end
+end
+
 ------------------------------------------------------------
 -- The dock.
 
@@ -177,10 +242,11 @@ L.BarBottom   = L.HalfH - 44          -- the bar's own bottom edge
 
 L.TileSize    = 104
 L.TileGap     = 26
-L.IconSize    = 56
+L.IconSize    = 72
 L.IconSource  = 192                   -- the icon PNGs are square at this size
 L.LabelGap    = 14
-L.LabelPx     = 15
+L.LabelPx     = 16
+L.LabelW      = 118                   -- a word squeezes to fit its tile's pitch
 
 L.DockH       = L.BarPadY*2 + L.TileSize + L.LabelGap + L.LabelPx + 4
 L.DockTop     = L.BarBottom - L.DockH

@@ -61,13 +61,6 @@ local counters = {
 	{"HANDS", "hands"},
 }
 
--- The design shortens two of the radar's axis names to keep both ends of the
--- hexagon inside the column.
-local axisNames = {
-	FOOTSWITCH = "FOOTSW",
-	SIDESWITCH = "SIDESW",
-}
-
 local gradeStars = {
 	Grade_Tier00 = 5, Grade_Tier01 = 4, Grade_Tier02 = 3,
 	Grade_Tier03 = 2, Grade_Tier04 = 1,
@@ -84,63 +77,104 @@ local gradeAssetSize = 200
 local gradeIconSize = 18
 local transparent = color("0,0,0,0")
 
-local radarLabelDistance = 1.28
-local radarLabelWidth = 66
-local radarEdgeMargin = 8
--- The widest the hexagon may grow inside a column of the given width: a label
--- sits at radarLabelDistance radii, the two side axes stand at cos(30) of that,
--- and the label itself is allowed radarLabelWidth beyond that point.
-local function radarRadiusForWidth(width)
-	return math.floor(
-		(width/2 - radarLabelWidth - radarEdgeMargin) / (math.cos(math.rad(30)) * radarLabelDistance))
-end
+-- The notes radar is the owner's star artwork, kept exactly as drawn.  The
+-- dark star and its glow (backdrop.png) stand for "full on every axis"; the
+-- chart's own reading is an orange star raised inside it, aimed at the dark
+-- star's own points and valleys, so a chart full on every axis fills it
+-- exactly.  Every point is split into a lit half and a shaded half with a
+-- dotted seam down its ridge, like a folded paper star.  The axis names and
+-- icons are the artwork's own (labels.png).  All three come from
+-- tools/notes-radar/build_radar_art.py.
+local radarArt = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/VOLT26/RadarArt.lua"))
+local radarStar = {
+	Lit   = color("#F3A608"),
+	Shade = color("#D38F00"),
+	Seam  = color("#823500"),
+	Label = color("#FFF700"),
+	-- The seams' dot pitch and dot size, in radar radii, measured from the
+	-- artwork's orange star.
+	SeamPitch = 0.124,
+	SeamDot = 0.008,
+	-- Plain-text fallback labels, when labels.png is missing, stand this many
+	-- radii out along their axis.
+	FallbackDistance = 1.14,
+	FallbackWidth = 70,
+}
 
-local radarMaxRadius = radarRadiusForWidth(radarW)
+local radarAssetDir = "Graphics/VOLT26/SongSelection/NotesRadar/"
+-- GetCurrentThemeDirectory() is relative ("Themes/VOLT26/"); a Sprite would
+-- resolve a relative Texture against this file's own folder, so anchor it.
+local function radarAsset(file)
+	local path = "/" .. THEME:GetCurrentThemeDirectory() .. radarAssetDir .. file
+	path = path:gsub("^//", "/")
+	return FILEMAN:DoesFileExist(path) and path or nil
+end
+local radarBackdropPath = radarAsset("backdrop.png")
+local radarLabelsPath = radarAsset("labels.png")
+
+-- The largest radar, backdrop and labels included, that fits a block of the
+-- given size.  The artwork's labels overlap the points; the plain-text
+-- fallback stands outside them, so without the artwork the sides keep room.
+local radarReach = radarArt.Reach
+local function radarRadiusFor(width, height, plainLabels)
+	local sideRoom = plainLabels and radarStar.FallbackWidth or 0
+	return math.floor(math.min(
+		(width/2 - 6 - sideRoom) / math.max(radarReach.Left, radarReach.Right),
+		height / (radarReach.Up + radarReach.Down)))
+end
 
 local radarAxisCount = VOLT26.ChartRadar.GetAxisCount()
-local radarAngles = {}
-for i=1, radarAxisCount do
-	radarAngles[i] = math.rad(-90 + (i-1) * (360/radarAxisCount))
-end
+local radarTips, radarValleys = radarArt.Tips, radarArt.Valleys
 
 local function gradeAssetPath(file)
 	return THEME:GetPathG("", "_grades/assets/"..file)
 end
 
-local function radarPoint(radius, index)
-	local angle = radarAngles[index]
-	return math.cos(angle)*radius, math.sin(angle)*radius
-end
-
-local function uniformRadii(radius)
-	local radii = {}
-	for i=1, radarAxisCount do radii[i] = radius end
-	return radii
-end
-
--- Every radar shape is a quad strip: a filled area is a fan of degenerate quads
--- anchored on the centre, an outline is a band between two radii.
-local function fanVertices(radii, rgba)
+-- Every point of the star is two triangles meeting on the ridge from the
+-- centre to the tip: the one on its anticlockwise side is shaded, the one on
+-- its clockwise side lit, which is how the artwork folds its points.  `tips`
+-- and `valleys` are the readings from VOLT26.ChartRadar.StarRadii (with an
+-- inner ratio of 1, so a valley is the mean of its two points); each scales
+-- the artwork's own point or valley, and `radius` turns radar radii into
+-- pixels.
+local function starVertices(tips, valleys, radius, lit, shade)
 	local vertices = {}
-	for i=1, radarAxisCount+1 do
-		local index = i <= radarAxisCount and i or 1
-		local x, y = radarPoint(radii[index] or 0, index)
-		vertices[#vertices+1] = {{0,0,0}, rgba}
-		vertices[#vertices+1] = {{x,y,0}, rgba}
+	for i=1, radarAxisCount do
+		local before = i == 1 and radarAxisCount or i-1
+		local t, b, a = radarTips[i], radarValleys[before], radarValleys[i]
+		local ts, bs, as = tips[i]*radius, valleys[before]*radius, valleys[i]*radius
+		local tx, ty = t[1]*ts, t[2]*ts
+		local bx, by = b[1]*bs, b[2]*bs
+		local ax, ay = a[1]*as, a[2]*as
+		vertices[#vertices+1] = {{0,0,0}, shade}
+		vertices[#vertices+1] = {{bx,by,0}, shade}
+		vertices[#vertices+1] = {{tx,ty,0}, shade}
+		vertices[#vertices+1] = {{0,0,0}, lit}
+		vertices[#vertices+1] = {{tx,ty,0}, lit}
+		vertices[#vertices+1] = {{ax,ay,0}, lit}
 	end
 	return vertices
 end
 
-local function bandVertices(radii, width, rgba)
+-- The dotted seams: small squares at an even pitch along the ridge from the
+-- centre to every point, as in the artwork.
+local function seamVertices(tips, radius, rgba)
 	local vertices = {}
-	local half = width/2
-	for i=1, radarAxisCount+1 do
-		local index = i <= radarAxisCount and i or 1
-		local radius = radii[index] or 0
-		local ix, iy = radarPoint(math.max(0, radius-half), index)
-		local ox, oy = radarPoint(radius+half, index)
-		vertices[#vertices+1] = {{ix,iy,0}, rgba}
-		vertices[#vertices+1] = {{ox,oy,0}, rgba}
+	local pitch = math.max(5, radius*radarStar.SeamPitch)
+	local half = math.max(0.75, radius*radarStar.SeamDot/2)
+	for i=1, radarAxisCount do
+		local t = radarTips[i]
+		local length = math.sqrt(t[1]*t[1] + t[2]*t[2]) * tips[i] * radius
+		local dx, dy = t[1]/math.sqrt(t[1]*t[1] + t[2]*t[2]), t[2]/math.sqrt(t[1]*t[1] + t[2]*t[2])
+		local d = pitch
+		while d < length - pitch*0.5 do
+			local x, y = dx*d, dy*d
+			vertices[#vertices+1] = {{x-half,y-half,0}, rgba}
+			vertices[#vertices+1] = {{x+half,y-half,0}, rgba}
+			vertices[#vertices+1] = {{x+half,y+half,0}, rgba}
+			vertices[#vertices+1] = {{x-half,y+half,0}, rgba}
+			d = d + pitch
+		end
 	end
 	return vertices
 end
@@ -486,19 +520,21 @@ af[#af+1] = graph
 
 -- -------------------------------------------------------------------- radar
 
--- The hexagon takes the screen edge of the column and the difficulty list
--- stands beside it against the wheel, where the left and right the player
--- presses to change it are pointing.
+-- The star takes the screen edge of the column and the difficulty list stands
+-- beside it against the wheel, where the left and right the player presses to
+-- change it are pointing.
 local radarColumn = Def.ActorFrame{
 	Name="RadarColumn",
 	LayOutCommand=function(self, p)
 		local m = p.Metrics
-		local captionY = m.ShapesTop + 6
+		local areaTop = m.ShapesTop + 20
 		local available = m.ShapesHeight - 20
-		local radius = math.min(radarMaxRadius, available/2 - 12)
+		local radius = radarRadiusFor(radarW, available, radarLabelsPath == nil)
+		local reach = radarReach.Up + radarReach.Down
 		self.radarRadius = radius
-		self:GetChild("Caption"):xy(fromOuter(padX), captionY)
-		self:GetChild("Radar"):xy(blockX(0, radarW) + radarW/2, m.ShapesTop + 20 + available/2)
+		self:GetChild("Caption"):xy(fromOuter(padX), m.ShapesTop + 6)
+		self:GetChild("Radar"):xy(blockX(0, radarW) + radarW/2,
+			areaTop + (available - radius*reach)/2 + radius*radarReach.Up)
 	end,
 	FillCommand=function(self, p)
 		H.SetLabel(self:GetChild("Caption"), "NOTES RADAR", 9)
@@ -510,26 +546,34 @@ local radarColumn = Def.ActorFrame{
 		if not hasRadar then return end
 
 		local radius = self.radarRadius
-		setVertices(radar:GetChild("Outer"), bandVertices(uniformRadii(radius), 1, {1,1,1,0.16}))
-		setVertices(radar:GetChild("Inner"), bandVertices(uniformRadii(radius*0.5), 1, {1,1,1,0.10}))
-		for i=1, radarAxisCount do
-			radar:GetChild("Spoke"..i)
-				:zoomto(radius, 1)
-				:rotationz(-90 + (i-1) * (360/radarAxisCount))
+		local backdrop = radar:GetChild("Backdrop")
+		if backdrop then backdrop:zoom(radius/radarArt.ArtRadius) end
+
+		local tips, valleys = VOLT26.ChartRadar.StarRadii(axes, 1)
+		local reading = radar:GetChild("Reading")
+		setVertices(reading:GetChild("Faces"),
+			starVertices(tips, valleys, radius, radarStar.Lit, radarStar.Shade))
+		setVertices(reading:GetChild("Seams"), seamVertices(tips, radius, radarStar.Seam))
+		-- A new chart's star grows out of the centre rather than snapping.
+		if self.lastChart ~= p.Chart then
+			self.lastChart = p.Chart
+			reading:stoptweening():zoom(0.82):decelerate(0.16):zoom(1)
 		end
 
-		local radii = {}
-		for i, axis in ipairs(axes) do radii[i] = radius * axis.Scaled end
-		setVertices(radar:GetChild("Fill"), fanVertices(radii, {accent[1], accent[2], accent[3], 0.50}))
-		setVertices(radar:GetChild("Outline"), bandVertices(radii, 1.5, {accent[1], accent[2], accent[3], 1}))
-
+		local art = radar:GetChild("Labels")
+		if art then
+			art:zoom(radius/radarArt.ArtRadius)
+			return
+		end
 		for i, axis in ipairs(axes) do
 			local label = radar:GetChild("Label"..i)
-			local x, y = radarPoint(radius*radarLabelDistance, i)
-			local cosine = math.cos(radarAngles[i])
-			H.SetLabel(label, axisNames[axis.Label] or axis.Label, 9, radarLabelWidth)
-			label:xy(x, y):diffuse(axis.Value >= 0.5 and accent or H.Dim)
-			if math.abs(cosine) < 0.01 then
+			local t = radarTips[i]
+			local x, y = t[1]*radius*radarStar.FallbackDistance, t[2]*radius*radarStar.FallbackDistance
+			local length = math.sqrt(t[1]*t[1] + t[2]*t[2])
+			local cosine = t[1]/length
+			H.SetLabel(label, axis.Label, 9, radarStar.FallbackWidth)
+			label:xy(x, y):diffuse(axis.Value >= 0.5 and radarStar.Label or H.Dim)
+			if math.abs(cosine) < 0.3 then
 				label:horizalign(center)
 			else
 				label:horizalign(cosine > 0 and left or right)
@@ -539,28 +583,32 @@ local radarColumn = Def.ActorFrame{
 }
 radarColumn[#radarColumn+1] = H.LabelText{Name="Caption", Px=9, Tint=H.Dim, Align=outerAlign}
 
-local radar = Def.ActorFrame{Name="Radar"}
-local function radarShape(name)
+local function radarShape(name, mode)
 	return Def.ActorMultiVertex{
 		Name=name,
-		InitCommand=function(self) self:SetDrawState({Mode="DrawMode_QuadStrip"}) end,
+		InitCommand=function(self) self:SetDrawState({Mode=mode}) end,
 	}
 end
+
+local radar = Def.ActorFrame{Name="Radar"}
 radarColumn[#radarColumn+1] = radar
-radar[#radar+1] = radarShape("Outer")
-radar[#radar+1] = radarShape("Inner")
-for i=1, radarAxisCount do
-	radar[#radar+1] = Def.Quad{
-		Name="Spoke"..i,
-		-- Anchored at the centre and rotated outwards, so one quad per axis is
-		-- all the spokes cost.
-		InitCommand=function(self) self:align(0,0.5):diffuse(H.Line) end,
-	}
+if radarBackdropPath then
+	-- The owner's dark star and its glow, centred on the star.
+	radar[#radar+1] = Def.Sprite{Name="Backdrop", Texture=radarBackdropPath}
 end
-radar[#radar+1] = radarShape("Fill")
-radar[#radar+1] = radarShape("Outline")
-for i=1, radarAxisCount do
-	radar[#radar+1] = H.LabelText{Name="Label"..i, Px=9, Tint=H.Dim}
+radar[#radar+1] = Def.ActorFrame{
+	Name="Reading",
+	radarShape("Faces", "DrawMode_Triangles"),
+	radarShape("Seams", "DrawMode_Quads"),
+}
+if radarLabelsPath then
+	-- The artwork already places every name and icon around its own star, so
+	-- one sprite centred on the star and scaled to its radius is the layout.
+	radar[#radar+1] = Def.Sprite{Name="Labels", Texture=radarLabelsPath}
+else
+	for i=1, radarAxisCount do
+		radar[#radar+1] = H.LabelText{Name="Label"..i, Px=9, Tint=H.Dim}
+	end
 end
 af[#af+1] = radarColumn
 
@@ -575,7 +623,7 @@ local difficultyColumn = Def.ActorFrame{
 		local slotH = math.min(slotMaxHeight,
 			(listHeight - slotGap*(#difficulties-1))/#difficulties)
 		local blockLeft = blockX(radarW + shapesGap, difficultyW)
-		-- The whole list is centred on the hexagon beside it rather than
+		-- The whole list is centred on the star beside it rather than
 		-- hanging from the caption, so the two shapes read as one band.
 		local top = listTop + (listHeight - (slotH*#difficulties + slotGap*(#difficulties-1)))/2
 

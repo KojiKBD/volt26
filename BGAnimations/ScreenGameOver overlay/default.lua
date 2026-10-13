@@ -238,9 +238,7 @@ layout[#layout+1] = Def.ActorFrame{
 	OnCommand=function(self)
 		self:sleep(0.22):decelerate(0.22):diffusealpha(1)
 		self:SetUpdateFunction(function(frame, delta)
-			local refreshInterval = VOLT26.Performance.IsEnabled() and (1/30) or 0
 			frame.TimerRefreshElapsed = frame.TimerRefreshElapsed + (delta or 0)
-			if refreshInterval > 0 and frame.TimerRefreshElapsed < refreshInterval then return end
 			frame.TimerRefreshElapsed = 0
 			local screen = SCREENMAN:GetTopScreen()
 			local timer = screen and screen:GetChild("Timer")

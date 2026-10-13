@@ -1,3 +1,9 @@
+-- An evaluation screen that draws its own first page (the stage evaluation's
+-- WANTED page) loads this with {WantedPage=true}: the panes then become the
+-- pages after it (PageInputHandler.lua) instead of being cycled in place.
+local params = ...
+local ownPage = type(params) == "table" and params.WantedPage == true
+
 local Players = GAMESTATE:GetHumanPlayers()
 local NumPanes = VOLT26.Gameplay.IsCasual() and 1 or 8
 
@@ -5,7 +11,11 @@ local callbackController = VOLT26.EvaluationInput.NewCallbackController()
 local inputHandler, diagnosticInputHandler, eventOverlayInputHandler, shortcutInputHandler, screenshotInputHandler
 
 if ThemePrefs.Get("WriteCustomScores") then
+	-- Writes the score files and updates the song select's best-score index.
 	VOLT26.ScoreExport.WriteCurrent()
+else
+	-- No score files, but the song select still needs the best EX and grade.
+	VOLT26.ScoreExport.RecordCurrentBest()
 end
 
 local t = Def.ActorFrame{Name="ScreenEval Common"}
@@ -27,7 +37,7 @@ if not VOLT26.Gameplay.IsCasual() then
 	end
 
 	t.OnCommand=function(self)
-		inputHandler = LoadActor("./InputHandler.lua", {self, NumPanes})
+		inputHandler = LoadActor(ownPage and "./PageInputHandler.lua" or "./InputHandler.lua", {self, NumPanes})
 		diagnosticInputHandler = LoadActor("./Shared/DiagnosticInputHandler.lua")
 		eventOverlayInputHandler = LoadActor("./Shared/EventInputHandler.lua")
 		screenshotInputHandler = VOLT26.EvaluationInput.CreateScreenshotHandler(function(player)

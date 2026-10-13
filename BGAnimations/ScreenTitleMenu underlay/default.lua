@@ -10,8 +10,8 @@ if USE_3D_PROTOTYPE then
     -- Prepare the profile/color/style flow and Song Select while the player is
     -- idle on the title menu. This actor never renders visible content.
     local warmup = VOLT26.Warmup.CreateActor("Selection", {
-        Delay=VOLT26.Performance.IsEnabled() and 0.75 or 0.35,
-        Interval=VOLT26.Performance.IsEnabled() and 0.16 or 0.10,
+        Delay=0.35,
+        Interval=0.10,
     })
     -- Register the media input callback first so a key used to dismiss the AFK
     -- video cannot also activate the title menu or restart the sky intro.
@@ -48,7 +48,6 @@ end
 -- VOLT26 LAYER 1.5: AFTER EFFECTS STAR BURST
 -- ==========================================
 do
-    local performance = VOLT26.Performance.IsEnabled()
     local startNum = 0
     local endNum = 29
     local fDelay = 1 / 20 
@@ -62,52 +61,38 @@ do
     -- Loading a new Full HD PNG on every animation tick stalls the screen's
     -- input processing. Keep the same artwork and timing, but warm every
     -- texture before the loop begins so frame changes are cache lookups.
-    if performance then
-        -- Keep one correctly indexed transparent frame in low-end mode.
-        -- This preserves the static star burst without decoding/swapping
-        -- thirty Full HD textures during the title screen.
-        af[#af+1] = Def.Sprite{
-            Name="VOLT26_StaticStars",
-            Texture=framePath(startNum),
-            InitCommand=function(self)
-                self:zoomto(_screen.w, _screen.h)
-                self:z(1)
-            end,
-        }
-    else
-        local framePaths = {}
-        for frame = startNum, endNum do
-            framePaths[frame] = framePath(frame)
-            if PREFETCHMAN then PREFETCHMAN:Add(framePaths[frame]) end
-        end
+    local framePaths = {}
+    for frame = startNum, endNum do
+        framePaths[frame] = framePath(frame)
+        if PREFETCHMAN then PREFETCHMAN:Add(framePaths[frame]) end
+    end
 
-        local starAnim = Def.Sprite{
-            Texture=framePaths[startNum],
-            InitCommand=function(self)
-                self:zoomto(_screen.w, _screen.h)
-                self:z(1)
-            end,
-        }
+    local starAnim = Def.Sprite{
+        Texture=framePaths[startNum],
+        InitCommand=function(self)
+            self:zoomto(_screen.w, _screen.h)
+            self:z(1)
+        end,
+    }
 
-        starAnim.OnCommand=function(self)
-            self:sleep(fDelay):queuecommand("Animate")
+    starAnim.OnCommand=function(self)
+        self:sleep(fDelay):queuecommand("Animate")
+    end
+    
+    starAnim.AnimateCommand=function(self)
+        currentFrame = currentFrame + 1
+        
+        -- If we hit the end, wrap back to 0
+        if currentFrame > endNum then
+            currentFrame = startNum
         end
         
-        starAnim.AnimateCommand=function(self)
-            currentFrame = currentFrame + 1
-            
-            -- If we hit the end, wrap back to 0
-            if currentFrame > endNum then
-                currentFrame = startNum
-            end
-            
-            -- Load the next image and queue the next frame
-            self:Load(framePaths[currentFrame])
-            self:sleep(fDelay):queuecommand("Animate")
-        end
-
-        af[#af+1] = starAnim
+        -- Load the next image and queue the next frame
+        self:Load(framePaths[currentFrame])
+        self:sleep(fDelay):queuecommand("Animate")
     end
+
+    af[#af+1] = starAnim
 end
 
 -- ==========================================
@@ -252,8 +237,8 @@ end
 -- Prepare the profile/color/style flow and Song Select while the player is
 -- idle on the title menu. This actor never renders visible content.
 af[#af+1] = VOLT26.Warmup.CreateActor("Selection", {
-    Delay=VOLT26.Performance.IsEnabled() and 0.75 or 0.35,
-    Interval=VOLT26.Performance.IsEnabled() and 0.16 or 0.10,
+    Delay=0.35,
+    Interval=0.10,
 })
 
 -- ==========================================

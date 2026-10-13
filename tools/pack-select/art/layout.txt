@@ -1,0 +1,19 @@
+bg       items 00 01
+stripes  centre  1002.5   540.0  size 1323 x 1080
+title    centre   967.0   205.0  size 1130 x 184
+splash   centre   961.0   540.5  size 946 x 713
+window   bounds 684 285 1211 749
+sparkle  centre  1179.5   269.0  size 79 x 78
+sparkle  at  1179.5   269.0
+sparkle  at   689.0   246.0
+sparkle  at  1525.0   184.0
+sparkle  at   500.0   126.0
+sparkle  at   914.0   173.0
+sparkle  at   722.5   249.0
+star     centre  1417.0   571.0  size 68 x 70
+star     at   500.5   442.5  zoom 0.63
+star     at  1453.5   721.0  zoom 0.63
+star     at   447.0   399.0  zoom 1.00
+star     at  1417.0   571.0  zoom 1.00
+chain1   centre   236.0   827.0  size 472 x 506
+chain2   centre  1728.0   213.0  size 384 x 426

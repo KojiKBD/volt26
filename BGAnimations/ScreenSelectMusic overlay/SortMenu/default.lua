@@ -430,10 +430,11 @@ local t = Def.ActorFrame {
 	OnCommand=function(self) self:playcommand("AssessAvailableChoices") end,
 	ShowSortMenuCommand=function(self)
 		self:visible(true):finishtweening():diffusealpha(0):linear(0.10):diffusealpha(1)
+		-- The slab swings up into place, Persona-style: from below, turned.
 		local composition = self:GetChild("Composition")
 		if composition then
-			composition:finishtweening():y(_screen.cy + 40*L.Scale)
-				:decelerate(0.14):y(_screen.cy)
+			composition:finishtweening():y(_screen.cy + 60*L.Scale):rotationz(-3)
+				:decelerate(0.16):y(_screen.cy):rotationz(0)
 		end
 	end,
 	HideSortMenuCommand=function(self) self:finishtweening():visible(false):diffusealpha(1) end,
@@ -630,9 +631,7 @@ local t = Def.ActorFrame {
 		local barWidth = math.min(L.MaxBarW, contentW + L.BarPadX*2)
 		local left = -contentW/2 + L.TileSize/2
 
-		local fill = dock:GetChild("BarFill")
-		fill:finishtweening():decelerate(0.12):zoomto(barWidth, L.DockH)
-		L.SizeFrame(dock:GetChild("BarEdge"), barWidth, L.DockH, 1, L.Line)
+		L.SizeSlab(dock:GetChild("Bar"), barWidth, L.DockH, 0.12)
 
 		local cursorOnDock = menu.level == 1 or #menu.sub.items == 0
 		for slot = 1, L.MaxTiles do
@@ -678,9 +677,9 @@ local preload = Def.ActorFrame{
 	Name="IconPreload",
 	InitCommand=function(self) self:visible(false) end,
 }
-for _, name in ipairs(Icons.All()) do
+for _, path in ipairs(Icons.All()) do
 	preload[#preload+1] = Def.Sprite{
-		InitCommand=function(self) self:Load(Icons.Path(name)):zoom(0.01) end,
+		InitCommand=function(self) self:Load(path):zoom(0.01) end,
 	}
 end
 composition[#composition+1] = preload
@@ -688,18 +687,12 @@ composition[#composition+1] = preload
 composition[#composition+1] = Strip.Build()
 
 local dock = Def.ActorFrame{Name="Dock"}
-dock[#dock+1] = Def.Quad{
-	Name="BarFill",
-	InitCommand=function(self)
-		self:y(L.DockTop + L.DockH/2):zoomto(100, L.DockH):diffuse(L.Panel):diffusealpha(0.96)
-	end,
-}
-local dockEdge = L.Frame("BarEdge", L.Line)
-dockEdge.InitCommand = function(self)
+local dockBar = L.Slab("Bar")
+dockBar.InitCommand = function(self)
 	self:y(L.DockTop + L.DockH/2)
-	L.SizeFrame(self, 100, L.DockH, 1)
+	L.SizeSlab(self, 100, L.DockH)
 end
-dock[#dock+1] = dockEdge
+dock[#dock+1] = dockBar
 for index = 1, L.MaxTiles do
 	dock[#dock+1] = Tile.Build(index)
 end

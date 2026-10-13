@@ -84,14 +84,6 @@ VOLT26_Prefs.Get = function()
 			},
 			Values = { true, false }
 		},
-		PerformanceMode = {
-			Default = true,
-			Choices = {
-				THEME:GetString("ThemePrefs", "Performance"),
-				THEME:GetString("ThemePrefs", "Enhanced")
-			},
-			Values = { true, false }
-		},
 		GlitchIntensity = {
 			Default = "Light",
 			Choices = {
@@ -101,9 +93,14 @@ VOLT26_Prefs.Get = function()
 			},
 			Values = { "Off", "Light", "Full" }
 		},
-		PerformanceModeConfigured = {
+		-- A frame-time readout on every screen (ScreenSystemLayer
+		-- framemeter.lua), for measuring a cabinet.  Off by default.
+		FrameMeter = {
 			Default = false,
-			Choices = { true, false },
+			Choices = {
+				THEME:GetString("ThemePrefs", "On"),
+				THEME:GetString("ThemePrefs", "Off")
+			},
 			Values = { true, false }
 		},
 		RainbowMode = {

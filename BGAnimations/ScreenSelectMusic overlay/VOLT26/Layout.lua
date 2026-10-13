@@ -519,7 +519,7 @@ local af = Def.ActorFrame{
 	OnCommand=function(self)
 		local wheel = H.Wheel()
 		if wheel then
-			if not GAMESTATE:IsCourseMode() and GAMESTATE:GetSortOrder() ~= "SortOrder_Group" then
+			if not GAMESTATE:IsCourseMode() and not VOLT26.PackSelection.FollowsSort(GAMESTATE:GetSortOrder()) then
 				wheel:ChangeSort("SortOrder_Group")
 			end
 			-- The wheel is the screen's own actor rather than a child of this

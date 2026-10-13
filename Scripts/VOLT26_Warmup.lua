@@ -31,6 +31,13 @@ local groups = {
 		"VOLT26/Combo 1000milestone swoosh.png",
 		"VOLT26/Eval/Victory.png",
 		"VOLT26/Eval/defeat.png",
+		"VOLT26/Wanted/backdrop.png",
+		"VOLT26/Wanted/panel_head.png",
+		"VOLT26/Wanted/panel_body.png",
+		"VOLT26/Wanted/label_notes.png",
+		"VOLT26/Wanted/label_qr.png",
+		"VOLT26/Wanted/panel_notes.png",
+		"VOLT26/Wanted/panel_qr.png",
 	},
 }
 

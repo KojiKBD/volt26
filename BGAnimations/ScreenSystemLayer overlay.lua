@@ -7,17 +7,42 @@ local t = Def.ActorFrame{}
 -- top of it. See Scripts/VOLT26_Glitch.lua for where it is allowed to appear.
 t[#t+1] = VOLT26.Glitch.CreateLayer()
 
--- Cutout lettering (Scripts/VOLT26_Cutout.lua) for the credit texts on the
--- screens listed in VOLT26.Cutout.Screens.  The plain BitmapTexts below still
--- decide what to say and whether to show it; on those screens they are made
--- transparent and their text is mirrored into a cutout slot.
+-- The cutout lettering's shared texture cache (Scripts/VOLT26_CutoutCache.lua).
+-- It lives here because this layer outlasts every screen: the six cutout
+-- faces stay loaded for the whole session, and strings rendered once (or at
+-- startup by ScreenVOLT26Warmup) appear at once wherever they come back.  It
+-- draws nothing on screen.
+t[#t+1] = VOLT26.Cutout.Cache.CreateHost()
+
+-- Cutout lettering (Scripts/VOLT26_Cutout.lua) for the credit line: the
+-- player names and the centre text (EVENT MODE, credits, free play).
+--
+-- Project rule (owner, 2026-10-11): the credit line is always drawn in the
+-- cutout lettering, on every screen that shows it, never in a plain font.
+-- The plain BitmapTexts below still decide what to say and whether to show
+-- it; they are made transparent and their text is mirrored into a cutout
+-- slot.
 local cutoutSlots = {}
+
+-- Screens that draw the credit line smaller than the title menu does, where
+-- it would crowd the screen's own lettering.
+local cutoutZoom = {
+	ScreenVOLT26SelectPack = 0.7,
+}
+
 local function MirrorToCutout(actor, key)
 	local slot = cutoutSlots[key]
 	if not slot then return end
 	local screen = SCREENMAN:GetTopScreen()
-	if screen and VOLT26.Cutout.IsEnabledOn(screen:GetName()) then
+	if screen and (screen:GetName() == "ScreenSelectPlayMode2"
+		or screen:GetName() == "ScreenVOLT26SelectMode") then
+		actor:visible(false)
+		slot:visible(false)
+		return
+	end
+	if screen then
 		local text = actor:GetText()
+		slot:zoom(cutoutZoom[screen:GetName()] or 1)
 		slot:visible(actor:GetVisible() and text ~= "")
 		slot:playcommand("CutoutSet", {text = text})
 		actor:diffusealpha(0)
@@ -70,12 +95,15 @@ local function CreditsText( player )
 
 			if screen then
 				bShow = THEME:GetMetric( screen:GetName(), "ShowCreditDisplay" )
-				if screen:GetName() == "ScreenTitleMenu" and _G.Volt26TitleIntroActive then
+				if (screen:GetName() == "ScreenTitleMenu" or screen:GetName() == "ScreenTitleJoin") and _G.Volt26TitleIntroActive then
 					bShow = false
 				end
 
 				local screenName = screen:GetName()
-				if (screen:GetName() == "ScreenEvaluationStage") or (screen:GetName() == "ScreenEvaluationNonstop") or (screen:GetName() == Branch.GameplayScreen()) then
+				if screenName == "ScreenEvaluationStage" or screenName == "ScreenEvaluationNonstop" then
+					-- The WANTED page names the players on its own plates.
+					bShow = false
+				elseif screenName == Branch.GameplayScreen() then
 					-- ignore ShowCreditDisplay metric for ScreenEval
 					-- only show this BitmapText actor on Evaluation if the player is joined
 					bShow = GAMESTATE:IsHumanPlayer(player)
@@ -156,20 +184,33 @@ t[#t+1] = Def.ActorFrame {
 }
 
 -- Cutout counterparts of the credit texts and of the centre footer text.
+-- Their size lives in VOLT26.Cutout.StyleDesign (CreditPlayer, CreditCentre),
+-- shared with the startup warm-up.
+local creditPlayer = VOLT26.Cutout.Style("CreditPlayer")
+local creditCentre = VOLT26.Cutout.Style("CreditCentre")
 t[#t+1] = Def.ActorFrame{
 	CutoutSlot(PLAYER_1, {
 		x = SCREEN_LEFT + WideScale(38, 45), y = _screen.h - 4,
-		maxW = 260, maxH = 44, halign = 0, valign = 1, opts = {base = 22},
+		maxW = creditPlayer.maxW, maxH = creditPlayer.maxH, maxChars = creditPlayer.maxChars,
+		halign = 0, valign = 1, opts = creditPlayer.opts,
 	}),
 	CutoutSlot(PLAYER_2, {
 		x = SCREEN_RIGHT - WideScale(38, 45), y = _screen.h - 4,
-		maxW = 260, maxH = 44, halign = 1, valign = 1, opts = {base = 22},
+		maxW = creditPlayer.maxW, maxH = creditPlayer.maxH, maxChars = creditPlayer.maxChars,
+		halign = 1, valign = 1, opts = creditPlayer.opts,
 	}),
 	CutoutSlot("Footer", {
 		x = _screen.cx, y = _screen.h - 3,
-		maxW = 300, maxH = 50, halign = 0.5, valign = 1, opts = {base = 26},
+		maxW = creditCentre.maxW, maxH = creditCentre.maxH, maxChars = creditCentre.maxChars,
+		halign = 0.5, valign = 1, opts = creditCentre.opts,
 	}),
 }
+
+-- The frame meter (Theme Options -> Frame Meter), off by default.
+t[#t+1] = LoadActor(THEME:GetPathB("ScreenSystemLayer", "framemeter"))
+
+-- The menu timer's number, in cutout lettering.
+t[#t+1] = LoadActor(THEME:GetPathB("ScreenSystemLayer", "timer"))
 
 -- "Event Mode" or CreditText at lower-center of screen
 t[#t+1] = LoadFont("Common Footer")..{
@@ -190,7 +231,7 @@ t[#t+1] = LoadFont("Common Footer")..{
 		-- Sorry about this.
 		if screen then
 			local visible = THEME:GetMetric( screen:GetName(), "ShowCreditDisplay" )
-			if screen:GetName() == "ScreenTitleMenu" and _G.Volt26TitleIntroActive then
+			if (screen:GetName() == "ScreenTitleMenu" or screen:GetName() == "ScreenTitleJoin") and _G.Volt26TitleIntroActive then
 				visible = false
 			end
 			self:visible(visible)
@@ -204,14 +245,16 @@ t[#t+1] = LoadFont("Common Footer")..{
 			local text
 
 			if credits.CoinsPerCredit > 1 then
-				text = ("%s     %d     %d/%d"):format(
+				-- Kept short: the line is drawn in cutout lettering, which
+				-- has a letter budget (CreditCentre).
+				text = ("%s %d  %d/%d"):format(
 					THEME:GetString("ScreenSystemLayer", "CreditsCredits"),
 					credits.Credits,
 					credits.Remainder,
 					credits.CoinsPerCredit
 				)
 			else
-				text = ("%s     %d"):format(
+				text = ("%s %d"):format(
 					THEME:GetString("ScreenSystemLayer", "CreditsCredits"),
 					credits.Credits
 				)
@@ -359,8 +402,8 @@ t[#t+1] = Def.ActorFrame{
 	end,
 	ScreenChangedMessageCommand=function(self)
 		local screen = SCREENMAN:GetTopScreen()
-		if (screen:GetName() == "ScreenTitleMenu" and not _G.Volt26TitleIntroActive)
-		or screen:GetName() == "ScreenTitleJoin" then
+		if (screen:GetName() == "ScreenTitleMenu" or screen:GetName() == "ScreenTitleJoin")
+		and not _G.Volt26TitleIntroActive then
 			self:queuecommand("Reset")
 			self:diffusealpha(0):sleep(0.2):linear(0.4):diffusealpha(1):visible(true)
 			self:queuecommand("SendRequest")
@@ -370,7 +413,7 @@ t[#t+1] = Def.ActorFrame{
 	end,
 	VOLT26_TitleIntroCompleteMessageCommand=function(self)
 		local screen = SCREENMAN:GetTopScreen()
-		if screen and screen:GetName() == "ScreenTitleMenu" then
+		if screen and (screen:GetName() == "ScreenTitleMenu" or screen:GetName() == "ScreenTitleJoin") then
 			self:queuecommand("Reset")
 			self:diffusealpha(0):sleep(0.2):linear(0.4):diffusealpha(1):visible(true)
 			self:queuecommand("SendRequest")

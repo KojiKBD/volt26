@@ -73,20 +73,71 @@ local function cy(v) return (v - cardH / 2) * sy end
 
 -- ----------------------------------------------------------------------------
 -- The name: two cutout slots used alternately, so the name on screen stays
--- until its successor has finished rendering (about half a second).
+-- until its successor has finished rendering (a few frames).
 
 local names = { slots = {}, active = 1, shown = nil, wanted = nil, pending = nil, direction = 0 }
 local nameX, nameY = L.name.x * sx, L.name.y * sy
 local slide = 40 * sx
+-- The name's size lives in VOLT26.Cutout.StyleDesign.ProfileName
+-- (Scripts/VOLT26_CutoutStyles.lua), shared with the startup warm-up that
+-- pre-renders every local profile's name.
+local nameStyle = VOLT26.Cutout.Style("ProfileName")
+local nameOpts = nameStyle.opts
+local nameMaxW, nameMaxH, nameMaxChars = nameStyle.maxW, nameStyle.maxH, nameStyle.maxChars
+
+-- ----------------------------------------------------------------------------
+-- The browse arrows sit either side of the name.  A long name would run over
+-- them, so each arrow steps out by as much as the name needs, and back when a
+-- shorter one replaces it.  The name's drawn width is worked out the way the
+-- cutout slot frames it: Cutout.Layout is seeded by the text, so the same
+-- string always lays out the same, and the slot shrinks it to fit maxW x maxH.
+-- A name drawn as plain text instead is measured with the slot's fallback font.
+
+local wingGap = 18 * sx
+local wingInner = {
+	-- innermost x of each triangle: the right wing's leftmost point, the left
+	-- wing's rightmost one
+	right = math.min(L.wings[1][1], L.wings[1][3], L.wings[1][5]) * sx,
+	left = math.max(L.wings[2][1], L.wings[2][3], L.wings[2][5]) * sx,
+}
+
+local function NameWidth(frame, text)
+	if not text or text == "" then return 0 end
+	local chars = select(2, text:gsub("[^\128-\191]", ""))
+	local layout = chars <= nameMaxChars and VOLT26.Cutout.Layout(text, nameOpts) or nil
+	if layout then
+		local b = layout.bounds
+		local w, h = b[3] - b[1], b[4] - b[2]
+		return w * math.min(1, nameMaxW / w, nameMaxH / h)
+	end
+	local measure = frame:GetChild("NameMeasure")
+	measure:settext(text)
+	return math.min(nameMaxW, measure:GetZoomedWidth())
+end
+
+local function PlaceWings(frame, text)
+	local half = NameWidth(frame, text) / 2 + wingGap
+	local right = math.max(0, nameX + half - wingInner.right)
+	local left = math.max(0, wingInner.left - (nameX - half))
+	frame:GetChild("WingRight"):stoptweening():decelerate(0.15):x(right)
+	frame:GetChild("WingLeft"):stoptweening():decelerate(0.15):x(-left)
+end
 
 -- When a new name is ready it slams in from the side the cursor moved
 -- towards, and the old one flicks out the other way.  The old slot is reset
 -- once its fade ends, because a slot only renders while fully opaque and
 -- still.
+--
+-- The incoming slot sets its own alpha rather than trusting that reset: a
+-- slot can be swapped back in while it is still fading out (the cursor
+-- returns to the name it just left, which that slot still holds), and
+-- finishtweening() jumps to the end of the fade and drops the queued
+-- "Retire", which would leave the name on screen at alpha 0.
 local function SwapNames(incoming, outgoing)
 	local dir = names.direction
 	incoming:finishtweening():playcommand("CutoutHold", {held = false})
-	incoming:xy(nameX + dir * slide, nameY):zoom(1.3):rotationz(L.name.rot - dir * 6)
+	incoming:diffusealpha(1)
+		:xy(nameX + dir * slide, nameY):zoom(1.3):rotationz(L.name.rot - dir * 6)
 		:decelerate(0.18):xy(nameX, nameY):zoom(1):rotationz(L.name.rot)
 	outgoing:finishtweening():linear(0.12)
 		:xy(nameX - dir * slide, nameY):zoom(0.8):diffusealpha(0)
@@ -96,9 +147,9 @@ end
 local function nameSlot(index)
 	return VOLT26.Cutout.CreateSlot{
 		x = L.name.x * sx, y = L.name.y * sy,
-		maxW = 430 * sx, maxH = 120 * sy, halign = 0.5, valign = 0.5,
-		maxChars = 20, held = true,
-		opts = { base = 66 * sy, tiltDeg = -2 },
+		maxW = nameMaxW, maxH = nameMaxH, halign = 0.5, valign = 0.5,
+		maxChars = nameMaxChars, held = true,
+		opts = nameOpts,
 		onInit = function(slot)
 			names.slots[index] = slot
 			slot:rotationz(L.name.rot)
@@ -110,6 +161,7 @@ local function nameSlot(index)
 			names.active = 3 - names.active
 			names.shown = names.wanted
 			SwapNames(slot, outgoing)
+			PlaceWings(slot:GetParent(), names.shown)
 		end,
 	}..{
 		RetireCommand=function(self)
@@ -377,4 +429,9 @@ return Def.ActorFrame{
 	wing(L.wings[2])..{ Name="WingLeft" },
 	nameSlot(1),
 	nameSlot(2),
+	-- Measures names drawn in the cutout slots' fallback font (see NameWidth).
+	LoadFont("Common Normal")..{
+		Name="NameMeasure",
+		InitCommand=function(self) self:visible(false) end,
+	},
 }

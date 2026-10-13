@@ -46,10 +46,6 @@ local banners = {
     {x =  6.615, y = 72.000, z = 21.157, nx = -1, ny =  0, nz = 0, tx = 0, ty = -1, side =  1, roll =  3},
     -- Navigation-only countdown on the central building at the end of the street.
     {x =  0.000, y = 91.875, z = 20.000, nx =  0, ny = -1, nz = 0, tx = 1, ty =  0, side = -1, roll = -3},
-    -- A final navigation-only stop reveals the date laid flat on the road. The
-    -- overhead pose is local to this stop and keeps the street artwork in frame.
-    {x =  0.000, y = 82.500, z =  0.080, nx =  0, ny =  0, nz = 1, tx = 0, ty =  1,
-     side = -1, roll = 3, standOff = 21, streetOffset = 2.5},
 }
 
 local positions, dives = {}, {}
@@ -126,8 +122,7 @@ local countdownSurface = {
     width = 7.5, lift = 0.03,
 }
 
--- The date is a world-space road sprite rather than a screen overlay. It stays
--- foreshortened at earlier stops and becomes legible from the final overhead pose.
+-- The date remains decorative world-space road artwork, without a menu stop.
 -- Draw it after the city without depth testing to avoid road-mesh precision issues.
 local dateSurface = {
     x = 0.0, y = 0.08, z = -82.5,
@@ -617,9 +612,7 @@ return Def.ActorFrame{
         activeDuration, arrivalDelay = diveDuration, 0
         Trace("[VOLT26 3D] Dive into banner "..(selected+1))
     end,
-    Def.Quad{
-        InitCommand=function(self) self:zoomto(SCREEN_WIDTH,SCREEN_HEIGHT):diffuse(color("#FF0000")) end,
-    },
+    LoadActor(THEME:GetPathB("ScreenTitleMenu", "underlay/TimeOfDaySky.lua")),
     Def.ActorFrame{
         Name="Perspective",
         InitCommand=function(self) self:fov(fov):vanishpoint(SCREEN_CENTER_X,SCREEN_CENTER_Y) end,

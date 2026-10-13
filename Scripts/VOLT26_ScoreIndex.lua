@@ -284,7 +284,8 @@ end
 -- table where any field may be missing:
 -- {
 --     PercentDP  -- best ITG percentage as a 0..1 fraction
---     Grade      -- full grade enum for the best ITG result
+--     Grade      -- full grade enum for the best ITG result; Grade_Tier00
+--                   (five stars) when the best EX result is 100 %
 --     DateTime   -- when the best ITG result was set
 --     ExPercent  -- best EX percentage as a 0..100 value
 --     ExDateTime -- when the best EX result was set
@@ -322,6 +323,15 @@ function VOLT26.ScoreIndex.GetBest(player, songOrCourse, stepsOrTrail)
 			best.Grade = normalizeGrade(entry.Grade)
 			best.DateTime = entry.DateTime
 		end
+	end
+
+	-- Five stars are VOLT26's own grade: the engine stops at Grade_Tier01
+	-- (100 % ITG), and the evaluation promotes a 100 % EX run to Grade_Tier00
+	-- (VOLT26.Results.GetCurrent in SL_Init.lua).  The engine's high score
+	-- keeps Tier01, so the promotion is applied here as well.
+	if best and ((best.ExPercent and best.ExPercent >= 100)
+	or (entry and normalizeGrade(entry.ExGrade) == "Grade_Tier00")) then
+		best.Grade = "Grade_Tier00"
 	end
 
 	return best

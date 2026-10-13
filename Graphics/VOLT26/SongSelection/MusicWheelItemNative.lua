@@ -187,8 +187,6 @@ local af = Def.ActorFrame{
 			end
 
 			frame.focusPollElapsed = frame.focusPollElapsed + delta
-			local interval = VOLT26.Performance.IsEnabled() and (1/30) or 0
-			if frame.focusPollElapsed < interval then return end
 			frame.focusPollElapsed = 0
 			local isFocus = focused(frame)
 			if isFocus ~= frame.wasFocus then

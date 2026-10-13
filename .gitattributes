@@ -6,3 +6,8 @@ docs/ export-ignore
 tools/ export-ignore
 .gitignore export-ignore
 .gitattributes export-ignore
+# Not needed by the running theme: the source frames of the title banner
+# movies (tools/title-menu/build-title-banner-movies.py) and AI working notes.
+Graphics/VOLT26/City_bg/ export-ignore
+CLAUDE.md export-ignore
+.git-blame-ignore-revs export-ignore
