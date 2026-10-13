@@ -211,8 +211,15 @@ af[#af+1] = Def.ActorFrame{
 
 -- Presentation -------------------------------------------------------------
 
+-- How long the wheel must rest on a song before the info panel, cards,
+-- radar and grade are refreshed.  Each refresh reads the chart (NPS per
+-- measure, tech counts) and letters the names; at 0.03 s it ran on every
+-- step while a direction was held (the wheel switches every 0.05 s), which
+-- is what made fast scrolling crawl.
+local SETTLE = 0.15
+
 local function schedule(self)
-	self:stoptweening():sleep(0.03):queuecommand("Settled")
+	self:stoptweening():sleep(SETTLE):queuecommand("Settled")
 end
 
 local layout = Def.ActorFrame{
