@@ -34,25 +34,33 @@ local function xOf(seconds)
 end
 
 -- Bars.
+-- They stand on the base line and grow up from it each time the page turns in.
 if data.peak > 0 then
-	af[#af+1] = Def.ActorMultiVertex{
-		Name="Bars",
-		InitCommand=function(self)
-			local vertices = {}
-			local width = (H.right - H.left) / #data.bins
-			for index, bin in ipairs(data.bins) do
-				local c = ROW[bin.key] and ROW[bin.key][1] or WHITE
-				local top = H.bottom - (H.bottom - H.top) * bin.count / data.peak
-				local x0 = H.left + (index - 1) * width + 1
-				local x1 = x0 + width - 2
-				local hi, lo = { c[1], c[2], c[3], 1 }, { c[1] * 0.35, c[2] * 0.35, c[3] * 0.35, 1 }
-				vertices[#vertices+1] = { { x0, top, 0 }, hi }
-				vertices[#vertices+1] = { { x1, top, 0 }, hi }
-				vertices[#vertices+1] = { { x1, H.bottom, 0 }, lo }
-				vertices[#vertices+1] = { { x0, H.bottom, 0 }, lo }
-			end
-			self:SetDrawState{ Mode="DrawMode_Quads" }:SetVertices(vertices)
+	af[#af+1] = Def.ActorFrame{
+		Name="BarsGrow",
+		InitCommand=function(self) self:y(H.bottom) end,
+		PageShownCommand=function(self)
+			self:finishtweening():zoomy(0):sleep(0.1):decelerate(0.3):zoomy(1)
 		end,
+		Def.ActorMultiVertex{
+			Name="Bars",
+			InitCommand=function(self)
+				local vertices = {}
+				local width = (H.right - H.left) / #data.bins
+				for index, bin in ipairs(data.bins) do
+					local c = ROW[bin.key] and ROW[bin.key][1] or WHITE
+					local top = H.bottom - (H.bottom - H.top) * bin.count / data.peak
+					local x0 = H.left + (index - 1) * width + 1
+					local x1 = x0 + width - 2
+					local hi, lo = { c[1], c[2], c[3], 1 }, { c[1] * 0.35, c[2] * 0.35, c[3] * 0.35, 1 }
+					vertices[#vertices+1] = { { x0, top, 0 }, hi }
+					vertices[#vertices+1] = { { x1, top, 0 }, hi }
+					vertices[#vertices+1] = { { x1, H.bottom, 0 }, lo }
+					vertices[#vertices+1] = { { x0, H.bottom, 0 }, lo }
+				end
+				self:y(-H.bottom):SetDrawState{ Mode="DrawMode_Quads" }:SetVertices(vertices)
+			end,
+		},
 	}
 end
 

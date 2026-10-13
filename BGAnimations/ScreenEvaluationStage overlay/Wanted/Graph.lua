@@ -62,6 +62,7 @@ end
 for index, segment in ipairs(graph.segments) do
 	if index % 2 == 0 then
 		af[#af+1] = Def.ActorMultiVertex{
+			Name="Segment" .. index,
 			InitCommand=function(self)
 				local tint = { 1, 1, 1, 0.07 }
 				self:SetDrawState{ Mode="DrawMode_Quads" }:SetVertices{
@@ -149,6 +150,75 @@ if graph.failedAt then
 				:diffuse(color("#ff3b2f")):settext(text)
 		end,
 	}
+end
+
+-- Intro (p.introDelay given): the graph waits hidden for the overlay's
+-- VOLT26EvaluationWantedIntro, then draws itself in along the song -- the
+-- density, its edge, the taps and the life line grow left to right over
+-- SWEEP seconds while the frame's lines fade in; the point of failure lands
+-- last.  Each strip is drawn in time order, so drawing its first n vertices
+-- is drawing the song up to a point.
+local SWEEP = 0.7
+local SWEPT = {   -- vertices per step, fewest that draw anything
+	{ "Density", 2, 4 }, { "DensityEdge", 1, 2 }, { "Scatter", 4, 4 }, { "Life", 1, 2 },
+}
+local FADED = { "ZeroLine" }
+for index = 2, #graph.segments, 2 do FADED[#FADED+1] = "Segment" .. index end
+local LAST = { "Failure", "TimeLeft" }
+
+local function each(self, names, f)
+	for _, name in ipairs(names) do
+		local child = self:GetChild(name)
+		if child then f(child) end
+	end
+end
+
+if p.introDelay then
+	af.OnCommand = function(self)
+		for _, entry in ipairs(SWEPT) do
+			local child = self:GetChild(entry[1])
+			if child then child:visible(false) end
+		end
+		each(self, FADED, function(child) child:diffusealpha(0) end)
+		each(self, LAST, function(child) child:visible(false) end)
+	end
+	af.VOLT26EvaluationWantedIntroMessageCommand = function(self)
+		self:stoptweening():sleep(p.introDelay):queuecommand("Sweep")
+	end
+	af.SweepCommand = function(self)
+		each(self, FADED, function(child) child:finishtweening():diffusealpha(0):linear(0.25):diffusealpha(1) end)
+		local elapsed = 0
+		self.sweeping = true
+		self:SetUpdateFunction(function(frame, delta)
+			if not frame.sweeping then return end
+			elapsed = elapsed + (tonumber(delta) or 0)
+			local t = math.min(1, elapsed / SWEEP)
+			local progress = 1 - (1 - t) * (1 - t)
+			for _, entry in ipairs(SWEPT) do
+				local child = frame:GetChild(entry[1])
+				if child then
+					if t >= 1 then
+						child:visible(true):SetDrawState{ Num = -1 }
+					else
+						local step, least = entry[2], entry[3]
+						local n = math.floor(progress * child:GetNumVertices() / step) * step
+						child:visible(n >= least)
+						if n >= least then child:SetDrawState{ Num = n } end
+					end
+				end
+			end
+			if t >= 1 then
+				frame.sweeping = false
+				each(frame, LAST, function(child)
+					-- A quick blink: these actors are placed in the frame's
+					-- own units, so they are not zoomed.
+					child:visible(true):finishtweening():diffusealpha(0)
+						:linear(0.05):diffusealpha(1):linear(0.05):diffusealpha(0.25)
+						:linear(0.05):diffusealpha(1)
+				end)
+			end
+		end)
+	end
 end
 
 return af

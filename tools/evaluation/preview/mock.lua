@@ -165,6 +165,21 @@ for name, f in pairs({
 	Center = function(s) s.px, s.py = _screen.cx, _screen.cy end,
 }) do Actor[name] = ret(f) end
 
+function Actor:GetVisible() return self.shown end
+function Actor:GetNumVertices() return self.verts and #self.verts or 0 end
+function Actor:SetUpdateFunction(f) self.update = f return self end
+-- Runs the update functions of the actors named `name` once, `delta` seconds
+-- on (the preview has no clock: this finishes a timed effect).
+function FindActors(name)
+	local out = {}
+	for _, a in ipairs(allActors) do if a.name == name then out[#out + 1] = a end end
+	return out
+end
+function RunUpdates(name, delta)
+	for _, a in ipairs(allActors) do
+		if a.name == name and a.update then a.update(a, delta) end
+	end
+end
 function Actor:GetChild(name) for _, c in ipairs(self.kids) do if c.name == name then return c end end return nil end
 function Actor:GetParent() return self.parent end
 function Actor:GetX() return self.px end

@@ -102,6 +102,12 @@ for script in ("Scripts/VOLT26_EvaluationPage.lua",):
     L.eval("function(p) return RunScript(p) end")(find(script))
 bg = L.eval("function(p) return BuildScreenLayer(p) end")(find("BGAnimations/ScreenEvaluationStage background.lua"))
 ov = L.eval("function(p) return BuildScreenLayer(p) end")(find("BGAnimations/ScreenEvaluationStage overlay/default.lua"))
+# The intro as the overlay starts it (tweens are instant here), the graph's
+# draw-in run to its end, and a few page turns before the page asked for.
+L.execute("Broadcast('VOLT26EvaluationWantedIntro')")
+L.execute("""for _, a in ipairs(FindActors('Graph')) do a:playcommand('Sweep') end RunUpdates('Graph', 10)""")
+for turn in (1, 2, 3, 0):
+    L.eval("function(p) Broadcast('VOLT26EvaluationPage', {Side=PLAYER_1, Page=p, Direction=1}); Broadcast('VOLT26EvaluationPage', {Side=PLAYER_2, Page=p, Direction=1}) end")(turn)
 L.eval("function(p) Broadcast('VOLT26EvaluationPage', {Side=PLAYER_1, Page=p}); Broadcast('VOLT26EvaluationPage', {Side=PLAYER_2, Page=p}) end")(args.page)
 print("broadcasts:", list(L.eval("BroadcastLog").values()))
 

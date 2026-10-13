@@ -65,19 +65,107 @@ local function graphQuad()
 	return { topLeft = m(g.topRight), topRight = m(g.topLeft), bottomRight = m(g.bottomLeft), bottomLeft = m(g.bottomRight) }
 end
 
+-- ---------------------------------------------------------------------------
+-- Motion (see "Motion" in docs/evaluation-wanted.md).  Everything waits off
+-- screen until the overlay broadcasts VOLT26EvaluationWantedIntro (when the
+-- victory / defeat transition clears), then comes in from the side's outer
+-- edge: the head plate, the page body, the ladder row by row, the scores, the
+-- graph drawing itself left to right and last the grade.  OffCommand sends it
+-- all back out the way it came.
+local AWAY = mirror and 1 or -1            -- the side's outer edge, screen x
+local M = {
+	head = 0,       body = 0.08,       rows = 0.30,   rowStep = 0.045,
+	scores = 0.34,  scoreStep = 0.07,  graph = 0.42,  grade = 0.85,
+	slide = 1100,   turn = 9,          pageSlide = 190,
+}
+
+-- A frame turned and zoomed about (px, py) of its parent: the returned outer
+-- frame sits at the pivot, `inner` takes the children at their own places.
+local function pivotFrame(name, px, py)
+	local inner = Def.ActorFrame{
+		Name="Inner",
+		InitCommand=function(self) self:xy(-px, -py) end,
+	}
+	local outer = Def.ActorFrame{
+		Name=name,
+		InitCommand=function(self) self:xy(px, py) end,
+		inner,
+	}
+	return outer, inner
+end
+
+-- A plate that slides in from the outer edge, turning as it lands.  `scale`
+-- converts artboard pixels to the frame's units (1 for the art, S for the
+-- cutouts); `delay` is its place in the intro.
+local function slider(frame, px, py, scale, delay)
+	local slide = M.slide * scale
+	frame.InitCommand = function(self)
+		self:xy(px + AWAY * slide, py):rotationz(-AWAY * M.turn)
+	end
+	frame.VOLT26EvaluationWantedIntroMessageCommand = function(self)
+		self:finishtweening():xy(px + AWAY * slide, py):rotationz(-AWAY * M.turn)
+			:sleep(delay)
+			:decelerate(0.26):x(px - AWAY * 18 * scale):rotationz(AWAY * 1.2)
+			:decelerate(0.10):x(px):rotationz(0)
+	end
+	frame.OffCommand = function(self)
+		self:finishtweening():sleep(math.max(0, 0.08 - delay))
+			:accelerate(0.22):x(px + AWAY * slide):rotationz(-AWAY * M.turn)
+	end
+	return frame
+end
+
+-- A line that steps in from the outer edge after the plates have landed.
+local function stepIn(actor, delay)
+	return Def.ActorFrame{
+		InitCommand=function(self) self:x(AWAY * 70):diffusealpha(0) end,
+		VOLT26EvaluationWantedIntroMessageCommand=function(self)
+			self:finishtweening():x(AWAY * 70):diffusealpha(0)
+				:sleep(delay):decelerate(0.18):x(0):diffusealpha(1)
+		end,
+		actor,
+	}
+end
+
+-- A figure that stamps down onto its place (px, py).
+local function stamp(actor, px, py, delay)
+	local outer, inner = pivotFrame("Stamp", px, py)
+	inner[#inner+1] = actor
+	outer.InitCommand = function(self) self:xy(px, py):zoom(1.8):diffusealpha(0) end
+	outer.VOLT26EvaluationWantedIntroMessageCommand = function(self)
+		self:finishtweening():zoom(1.8):diffusealpha(0):sleep(delay)
+			:accelerate(0.12):zoom(0.94):diffusealpha(1)
+			:decelerate(0.08):zoom(1)
+	end
+	return outer
+end
+
+local HEAD_PIVOT = { mx(Art.head.x + Art.head.w / 2), Art.head.y + Art.head.h / 2 }
+local BODY_PIVOT = { mx(Art.page.x + Art.page.w / 2), Art.page.y + Art.page.h / 2 }
+
 local art = Def.ActorFrame{ Name="Side" .. ToEnumShortString(side) }
-art[#art+1] = picture("panel_head", Art.head)
+
+-- The head plate's picture is under the page bodies; its text is drawn over
+-- them (headText below) and moves with it.
+local headPlate, headPlateInner = pivotFrame("HeadPlate", HEAD_PIVOT[1], HEAD_PIVOT[2])
+headPlateInner[#headPlateInner+1] = picture("panel_head", Art.head)
+art[#art+1] = slider(headPlate, HEAD_PIVOT[1], HEAD_PIVOT[2], 1, M.head)
 
 -- One frame per page; only the shown page's is visible.
 local PAGES = VOLT26.EvaluationPage.Pages
 local pageFrames = {}
+local body, bodyInner = pivotFrame("Body", BODY_PIVOT[1], BODY_PIVOT[2])
+art[#art+1] = slider(body, BODY_PIVOT[1], BODY_PIVOT[2], 1, M.body)
 for index, name in ipairs(PAGES) do
 	pageFrames[name] = Def.ActorFrame{
 		Name="Page_" .. name,
 		InitCommand=function(self) self:visible(index == 1) end,
 	}
-	art[#art+1] = pageFrames[name]
+	bodyInner[#bodyInner+1] = pageFrames[name]
 end
+
+local headText, headTextInner = pivotFrame("HeadText", HEAD_PIVOT[1], HEAD_PIVOT[2])
+art[#art+1] = slider(headText, HEAD_PIVOT[1], HEAD_PIVOT[2], 1, M.head)
 
 -- The ladder, the holds box and the graph frame.
 local ladder = pageFrames.wanted
@@ -107,14 +195,14 @@ pageFrames.qr[#pageFrames.qr+1] = title("label_qr", Art.qr.label)
 
 -- Level: "LV" and the chart's meter, the digits held to the artwork's width.
 local level, meter = Art.level, tostring(card.meter)
-art[#art+1] = T.Run({ x = level.x, y = level.y, rot = level.rot }, {
+headTextInner[#headTextInner+1] = T.Run({ x = level.x, y = level.y, rot = level.rot }, {
 	{ font = "Score", size = level.lvCap / T.CAP.Score, color = BLACK, text = "LV", width = level.lvWidth },
 	{ font = "Score", size = level.cap / T.CAP.Score, color = BLACK, text = meter,
 		pad = level.gap, width = level.digit * #meter },
 }, mirror)
 
 -- Modifiers, wrapped on the white plate right of the level.
-art[#art+1] = LoadFont(T.Font.Bold)..{
+headTextInner[#headTextInner+1] = LoadFont(T.Font.Bold)..{
 	Name="Modifiers",
 	InitCommand=function(self)
 		local a = Art.mods
@@ -136,8 +224,13 @@ local function score(anchor, tag, value, tint)
 		{ font = "Score", size = 31.8, color = tint, text = " / 100" },
 	}, mirror, anchor.width)
 end
-art[#art+1] = score(Art.ex, "EX", card.ex, EX_TINT)
-art[#art+1] = score(Art.itg, "ITG", card.itg, ITG_TINT)
+-- Each stamps down once the plate has landed.
+for index, entry in ipairs({ { Art.ex, "EX", card.ex, EX_TINT }, { Art.itg, "ITG", card.itg, ITG_TINT } }) do
+	local a = entry[1]
+	headTextInner[#headTextInner+1] = stamp(score(a, entry[2], entry[3], entry[4]),
+		mx(a.x + (a.width or 0) / 2), a.y - a.size * 0.35,
+		M.scores + (index - 1) * M.scoreStep)
+end
 
 -- The judgment ladder: "Label · 00015", the count's leading zeros dark.
 for index, row in ipairs(card.rows) do
@@ -148,10 +241,10 @@ for index, row in ipairs(card.rows) do
 		if not row.enabled then bright, dim = OFF, OFF end
 		local digits, lead = T.Padded(row.count, COUNT_DIGITS)
 		-- Rows beside the holds box stop short of it (anchor.width).
-		ladder[#ladder+1] = T.Run(anchor, {
+		ladder[#ladder+1] = stepIn(T.Run(anchor, {
 			{ font = "Label", size = anchor.size, color = bright, text = row.label .. " · " },
 			{ font = "Label", size = anchor.size, color = bright, text = digits, dim = { lead, dim } },
-		}, mirror, anchor.width)
+		}, mirror, anchor.width), M.rows + (index - 1) * M.rowStep)
 	end
 end
 
@@ -167,25 +260,69 @@ for index, entry in ipairs(extras) do
 	anchor.x, anchor.y = a.x - math.sin(r) * gap, a.y + math.cos(r) * gap
 	local possible = entry[2].possible
 	local digits, lead = T.Padded(entry[2].actual, #tostring(possible))
-	ladder[#ladder+1] = T.Run(anchor, {
+	ladder[#ladder+1] = stepIn(T.Run(anchor, {
 		{ font = "Label", size = a.size, color = WHITE, text = entry[1] .. " · " },
 		{ font = "Bold", size = a.size, color = WHITE, text = digits .. "/" .. possible, dim = { lead, GREY } },
-	}, mirror)
+	}, mirror), M.rows + (#card.rows + index - 1) * M.rowStep)
 end
 
--- The graph, over the page bodies (on every page but the QR page).
-art[#art+1] = LoadActor("./Graph.lua", {
-	Art = Art, quad = graphQuad(), graph = VOLT26.EvaluationPage.GetGraph(player),
-	colors = { W0 = ROW.W0[1], W1 = ROW.W1[1], W2 = ROW.W2[1], W3 = ROW.W3[1], W4 = ROW.W4[1], W5 = ROW.W5[1] },
-	font = T.Font.Bold, fontZoom = 20 / T.EM.Bold,
-	palette = side == PLAYER_2 and "blue" or "red",
-})
+-- The graph, over the page bodies (on every page but the QR page).  It
+-- travels with the body and draws itself in once the body has landed.
+local graphSlide, graphInner = pivotFrame("GraphSlide", BODY_PIVOT[1], BODY_PIVOT[2])
+graphInner[#graphInner+1] = Def.ActorFrame{
+	Name="GraphFade",
+	LoadActor("./Graph.lua", {
+		Art = Art, quad = graphQuad(), graph = VOLT26.EvaluationPage.GetGraph(player),
+		colors = { W0 = ROW.W0[1], W1 = ROW.W1[1], W2 = ROW.W2[1], W3 = ROW.W3[1], W4 = ROW.W4[1], W5 = ROW.W5[1] },
+		font = T.Font.Bold, fontZoom = 20 / T.EM.Bold,
+		palette = side == PLAYER_2 and "blue" or "red",
+		introDelay = M.graph,
+	}),
+}
+art[#art+1] = slider(graphSlide, BODY_PIVOT[1], BODY_PIVOT[2], 1, M.body)
 
+-- Turning a page: the page that was shown slides off toward where the input
+-- came from (MenuRight: to the left) and the new one slides in from the other
+-- side.  `frames` maps page names to their frames, `slide` is the distance in
+-- the frames' units.  Without a direction (the first broadcast) the page is
+-- simply shown.  An interrupted turn is settled first.
+local function turnPage(frames, old, new, direction, slide)
+	for name, frame in pairs(frames) do
+		frame:finishtweening():x(0):diffusealpha(1):visible(name == old)
+	end
+	if not direction or old == new then
+		for name, frame in pairs(frames) do frame:visible(name == new) end
+		return
+	end
+	if frames[old] then
+		frames[old]:accelerate(0.1):x(-direction * slide):diffusealpha(0):queuecommand("PageGone")
+	end
+	if frames[new] then
+		frames[new]:visible(true):x(direction * slide):diffusealpha(0)
+			:sleep(0.05):decelerate(0.16):x(0):diffusealpha(1)
+		frames[new]:playcommand("PageShown")
+	end
+end
+for _, frame in pairs(pageFrames) do
+	frame.PageGoneCommand = function(self) self:visible(false):x(0):diffusealpha(1) end
+end
+
+art.InitCommand = function(self) self.page = PAGES[1] end
 art.VOLT26EvaluationPageMessageCommand = function(self, params)
 	if params.Side ~= side then return end
-	local shown = PAGES[(params.Page or 0) + 1] or "wanted"
-	for _, name in ipairs(PAGES) do self:GetChild("Page_" .. name):visible(name == shown) end
-	self:GetChild("Graph"):visible(shown ~= "qr")
+	local shown = PAGES[(params.Page or 0) + 1] or PAGES[1]
+	local frames = {}
+	local inner = self:GetChild("Body"):GetChild("Inner")
+	for _, name in ipairs(PAGES) do frames[name] = inner:GetChild("Page_" .. name) end
+	turnPage(frames, self.page, shown, params.Direction, M.pageSlide)
+	self.page = shown
+	local fade = self:GetChild("GraphSlide"):GetChild("Inner"):GetChild("GraphFade")
+	fade:finishtweening()
+	if params.Direction then
+		fade:linear(shown ~= "qr" and 0.18 or 0.1):diffusealpha(shown ~= "qr" and 1 or 0)
+	else
+		fade:diffusealpha(shown ~= "qr" and 1 or 0)
+	end
 end
 
 -- ---------------------------------------------------------------------------
@@ -215,13 +352,20 @@ local function slot(styleName, box, text, extraTilt)
 	}
 end
 
+-- The name moves with the head plate, in screen units about the same pivot.
+local headPivotX, headPivotY = OX + HEAD_PIVOT[1] * S, HEAD_PIVOT[2] * S
+local nameSlide, nameInner = pivotFrame("NameSlide", headPivotX, headPivotY)
 local name = slot("EvalName", Art.name, card.name)
-if name then cutouts[#cutouts+1] = name end
+if name then nameInner[#nameInner+1] = name end
+cutouts[#cutouts+1] = slider(nameSlide, headPivotX, headPivotY, S, M.head)
 
-local grade = Def.ActorFrame{ Name="Grade" }
+-- The grade, about its own centre: stamped down last in the intro, and in and
+-- out as the WANTED page comes and goes.
+local gradeX, gradeY = placed(Art.grade)
+local grade, gradeInner = pivotFrame("Grade", gradeX, gradeY)
 if card.gradeLetter then
 	local letter = slot("EvalGrade", Art.grade, card.gradeLetter)
-	if letter then grade[#grade+1] = letter end
+	if letter then gradeInner[#gradeInner+1] = letter end
 elseif card.gradeStars > 0 then
 	-- Star grades: the grade star picture, as many as the song wheel shows.
 	local layouts = {
@@ -233,8 +377,7 @@ elseif card.gradeStars > 0 then
 	}
 	local stars = Def.ActorFrame{
 		InitCommand=function(self)
-			local x, y = placed(Art.grade)
-			self:xy(x, y):zoom(S * 0.8):rotationz(mirror and -Art.grade.rot or Art.grade.rot)
+			self:xy(gradeX, gradeY):zoom(S * 0.8):rotationz(mirror and -Art.grade.rot or Art.grade.rot)
 		end,
 	}
 	for _, at in ipairs(layouts[card.gradeStars]) do
@@ -246,16 +389,39 @@ elseif card.gradeStars > 0 then
 			end,
 		}
 	end
-	grade[#grade+1] = stars
+	gradeInner[#gradeInner+1] = stars
+end
+local GRADE_TURN = AWAY * 25
+grade.InitCommand = function(self)
+	self:xy(gradeX, gradeY):zoom(3):rotationz(GRADE_TURN):diffusealpha(0)
+end
+grade.VOLT26EvaluationWantedIntroMessageCommand = function(self)
+	self:finishtweening():zoom(3):rotationz(GRADE_TURN):diffusealpha(0):sleep(M.grade)
+		:accelerate(0.14):zoom(0.9):rotationz(0):diffusealpha(1)
+		:decelerate(0.06):zoom(1.06)
+		:accelerate(0.06):zoom(1)
 end
 grade.VOLT26EvaluationPageMessageCommand = function(self, params)
 	if params.Side ~= side then return end
-	self:visible((params.Page or 0) == 0)
+	local shown = (params.Page or 0) == 0
+	if not params.Direction then self:visible(shown) return end
+	self:finishtweening()
+	if shown then
+		self:visible(true):zoom(1.7):rotationz(GRADE_TURN * 0.5):diffusealpha(0)
+			:sleep(0.08):accelerate(0.12):zoom(1):rotationz(0):diffusealpha(1)
+	elseif self:GetVisible() then
+		self:accelerate(0.1):zoom(0.6):diffusealpha(0):queuecommand("Gone")
+	end
+end
+grade.GoneCommand = function(self) self:visible(false):zoom(1):diffusealpha(1) end
+grade.OffCommand = function(self)
+	self:finishtweening():accelerate(0.14):zoom(0.2):rotationz(-GRADE_TURN):diffusealpha(0)
 end
 cutouts[#cutouts+1] = grade
 
 -- The timing page's title, in cutout lettering where NOTES has its title
 -- (the artwork has no timing page; NOTES and Qr are the owner's pictures).
+-- It turns with its page, in screen units.
 local labels = {
 	{ page = "timing", text = "TIMING", box = Art.notes.label },
 }
@@ -263,11 +429,22 @@ for _, entry in ipairs(labels) do
 	local label = slot("EvalLabel", entry.box, entry.text)
 	if label then
 		cutouts[#cutouts+1] = Def.ActorFrame{
-			InitCommand=function(self) self:visible(false) end,
+			InitCommand=function(self) self:visible(false) self.page = PAGES[1] end,
 			VOLT26EvaluationPageMessageCommand=function(self, params)
 				if params.Side ~= side then return end
-				self:visible(PAGES[(params.Page or 0) + 1] == entry.page)
+				local shown = PAGES[(params.Page or 0) + 1] or PAGES[1]
+				local was = self.page
+				self.page = shown
+				local mine = { [entry.page] = self }
+				-- Only its own page matters: from or to it, it turns; otherwise
+				-- it stays hidden.
+				local old = was == entry.page and entry.page or "other"
+				local new = shown == entry.page and entry.page or "other"
+				if old == new then self:visible(new == entry.page) return end
+				turnPage(mine, old, new, params.Direction, M.pageSlide * S)
 			end,
+			PageGoneCommand=function(self) self:visible(false):x(0):diffusealpha(1) end,
+			OffCommand=function(self) self:finishtweening():linear(0.12):diffusealpha(0) end,
 			label,
 		}
 	end

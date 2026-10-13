@@ -17,6 +17,17 @@
 --
 -- All drawing is in artboard pixels (1920x1080) under one frame zoomed to the
 -- screen's height and centred; the cutout lettering is in theme units.
+--
+-- Motion: the page waits while the victory / defeat transition plays
+-- (ScreenEvaluationStage in/VOLT26.lua), which broadcasts
+-- VOLT26EvaluationReveal as it starts to clear.  The overlay then broadcasts
+-- VOLT26EvaluationWantedIntro once -- a red slash and a flash, the title band
+-- rising, each side's plates sliding in (Wanted/Side.lua) -- and, for the
+-- modules that waited for the results, VOLT26EvaluationSequenceFinished.  If
+-- the transition never says so, the page comes in after REVEAL_FALLBACK
+-- seconds.  Leaving the screen, every part goes back out (OffCommand) under
+-- ScreenEvaluationStage out.lua.
+local REVEAL_FALLBACK = 4.5
 
 local Art = LoadActor("./Wanted/Art.lua")
 local T = LoadActor("./Wanted/Text.lua")
@@ -74,10 +85,19 @@ local band = Def.ActorFrame{
 	InitCommand=function(self)
 		local a = Art.title
 		local r = math.rad(a.rot)
-		self:xy(a.x + a.centre * math.cos(r), a.y + a.centre * math.sin(r)):rotationz(a.rot)
+		self.baseY = a.y + a.centre * math.sin(r)
+		self:xy(a.x + a.centre * math.cos(r), self.baseY + 150):rotationz(a.rot):diffusealpha(0)
+	end,
+	VOLT26EvaluationWantedIntroMessageCommand=function(self)
+		self:finishtweening():y(self.baseY + 150):diffusealpha(0)
+			:sleep(0.2):decelerate(0.3):y(self.baseY):diffusealpha(1)
+		-- A long title starts scrolling once the band has settled.
+		if self.period then self:sleep(1.2):queuecommand("Scroll") end
+	end,
+	OffCommand=function(self)
+		self:stoptweening():accelerate(0.2):y(self.baseY + 150):diffusealpha(0)
 	end,
 	OnCommand=function(self)
-		self:addy(140):decelerate(0.35):addy(-140)
 		local first, second = self:GetChild("First"), self:GetChild("Second")
 		local width = first:GetZoomedWidth()
 		local length = Art.title.length
@@ -94,7 +114,6 @@ local band = Def.ActorFrame{
 		self.period = period
 		first:MaskDest():x(self.start)
 		second:MaskDest():x(self.start + period)
-		self:sleep(1.5):queuecommand("Scroll")
 	end,
 	ScrollCommand=function(self)
 		local seconds = self.period / TITLE_SPEED
@@ -133,13 +152,6 @@ page[#page+1] = band
 for _, player in ipairs(players) do
 	local where = #players == 1 and PLAYER_1 or player
 	local side = LoadActor("./Wanted/Side.lua", { Art = Art, Text = T, player = player, side = where, S = S, OX = OX })
-	local away = where == PLAYER_1 and -1 or 1
-	side.art.OnCommand = function(self)
-		self:addx(away * 260):decelerate(0.3):addx(-away * 260)
-	end
-	side.cutouts.OnCommand = function(self)
-		self:addx(away * 260 * S):decelerate(0.3):addx(-away * 260 * S)
-	end
 	page[#page+1] = side.art
 	cutouts[#cutouts+1] = side.cutouts
 end
@@ -157,13 +169,41 @@ return Def.ActorFrame{
 			local panes = common:GetChild("Panes")
 			if panes then panes:visible(false) end
 		end
-		-- Modules and listeners that waited for the old result sequence.
-		self:sleep(0.4):queuecommand("Revealed")
+		-- In case the transition never says it is clearing.
+		self:sleep(REVEAL_FALLBACK):queuecommand("VOLT26WantedReveal")
 	end,
-	RevealedCommand=function(self)
+	VOLT26EvaluationRevealMessageCommand=function(self)
+		self:playcommand("VOLT26WantedReveal")
+	end,
+	VOLT26WantedRevealCommand=function(self)
+		if self.revealed then return end
+		self.revealed = true
+		MESSAGEMAN:Broadcast("VOLT26EvaluationWantedIntro")
+		-- Modules and listeners that wait for the results (the five-star cat).
 		MESSAGEMAN:Broadcast("VOLT26EvaluationSequenceFinished")
 	end,
+	-- A red slash across the screen as the page comes in, under the sides.
+	Def.Quad{
+		Name="WantedSlash",
+		InitCommand=function(self)
+			self:zoomto(SCREEN_WIDTH * 0.32, SCREEN_HEIGHT * 2.4):rotationz(16)
+				:xy(-SCREEN_WIDTH * 0.3, SCREEN_CENTER_Y):diffuse(color("#f11600")):visible(false)
+		end,
+		VOLT26EvaluationWantedIntroMessageCommand=function(self)
+			self:finishtweening():visible(true):x(-SCREEN_WIDTH * 0.3)
+				:linear(0.3):x(SCREEN_WIDTH * 1.3):queuecommand("Hide")
+		end,
+		HideCommand=function(self) self:visible(false) end,
+	},
 	page,
 	cutouts,
+	-- A white flash over everything as the page lands.
+	Def.Quad{
+		Name="WantedFlash",
+		InitCommand=function(self) self:FullScreen():diffuse(color("#ffffff")):diffusealpha(0) end,
+		VOLT26EvaluationWantedIntroMessageCommand=function(self)
+			self:finishtweening():diffusealpha(0):sleep(0.32):diffusealpha(0.45):linear(0.25):diffusealpha(0)
+		end,
+	},
 	LoadActor(THEME:GetPathB("ScreenEvaluation", "common"), { WantedPage = true }),
 }

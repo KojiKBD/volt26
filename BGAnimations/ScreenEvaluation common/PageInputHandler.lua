@@ -9,7 +9,10 @@
 -- loaded (GrooveStats submission writes into them) but are never shown.
 --
 -- Every change is broadcast as VOLT26EvaluationPage {Side=PlayerNumber,
--- Page=number, Count=number}; the screen hides or shows its own actors from it.
+-- Page=number, Count=number, Direction=1 or -1}; the screen turns its own
+-- actors from it.  Direction is 1 for MenuRight (the new page comes in from
+-- the right) and -1 for MenuLeft; the first broadcast, which only sets the
+-- starting page, has none.
 -- Returns the input callback (the caller activates it).
 local af, numPanes = unpack(...)
 if not af or type(numPanes) ~= "number" then return end
@@ -32,8 +35,8 @@ local function used(side)
 	return false
 end
 
-local function show(side)
-	MESSAGEMAN:Broadcast("VOLT26EvaluationPage", { Side = side, Page = page[side], Count = count })
+local function show(side, direction)
+	MESSAGEMAN:Broadcast("VOLT26EvaluationPage", { Side = side, Page = page[side], Count = count, Direction = direction })
 end
 
 -- Start every used side on the screen's own page.
@@ -54,7 +57,7 @@ return function(event)
 
 	local direction = event.GameButton == "MenuRight" and 1 or -1
 	page[side] = (page[side] + direction) % count
-	show(side)
+	show(side, direction)
 	af:queuecommand("PaneSwitch")
 	return false
 end

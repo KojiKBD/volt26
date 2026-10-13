@@ -45,6 +45,12 @@ for index, column in ipairs(data.columns) do
 			-- Noteskin arrows are drawn about 64 px wide.
 			self:xy(centre[1], centre[2]):zoom(arrowSize / 64):visible(true)
 		end,
+		-- The page turned in: the arrows pop up one after another.
+		PageShownCommand=function(self)
+			local zoom = arrowSize / 64
+			self:finishtweening():zoom(0):sleep(0.08 + (index - 1) * 0.04)
+				:decelerate(0.14):zoom(zoom * 1.2):accelerate(0.07):zoom(zoom)
+		end,
 	}
 end
 

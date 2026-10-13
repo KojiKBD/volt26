@@ -43,6 +43,12 @@ local code = Def.ActorFrame{
 	InitCommand=function(self)
 		self:xy(mx(qr.code.cx), qr.code.cy):rotationz(mirror and -qr.code.rot or qr.code.rot)
 	end,
+	-- The page turned in: the code spins up into place.
+	PageShownCommand=function(self)
+		local rot = mirror and -qr.code.rot or qr.code.rot
+		self:finishtweening():zoom(0.2):rotationz(rot + (mirror and 90 or -90)):sleep(0.08)
+			:decelerate(0.2):zoom(1.06):rotationz(rot):accelerate(0.07):zoom(1)
+	end,
 	VOLT26GrooveStatsSubmittedMessageCommand=function(self, params)
 		if params.Player ~= player then return end
 		self:GetChild("Modules"):visible(false)
