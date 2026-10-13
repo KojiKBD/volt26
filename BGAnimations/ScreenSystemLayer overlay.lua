@@ -95,7 +95,7 @@ local function CreditsText( player )
 
 			if screen then
 				bShow = THEME:GetMetric( screen:GetName(), "ShowCreditDisplay" )
-				if screen:GetName() == "ScreenTitleMenu" and _G.Volt26TitleIntroActive then
+				if (screen:GetName() == "ScreenTitleMenu" or screen:GetName() == "ScreenTitleJoin") and _G.Volt26TitleIntroActive then
 					bShow = false
 				end
 
@@ -228,7 +228,7 @@ t[#t+1] = LoadFont("Common Footer")..{
 		-- Sorry about this.
 		if screen then
 			local visible = THEME:GetMetric( screen:GetName(), "ShowCreditDisplay" )
-			if screen:GetName() == "ScreenTitleMenu" and _G.Volt26TitleIntroActive then
+			if (screen:GetName() == "ScreenTitleMenu" or screen:GetName() == "ScreenTitleJoin") and _G.Volt26TitleIntroActive then
 				visible = false
 			end
 			self:visible(visible)
@@ -242,14 +242,16 @@ t[#t+1] = LoadFont("Common Footer")..{
 			local text
 
 			if credits.CoinsPerCredit > 1 then
-				text = ("%s     %d     %d/%d"):format(
+				-- Kept short: the line is drawn in cutout lettering, which
+				-- has a letter budget (CreditCentre).
+				text = ("%s %d  %d/%d"):format(
 					THEME:GetString("ScreenSystemLayer", "CreditsCredits"),
 					credits.Credits,
 					credits.Remainder,
 					credits.CoinsPerCredit
 				)
 			else
-				text = ("%s     %d"):format(
+				text = ("%s %d"):format(
 					THEME:GetString("ScreenSystemLayer", "CreditsCredits"),
 					credits.Credits
 				)
@@ -397,8 +399,8 @@ t[#t+1] = Def.ActorFrame{
 	end,
 	ScreenChangedMessageCommand=function(self)
 		local screen = SCREENMAN:GetTopScreen()
-		if (screen:GetName() == "ScreenTitleMenu" and not _G.Volt26TitleIntroActive)
-		or screen:GetName() == "ScreenTitleJoin" then
+		if (screen:GetName() == "ScreenTitleMenu" or screen:GetName() == "ScreenTitleJoin")
+		and not _G.Volt26TitleIntroActive then
 			self:queuecommand("Reset")
 			self:diffusealpha(0):sleep(0.2):linear(0.4):diffusealpha(1):visible(true)
 			self:queuecommand("SendRequest")
@@ -408,7 +410,7 @@ t[#t+1] = Def.ActorFrame{
 	end,
 	VOLT26_TitleIntroCompleteMessageCommand=function(self)
 		local screen = SCREENMAN:GetTopScreen()
-		if screen and screen:GetName() == "ScreenTitleMenu" then
+		if screen and (screen:GetName() == "ScreenTitleMenu" or screen:GetName() == "ScreenTitleJoin") then
 			self:queuecommand("Reset")
 			self:diffusealpha(0):sleep(0.2):linear(0.4):diffusealpha(1):visible(true)
 			self:queuecommand("SendRequest")

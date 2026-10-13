@@ -53,7 +53,10 @@ Cutout.StyleDesign = {
 	EvalLabel    = { Scale="Fit", MaxW=250, MaxH=100, Base=70, Tilt=-5, MaxChars=8 },
 	-- ScreenSystemLayer: the credit line (theme units already).
 	CreditPlayer = { Scale="Theme", MaxW=260, MaxH=44, Base=22, MaxChars=16 },
-	CreditCentre = { Scale="Theme", MaxW=300, MaxH=50, Base=26, MaxChars=16 },
+	-- Room for the pay-mode line ("CREDITS 0  0/2") in longer languages.
+	CreditCentre = { Scale="Theme", MaxW=300, MaxH=50, Base=26, MaxChars=24 },
+	-- ScreenTitleJoin (Free Play / Pay title screen): the join prompt.
+	TitleJoinPrompt = { Scale="Theme", MaxW=440, MaxH=56, Base=28, Tilt=-3, MaxChars=32 },
 	-- ScreenSystemLayer: the menu timer's number, top right (ScreenSystemLayer
 	-- timer.lua).  Digits only, up to three.
 	MenuTimer    = { Scale="Theme", MaxW=90, MaxH=40, Base=26, Tilt=-4, MaxChars=3 },
