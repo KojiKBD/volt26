@@ -219,7 +219,7 @@ for c, art in ipairs(Art.cards) do
 			InitCommand = function(self) self:SetDrawState{ Mode = "DrawMode_QuadStrip" } end },
 		Def.ActorMultiVertex{ Name = "DensityEdge",
 			InitCommand = function(self) self:SetDrawState{ Mode = "DrawMode_LineStrip" }:SetLineWidth(1.5) end },
-		-- The name, centred on the artwork's name; the lettering's own tilt
+		-- The name, centred where the artwork has it; the lettering's own tilt
 		-- (-3 degrees) plus the frame's turn make the artwork's.
 		Def.ActorFrame{
 			Name = "NameFrame",

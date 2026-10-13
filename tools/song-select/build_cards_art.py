@@ -37,6 +37,11 @@ ROLES = ["plate", "name", "level", "frame", "ex", "itg", "steps", "box", "stats"
 CARD1 = [[i] for i in range(402, 413)]
 CARD2 = [[413, k] for k in range(11)]
 
+# Where the player's name sits: the centre and turn of the lettering in the
+# owner's own Illustrator export (the SVG holds a placeholder picture whose
+# lettering is off-centre), artboard pixels.
+NAME_PLACES = {1: {"cx": 1675, "cy": 378, "rot": -5}, 2: {"cx": 1690, "cy": 704, "rot": -3}}
+
 # What the card pictures keep, and what they hide inside what they keep.
 KEEP = ["plate", "frame", "ex", "itg", "box", "graph"]
 HIDE = [("ex", [0]), ("itg", [0]), ("graph", [1, 1]), ("graph", [1, 2])]
@@ -186,8 +191,7 @@ def main():
                 card = {
                     "picture": "card%d" % number,
                     "x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0,
-                    "name": {"cx": m["name"]["centre"][0] - ARTBOARD[0], "cy": m["name"]["centre"][1] - ARTBOARD[1],
-                             "w": m["name"]["w"], "h": m["name"]["h"], "rot": m["name"]["rot"]},
+                    "name": NAME_PLACES[number],
                     "level": {"x": ell[0], "y": ell[1] + ell[3], "rot": level_rot,
                               "lvCap": ell[3], "lvWidth": vee[0] + vee[2] - ell[0],
                               "gap": math.hypot(one[0] - (vee[0] + vee[2]), (one[1] + one[3]) - (vee[1] + vee[3])),

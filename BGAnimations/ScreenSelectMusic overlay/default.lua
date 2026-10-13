@@ -273,6 +273,7 @@ info[#info+1] = part("Difficulty.lua", { K=K, S=S })
 info[#info+1] = part("PackTag.lua", { K=K, S=S })
 info[#info+1] = part("Radar.lua", { K=K, S=S, X=1045, Y=460, R=122 })
 info[#info+1] = part("Cards.lua", { K=K, S=S })
+info[#info+1] = part("Jacket.lua", { K=K, S=S, Part="Length" })
 info[#info+1] = part("Footer.lua", { K=K, S=S })
 layout[#layout+1] = info
 af[#af+1] = layout

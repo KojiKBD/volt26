@@ -1,5 +1,7 @@
 -- The song's jacket in the mockup's white frame at the top right, and the
 -- song's length stamped in cutout lettering over the frame's lower edge.
+-- The length is a part of its own (p.Part == "Length"), loaded after the
+-- player cards so the first card's plate does not cover it.
 --
 -- The jacket stays upright (jackets are never rotated, see
 -- .agents/presentation.md); the frame around it carries the slant.  Under it,
@@ -13,8 +15,23 @@ local frame = P.Art.Pieces.JacketFrame
 local SIZE = K.Badge.Size
 local X, Y = K.Badge.X, K.Badge.Y
 local ART_DELAY = 0.10   -- the wheel must rest this long before artwork loads
--- The length tag: over the frame's lower right corner, tilted against it.
-local LENGTH = { X = frame.X + frame.W / 2 - 18, Y = frame.Y + frame.H / 2 - 6 }
+-- The length tag: over the frame's lower right corner, tilted against it,
+-- clear of the first card's plate below.
+local LENGTH = { X = frame.X + frame.W / 2 - 18, Y = frame.Y + frame.H / 2 - 30 }
+
+if p.Part == "Length" then
+	return Def.ActorFrame{
+		Name="JacketLength",
+		RefreshCommand=function(self)
+			local item = S.Item()
+			local length = item and S.LengthText(item) or ""
+			if length == K.Dash then length = "" end
+			self:GetChild("Length"):visible(length ~= "")
+			P.SetCutout(self:GetChild("Length"), length)
+		end,
+		P.CutoutSlot{ Name="Length", Id="Length", X=LENGTH.X, Y=LENGTH.Y, Scale=K.Scale },
+	}
+end
 
 local af = Def.ActorFrame{
 	Name="Jacket",
@@ -32,10 +49,6 @@ local af = Def.ActorFrame{
 			self:GetChild("Art"):visible(false)
 			self:stoptweening():sleep(ART_DELAY):queuecommand("LoadArt")
 		end
-		local length = item and S.LengthText(item) or ""
-		if length == K.Dash then length = "" end
-		self:GetChild("Length"):visible(length ~= "")
-		P.SetCutout(self:GetChild("Length"), length)
 	end,
 	LoadArtCommand=function(self)
 		local art = self:GetChild("Art")
@@ -56,6 +69,5 @@ local af = Def.ActorFrame{
 }
 
 af[#af+1] = Def.Sprite{ Name="Art", InitCommand=function(self) self:xy(X, Y):visible(false) end }
-af[#af+1] = P.CutoutSlot{ Name="Length", Id="Length", X=LENGTH.X, Y=LENGTH.Y, Scale=K.Scale }
 
 return af
