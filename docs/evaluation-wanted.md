@@ -71,27 +71,32 @@ so the level digits and the score lines are held to the artwork's widths.
 
 ## Pages
 
-Each side of the screen shows a page. Page 0 is the WANTED page. Pages 1..n
-are the inherited Simply Love panes of that side, in pane order, until they
-get their own design. MenuLeft and MenuRight turn the page:
-`BGAnimations/ScreenEvaluation common/PageInputHandler.lua`, loaded instead
-of `InputHandler.lua` when the common evaluation is loaded with
+Each side turns through four pages with MenuLeft / MenuRight, wrapping round
+(`VOLT26.EvaluationPage.Pages`). The plates (name, level, modifiers, scores)
+stay on every page.
+
+| Page | Body | Content |
+| --- | --- | --- |
+| `wanted` | `panel_body.png` | Judgment ladder, holds/mines/rolls, grade (above). |
+| `notes` | `panel_notes.png` (the NOTES artboard's container and graph frame) | `Wanted/Notes.lua`: Simply Love's per-column pane. The player's noteskin arrows (`_modules/NoteSkinPreview.lua`) head the columns; the seven judgments are rows in their colours, each column's counts in the row's colour. The 10/15 ms Fantastic is split per column only with the FA+ window and pane on (that is when gameplay records it); otherwise its row shows a dash. |
+| `timing` | `panel_notes.png` | `Wanted/Timing.lua`: Simply Love's offset pane. An offset histogram (early left, late right, bars in their windows' colours, windows' edges marked), early / late / miss counts, mean, standard deviation and largest error. |
+| `qr` | `panel_qr.png` (the QR artboard's boxes and bolt) | `Wanted/Qr.lua`: Simply Love's GrooveStats QR code (`Pane7/GrooveStatsURL.lua`), white on black as drawn. A play GrooveStats would not take shows why; an automatic submission replaces the code with "already submitted". GS BEST is the chart's GrooveStats leaderboard, from the `VOLT26GrooveStatsLeaderboard` message that `Shared/AutoSubmitScore.lua` now sends. MACHINE BEST is the machine's best scores, with this play highlighted. |
+
+The graph is drawn on every page except `qr`. The page titles (NOTES, TIMING,
+Qr) are cutout lettering (style `EvalLabel`, warmed at startup). The
+artwork's own titles are placed pictures the SVG export does not carry.
+
+Input: `BGAnimations/ScreenEvaluation common/PageInputHandler.lua`, loaded
+instead of `InputHandler.lua` when the common evaluation is loaded with
 `{WantedPage=true}`.
 
 - With two players, each controller turns its own side.
-- With one player, the page is always on the left side, and either
-  controller turns it. The left side's panes carry the player's data.
+- With one player, the page is always on the left, and either controller
+  turns it.
 - Every change is broadcast as `VOLT26EvaluationPage {Side, Page, Count}`.
 
-On any page other than 0 the side hides the ladder's text, the grade and the
-graph, and keeps its plates. The pane is fitted over the ladder (`fitPane` in
-`overlay/default.lua`). The inherited upper and lower halves (grade, records,
-step artist, modifiers, the old graph) are hidden; the page shows those
-itself.
-
-To give a pane its own design later, add its page actors to `Side.lua`,
-listening to `VOLT26EvaluationPage`, and drop the pane from the inherited
-list.
+The inherited Simply Love panes stay loaded, because the GrooveStats
+submission writes into them, but they are never shown.
 
 `VOLT26EvaluationSequenceFinished` is still broadcast, 0.4 s after the page
 opens, for the modules that waited for the old result sequence (for example

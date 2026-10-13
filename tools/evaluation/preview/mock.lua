@@ -52,6 +52,11 @@ function RunScript(path, ...)
 end
 function LoadActor(path, ...)
 	if path:match("ScreenEvaluation common/?$") then return def("ActorFrame", { Name = "ScreenEval Common" }) end
+	if path:match("GrooveStatsURL.lua$") then return "https://groovestats.com/?h=0123456789abcdef&s=9953&j=480,32,41,6,2,1,3" end
+	-- A noteskin arrow: a white square in the preview.
+	if path:match("NoteSkinPreview.lua$") then
+		return def("Quad", { InitCommand = function(self) self:zoomto(52, 52):diffuse({ 1, 1, 1, 1 }) end })
+	end
 	if not path:match("^/") then
 		path = fileStack[#fileStack] .. "/" .. path:gsub("^%./", "")
 	end
@@ -68,7 +73,10 @@ function LoadActor(path, ...)
 end
 
 THEME = {}
-function THEME:GetPathB(a, b) return THEME_DIR .. "/BGAnimations/" .. a .. " " .. b end
+function THEME:GetPathB(a, b)
+	if a == "" then return py_find("BGAnimations/" .. b) end
+	return THEME_DIR .. "/BGAnimations/" .. a .. " " .. b
+end
 function THEME:GetPathG(a, b) return py_find("Graphics/" .. b) end
 function THEME:GetPathS(a, b) return py_find("Sounds/" .. b) end
 function THEME:GetString(a, b) return b end
@@ -228,9 +236,18 @@ GAMESTATE = {
 	GetCurrentSteps = function() return steps() end,
 	GetCurrentTrail = function() return nil end,
 	GetPlayerState = function() return { GetPlayerOptionsArray = function()
-		return { "C660", "Mini", "Distant", "Cel", "Overhead" } end } end,
+		return { "C660", "Mini", "Distant", "Cel", "Overhead" } end,
+		GetCurrentPlayerOptions = function() return { NoteSkin = function() return "Cel" end } end } end,
+	GetCurrentStyle = function() return { ColumnsPerPlayer = function() return 4 end,
+		GetColumnInfo = function(_, _, i) return { Name = ({ "Left", "Down", "Up", "Right" })[i] } end } end,
 }
-PROFILEMAN = { GetPlayerName = function(_, p) return p == PLAYER_1 and "USERNAME" or "RIVAL" end }
+function ValidForGrooveStats() return { true, true, true, true, true, true, true }, true, "" end
+local function hs(name, pct) return {
+	GetName = function() return name end, GetPercentDP = function() return pct end,
+	GetScore = function() return math.floor(pct * 1000) end, GetDate = function() return "2026-10-13" end } end
+PROFILEMAN = {
+	GetMachineProfile = function() return { GetHighScoreList = function() return { GetHighScores = function()
+		return { hs("KOJI", 0.9953), hs("RIKA", 0.978), hs("MRXN", 0.972), hs("TOMO", 0.9588), hs("ABCD", 0.91) } end } end } end, GetPlayerName = function(_, p) return p == PLAYER_1 and "USERNAME" or "RIVAL" end }
 PREFSMAN = { GetPreference = function() return 1 end }
 
 -- Simply Love helpers the data layer uses.
@@ -248,16 +265,18 @@ VOLT26 = {
 	Gameplay = { GetMode = function() return "ITG" end, IsCasual = function() return false end },
 	MusicSelection = { GetMusicRate = function() return 1 end },
 	Options = { GetPlayerModifiers = function() return { SpeedModType = "C", SpeedMod = 660, Mini = "30%",
-		TimingWindows = { true, true, true, true, true } } end },
+		TimingWindows = { true, true, true, true, true }, ShowFaPlusWindow = true, ShowFaPlusPane = true } end },
 	Cutout = {
 		GradeLetters = { Grade_Tier05 = "S+", Grade_Tier06 = "S", Grade_Failed = "F" },
 		StyleDesign = {
 			EvalName = { MaxW = 360, MaxH = 118, Base = 62, Tilt = 3, MaxChars = 16 },
 			EvalGrade = { MaxW = 250, MaxH = 170, Base = 120, Tilt = -10, MaxChars = 2 },
+			EvalLabel = { MaxW = 250, MaxH = 100, Base = 70, Tilt = -5, MaxChars = 8 },
 		},
 	},
 	CutoutMetrics = { upper = {} },
 	Failure = {},
+	Gameplay2 = nil,
 	Results = {},
 	Analysis = {},
 	ChartData = {},
@@ -290,12 +309,19 @@ function VOLT26.Results.GetCurrent(player)
 		failed = HARNESS_FAIL, percentDP = HARNESS_FAIL and 0.4321 or 0.9953, exPercent = HARNESS_FAIL and 41.07 or 99.67,
 		grade = HARNESS_FAIL and "Grade_Failed" or "Grade_Tier05",
 		judgments = judgments, exJudgments = { W0 = 480 },
+		columnJudgments = {
+			{ W0 = 120, W1 = 8, W2 = 10, W3 = 2, W4 = 1, W5 = 0, Miss = 1, Early = {}, MissBecauseHeld = 0 },
+			{ W0 = 118, W1 = 9, W2 = 11, W3 = 1, W4 = 0, W5 = 1, Miss = 0, Early = {}, MissBecauseHeld = 0 },
+			{ W0 = 121, W1 = 7, W2 = 9, W3 = 2, W4 = 1, W5 = 0, Miss = 1, Early = {}, MissBecauseHeld = 0 },
+			{ W0 = 121, W1 = 8, W2 = 11, W3 = 1, W4 = 0, W5 = 0, Miss = 1, Early = {}, MissBecauseHeld = 0 },
+		},
 		radar = { actual = { Holds = 181, Mines = 81, Rolls = 5, Hands = 10 }, possible = { Holds = 183, Mines = 183, Rolls = 6, Hands = 10 } },
 		timingWindows = { true, true, true, true, true },
 	}
 end
 function VOLT26.Results.GetStageStats()
-	return { GetLifeRecord = function(_, last, n)
+	return { GetHighScore = function() return { GetScore = function() return 995 end, GetDate = function() return "2026-10-13" end } end,
+		GetLifeRecord = function(_, last, n)
 		local r = {}
 		for i = 1, n do
 			local t = (i - 1) / (n - 1)
@@ -327,6 +353,25 @@ function VOLT26.Analysis.GetTimingOffsets()
 	return out
 end
 function VOLT26.Analysis.GetWorstJudgment() return 3 end
+function VOLT26.Analysis.AnalyzeTiming(offsets)
+	local n, sum, abs, mx = 0, 0, 0, 0
+	for _, s in ipairs(offsets) do if s.offset ~= "Miss" then n = n + 1 sum = sum + s.offset abs = abs + math.abs(s.offset) mx = math.max(mx, math.abs(s.offset)) end end
+	local mean = sum / n
+	local sq = 0
+	for _, s in ipairs(offsets) do if s.offset ~= "Miss" then sq = sq + (s.offset - mean) ^ 2 end end
+	return { count = n, meanOffsetMs = mean * 1000, meanAbsoluteMs = abs / n * 1000, sigmaMs = math.sqrt(sq / (n - 1)) * 1000, maxErrorMs = mx * 1000 }
+end
+function VOLT26.Analysis.BuildHistogram(offsets, worst, binCount)
+	local bins, peak, width = {}, 0, worst * 2 / binCount
+	for i = 1, binCount do bins[i] = { center = -worst + (i - 0.5) * width, count = 0 } end
+	for _, s in ipairs(offsets) do
+		if s.offset ~= "Miss" then
+			local i = clamp(math.floor((s.offset + worst) / width) + 1, 1, binCount)
+			bins[i].count = bins[i].count + 1 peak = math.max(peak, bins[i].count)
+		end
+	end
+	return { bins = bins, peak = peak }
+end
 function VOLT26.Analysis.BuildScatterBatches(offsets, timeline, width, height, worstWindow)
 	local batch = {}
 	local lastSecond = math.max(timeline.lastSecond, timeline.firstSecond + 0.001)

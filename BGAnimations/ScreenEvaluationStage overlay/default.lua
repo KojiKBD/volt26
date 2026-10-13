@@ -10,10 +10,10 @@
 -- "ScreenEval Common" (the inherited Simply Love evaluation) is always loaded:
 -- it owns input, score storage, screenshots, favourites, GrooveStats submission
 -- and the event overlay.  Its own upper and lower halves are not shown (this
--- page shows the grade, the graph and the modifiers); its panes are the pages
--- after the WANTED page.  MenuLeft / MenuRight turn a side's page
--- (ScreenEvaluation common/PageInputHandler.lua); a pane is shown over that
--- side's judgment ladder until the panes get their own design.
+-- page shows the grade, the graph and the modifiers) and its panes are
+-- hidden: the page has its own NOTES, timing and GrooveStats pages instead.
+-- MenuLeft / MenuRight turn a side's page (ScreenEvaluation
+-- common/PageInputHandler.lua; the pages are in Wanted/Side.lua).
 --
 -- All drawing is in artboard pixels (1920x1080) under one frame zoomed to the
 -- screen's height and centred; the cutout lettering is in theme units.
@@ -24,7 +24,6 @@ local S = SCREEN_HEIGHT / 1080
 local OX = (SCREEN_WIDTH - 1920 * S) / 2
 
 local players = GAMESTATE:GetHumanPlayers()
-local casual = VOLT26.Gameplay.IsCasual()
 
 -- The inherited actors this page replaces.
 local replaced = { "TitleAndBanner", "SongFeatures" }
@@ -32,24 +31,6 @@ for _, player in ipairs({ PLAYER_1, PLAYER_2 }) do
 	local pn = ToEnumShortString(player)
 	replaced[#replaced+1] = pn .. "_AF_Upper"
 	replaced[#replaced+1] = pn .. "_AF_Lower"
-end
-
--- Where an inherited pane goes on a side: over the judgment ladder, in
--- artboard pixels, turned like the ladder's text.  A pane is laid out by
--- Simply Love about its frame's x and between these screen heights.
-local PANE_BOX = { cx = 330, cy = 655, w = 470, h = 520, rot = 2 }
-local PANE_SOURCE = { w = 310, top = _screen.cy - 80, bottom = _screen.cy + 225 }
-
-local function fitPane(frame, side)
-	local mirror = side == PLAYER_2
-	local rot = mirror and -PANE_BOX.rot or PANE_BOX.rot
-	local zoom = math.min(PANE_BOX.w * S / PANE_SOURCE.w, PANE_BOX.h * S / (PANE_SOURCE.bottom - PANE_SOURCE.top))
-	local cx = OX + (mirror and 1920 - PANE_BOX.cx or PANE_BOX.cx) * S
-	local cy = PANE_BOX.cy * S
-	-- The source's centre (frame-local) lands on the box's centre.
-	local qy = (PANE_SOURCE.top + PANE_SOURCE.bottom) / 2
-	local c, s = math.cos(math.rad(rot)), math.sin(math.rad(rot))
-	frame:xy(cx - (0 * c - qy * s) * zoom, cy - (0 * s + qy * c) * zoom):zoom(zoom):rotationz(rot)
 end
 
 local function titleText()
@@ -171,19 +152,10 @@ return Def.ActorFrame{
 				local child = common:GetChild(name)
 				if child then child:visible(false) end
 			end
+			-- The panes stay loaded (GrooveStats submission writes into them)
+			-- but are never shown.
 			local panes = common:GetChild("Panes")
-			if panes then
-				if casual then
-					panes:visible(false)
-				else
-					for _, side in ipairs({ PLAYER_1, PLAYER_2 }) do
-						for index = 1, VOLT26.EvaluationPage.InheritedPanes do
-							local frame = panes:GetChild(("Pane%i_Side%s"):format(index, ToEnumShortString(side)))
-							if frame then fitPane(frame, side) end
-						end
-					end
-				end
-			end
+			if panes then panes:visible(false) end
 		end
 		-- Modules and listeners that waited for the old result sequence.
 		self:sleep(0.4):queuecommand("Revealed")

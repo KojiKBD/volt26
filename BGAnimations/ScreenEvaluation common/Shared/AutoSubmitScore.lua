@@ -197,6 +197,20 @@ local AutoSubmitRequestProcessor = function(res, overlay)
 					end
 
 					if leaderboardData then
+						-- The WANTED page's GS BEST list (ScreenEvaluationStage
+						-- overlay/Wanted/) reads the leaderboard from this message.
+						local entries = {}
+						for gsEntry in ivalues(leaderboardData) do
+							entries[#entries+1] = {
+								rank = gsEntry["rank"], name = GetMachineTag(gsEntry),
+								score = (gsEntry["score"] or 0) / 100,
+								isSelf = gsEntry["isSelf"] == true, isRival = gsEntry["isRival"] == true,
+								isFail = gsEntry["isFail"] == true,
+							}
+						end
+						MESSAGEMAN:Broadcast("VOLT26GrooveStatsLeaderboard", {
+							Player = "PlayerNumber_P" .. side, Entries = entries, Ex = showExScore and true or false,
+						})
 						for gsEntry in ivalues(leaderboardData) do
 							local entry = highScorePane:GetChild("HighScoreList"):GetChild("HighScoreEntry"..entryNum)
 							entry:stoptweening()
@@ -231,6 +245,7 @@ local AutoSubmitRequestProcessor = function(res, overlay)
 							entryNum = entryNum + 1
 						end
 
+						MESSAGEMAN:Broadcast("VOLT26GrooveStatsSubmitted", { Player = "PlayerNumber_P" .. side })
 						QRPane:GetChild("QRCode"):queuecommand("Hide")
 						QRPane:GetChild("HelpText"):settext(THEME:GetString("GrooveStats", "ScoreAlreadySubmitted"))
 						if i == 1 and P1SubmitText then

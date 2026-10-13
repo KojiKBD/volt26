@@ -324,6 +324,11 @@ function Cache.WarmStartup()
 		end
 	end
 
+	-- The WANTED page's page titles.
+	for _, title in ipairs({ "NOTES", "TIMING", "Qr" }) do
+		items[#items+1] = { text = title, style = "EvalLabel", keep = true }
+	end
+
 	-- Profiles: the profile screen's card, the song wheel's cards and footer.
 	-- A guest plays as "P1"/"P2" on the song wheel (its S.PlayerName).
 	local names, lastGroups = {}, {}

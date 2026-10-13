@@ -1,12 +1,12 @@
 -- Page input for an evaluation screen that draws its own first page (the
 -- stage evaluation's WANTED page, ScreenEvaluationStage overlay/Wanted/).
 --
--- Each side of the screen (P1 left, P2 right) shows a page: 0 is the screen's
--- own page, 1..n the inherited Simply Love panes of that side, in pane order.
--- MenuLeft / MenuRight turn a side's page.  With two players each controller
+-- Each side of the screen (P1 left, P2 right) shows one of the screen's own
+-- pages (VOLT26.EvaluationPage.Pages), counted from 0.  MenuLeft / MenuRight
+-- turn a side's page, wrapping around.  With two players each controller
 -- turns its own side; with one player the page is always on the left side
--- (its panes carry the player's data, see Panes/default.lua), either
--- controller turns it, and the right side's panes are never shown.
+-- and either controller turns it.  The inherited Simply Love panes stay
+-- loaded (GrooveStats submission writes into them) but are never shown.
 --
 -- Every change is broadcast as VOLT26EvaluationPage {Side=PlayerNumber,
 -- Page=number, Count=number}; the screen hides or shows its own actors from it.
@@ -22,18 +22,10 @@ else
 	for _, player in ipairs(players) do sides[#sides+1] = player end
 end
 
-local panes, page = {}, {}
+local page = { [PLAYER_1] = 0, [PLAYER_2] = 0 }
+local count = VOLT26.EvaluationPage.PageCount()
 local paneFrames = af:GetChild("Panes")
-for _, side in ipairs({ PLAYER_1, PLAYER_2 }) do
-	panes[side], page[side] = {}, 0
-	for paneNumber = 1, numPanes do
-		local pane = paneFrames and paneFrames:GetChild(("Pane%i_Side%s"):format(paneNumber, ToEnumShortString(side)))
-		if pane then
-			panes[side][#panes[side] + 1] = pane
-			pane:visible(false)
-		end
-	end
-end
+if paneFrames then paneFrames:visible(false) end
 
 local function used(side)
 	for _, s in ipairs(sides) do if s == side then return true end end
@@ -41,8 +33,7 @@ local function used(side)
 end
 
 local function show(side)
-	for index, pane in ipairs(panes[side]) do pane:visible(index == page[side]) end
-	MESSAGEMAN:Broadcast("VOLT26EvaluationPage", { Side = side, Page = page[side], Count = #panes[side] })
+	MESSAGEMAN:Broadcast("VOLT26EvaluationPage", { Side = side, Page = page[side], Count = count })
 end
 
 -- Start every used side on the screen's own page.
@@ -61,7 +52,6 @@ return function(event)
 	end
 	if not used(side) then return false end
 
-	local count = #panes[side] + 1
 	local direction = event.GameButton == "MenuRight" and 1 or -1
 	page[side] = (page[side] + direction) % count
 	show(side)

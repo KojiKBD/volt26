@@ -9,10 +9,16 @@
 -- theme units (cutout slots render at display resolution and must not sit
 -- under a zoom).
 --
--- The side listens for VOLT26EvaluationPage {Side=, Page=}: page 0 is this
--- page; any other page shows an inherited pane over the ladder (placed by
--- default.lua), so the ladder's text, the grade and the graph are hidden and
--- only the plates stay.
+-- The plates (name, level, modifiers, scores) are on every page.  Below them
+-- each page has its own body (VOLT26.EvaluationPage.Pages, turned with
+-- MenuLeft / MenuRight; the side listens for VOLT26EvaluationPage
+-- {Side=, Page=}, Page counted from 0):
+--   wanted  the judgment ladder, holds box and grade
+--   notes   per-column judgments under the noteskin's arrows (Notes.lua)
+--   timing  the offset histogram and statistics, in the same container
+--           (Timing.lua)
+--   qr      the GrooveStats QR code and the best scores (Qr.lua)
+-- The graph is on the first three pages.
 local p = ...
 local Art, T, player, side = p.Art, p.Text, p.player, p.side
 local mirror = side == PLAYER_2
@@ -62,14 +68,28 @@ end
 local art = Def.ActorFrame{ Name="Side" .. ToEnumShortString(side) }
 art[#art+1] = picture("panel_head", Art.head)
 
--- The ladder, the holds box and the graph frame.
-local body = Def.ActorFrame{ Name="Body" }
-body[#body+1] = picture("panel_body", Art.body)
-art[#art+1] = body
+-- One frame per page; only the shown page's is visible.
+local PAGES = VOLT26.EvaluationPage.Pages
+local pageFrames = {}
+for index, name in ipairs(PAGES) do
+	pageFrames[name] = Def.ActorFrame{
+		Name="Page_" .. name,
+		InitCommand=function(self) self:visible(index == 1) end,
+	}
+	art[#art+1] = pageFrames[name]
+end
 
--- What the inherited panes cover: hidden on any other page.
-local ladder = Def.ActorFrame{ Name="Ladder" }
-art[#art+1] = ladder
+-- The ladder, the holds box and the graph frame.
+local ladder = pageFrames.wanted
+ladder[#ladder+1] = picture("panel_body", Art.body)
+
+local pageArgs = { Art = Art, T = T, player = player, mirror = mirror, ROW = ROW, OFF = OFF }
+pageFrames.notes[#pageFrames.notes+1] = picture("panel_notes", Art.page)
+pageFrames.notes[#pageFrames.notes+1] = LoadActor("./Notes.lua", pageArgs)
+pageFrames.timing[#pageFrames.timing+1] = picture("panel_notes", Art.page)
+pageFrames.timing[#pageFrames.timing+1] = LoadActor("./Timing.lua", pageArgs)
+pageFrames.qr[#pageFrames.qr+1] = picture("panel_qr", Art.page)
+pageFrames.qr[#pageFrames.qr+1] = LoadActor("./Qr.lua", pageArgs)
 
 -- Level: "LV" and the chart's meter, the digits held to the artwork's width.
 local level, meter = Art.level, tostring(card.meter)
@@ -139,8 +159,8 @@ for index, entry in ipairs(extras) do
 	}, mirror)
 end
 
--- The graph.
-ladder[#ladder+1] = LoadActor("./Graph.lua", {
+-- The graph, over the page bodies (on every page but the QR page).
+art[#art+1] = LoadActor("./Graph.lua", {
 	Art = Art, quad = graphQuad(), graph = VOLT26.EvaluationPage.GetGraph(player),
 	colors = { W0 = ROW.W0[1], W1 = ROW.W1[1], W2 = ROW.W2[1], W3 = ROW.W3[1], W4 = ROW.W4[1], W5 = ROW.W5[1] },
 	font = T.Font.Bold, fontZoom = 20 / T.EM.Bold,
@@ -149,7 +169,9 @@ ladder[#ladder+1] = LoadActor("./Graph.lua", {
 
 art.VOLT26EvaluationPageMessageCommand = function(self, params)
 	if params.Side ~= side then return end
-	self:GetChild("Ladder"):visible(params.Page == 0)
+	local shown = PAGES[(params.Page or 0) + 1] or "wanted"
+	for _, name in ipairs(PAGES) do self:GetChild("Page_" .. name):visible(name == shown) end
+	self:GetChild("Graph"):visible(shown ~= "qr")
 end
 
 -- ---------------------------------------------------------------------------
@@ -214,8 +236,28 @@ elseif card.gradeStars > 0 then
 end
 grade.VOLT26EvaluationPageMessageCommand = function(self, params)
 	if params.Side ~= side then return end
-	self:visible(params.Page == 0)
+	self:visible((params.Page or 0) == 0)
 end
 cutouts[#cutouts+1] = grade
+
+-- The other pages' titles, in cutout lettering where the artwork has them.
+local labels = {
+	{ page = "notes", text = "NOTES", box = Art.notes.label },
+	{ page = "timing", text = "TIMING", box = Art.notes.label },
+	{ page = "qr", text = "Qr", box = Art.qr.label },
+}
+for _, entry in ipairs(labels) do
+	local label = slot("EvalLabel", entry.box, entry.text)
+	if label then
+		cutouts[#cutouts+1] = Def.ActorFrame{
+			InitCommand=function(self) self:visible(false) end,
+			VOLT26EvaluationPageMessageCommand=function(self, params)
+				if params.Side ~= side then return end
+				self:visible(PAGES[(params.Page or 0) + 1] == entry.page)
+			end,
+			label,
+		}
+	end
+end
 
 return { art = art, cutouts = cutouts }

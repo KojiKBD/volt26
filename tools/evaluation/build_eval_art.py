@@ -79,6 +79,22 @@ PANEL_HIDE = [
     [ITEM_GRAPH, 1, 2],          # placeholder line
 ]
 HEAD_CROP = (0, 0, 832, 400)     # x, y, w, h in artboard pixels
+PAGE_CROP = (0, 330, 832, 750)   # the other pages' bodies
+
+# The other WANTED pages share the plates and replace the ladder:
+#   the NOTES page (per-column judgments; its container also holds the
+#   timing page) is drawn on the artboard at NOTES_BOARD, the GrooveStats QR
+#   and best-scores page on the artboard at QR_BOARD.
+NOTES_BOARD = (0.0, 1264.3)
+ITEM_NOTES_BOX, ITEM_NOTES_LABEL, ITEM_NOTES_GRAPH = 457, 458, 454
+QR_BOARD = (0.0, 0.0)
+ITEM_BEST_BOXES, ITEM_QR_BOX, ITEM_QR_LABEL, ITEM_QR_CODE = 459, 460, 461, 462
+ITEM_MACHINE_BEST, ITEM_GS_BEST, ITEM_BOLT = 464, 465, 466
+NOTES_HIDE = [[ITEM_NOTES_BOX, 1], [ITEM_NOTES_BOX, 2], [ITEM_NOTES_GRAPH, 1, 1], [ITEM_NOTES_GRAPH, 1, 2]]
+QR_HIDE = [[ITEM_QR_BOX, 1]]
+# Where the owner's "Qr" lettering sits (a placed picture the SVG export does
+# not carry; measured on the owner's screenshot), centre and size.
+QR_LABEL_BOX = {"cx": 334, "cy": 592, "w": 200, "h": 116, "rot": -6.4}
 BODY_CROP = (0, 360, 832, 720)
 
 SVG_NS = "{http://www.w3.org/2000/svg}"
@@ -250,6 +266,113 @@ def lua(value, indent=0):
     return str(value)
 
 
+ARROWS_JS = """(i) => {
+  const g = document.getElementById('Layer_1').children[i].children[2];
+  const out = [];
+  const walk = (e) => { if (e.tagName === 'path' && !e.getAttribute('class')) {
+      const r = e.getBoundingClientRect(); out.push([r.x + r.width / 2, r.y + r.height / 2, r.width, r.height]); }
+    for (const c of e.children) walk(c); };
+  walk(g);
+  return out;
+}"""
+
+QR_JS = """(i) => {
+  const g = document.getElementById('Layer_1').children[i];
+  const r = g.getBoundingClientRect();
+  // The two top finder patterns give the code's turn.
+  const a = g.children[3].getBoundingClientRect(), b = g.children[4].getBoundingClientRect();
+  return { box: [r.x, r.y, r.width, r.height], a: [a.x, a.y], b: [b.x, b.y] };
+}"""
+
+
+def other_pages(source, svg_path, out_dir, root, items):
+    """Render the NOTES and QR pages' bodies and measure their anchors."""
+    work = os.path.join(os.path.dirname(svg_path), "_eval_pages.svg")
+    anchors = {}
+    with sync_playwright() as p:
+        browser = p.chromium.launch(args=["--allow-file-access-from-files"])
+        for board, jobs in ((NOTES_BOARD, "notes"), (QR_BOARD, "qr")):
+            vb = 'viewBox="%g %g %d %d" width="%d" height="%d"' % (board[0], board[1], W, H, W, H)
+            open(work, "w", encoding="utf-8").write(re.sub(r'viewBox="[^"]*"', vb, source, count=1))
+            page = browser.new_page(viewport={"width": W, "height": H})
+            page.goto("file://" + work)
+            page.wait_for_timeout(500)
+
+            def place(m):
+                a, b, c, d, e, f = m
+                sx = math.hypot(a, b)
+                return {"x": e - board[0], "y": f - board[1], "rot": math.degrees(math.atan2(b, a)),
+                        "sx": sx, "sy": (a * d - b * c) / sx}
+
+            x, y, w, h = PAGE_CROP
+            if jobs == "notes":
+                texts = page.evaluate(TEXT_JS, {"rows": ITEM_NOTES_BOX})
+                rows = texts["rows"][0]
+                arrows = sorted(page.evaluate(ARROWS_JS, ITEM_NOTES_BOX))
+                label = image_box_at(root, items[ITEM_NOTES_LABEL], board)
+                anchors["notes"] = {
+                    "rows": dict(place(rows["m"]), size=rows["spans"][0]["size"],
+                                 lineGap=rows["spans"][1]["y"] - rows["spans"][0]["y"]),
+                    "arrows": [[round(a[0], 1), round(a[1], 1)] for a in arrows],
+                    "arrowSize": round(sum(a[2] for a in arrows) / max(1, len(arrows)), 1),
+                    "label": label,
+                    # The container's inside, for the timing page.
+                    "inside": [48, 365, 679, 883],
+                }
+                page.evaluate(RENDER_JS, [[ITEM_NOTES_BOX, ITEM_NOTES_GRAPH], NOTES_HIDE])
+                page.wait_for_timeout(100)
+                page.screenshot(path=os.path.join(out_dir, "panel_notes.png"), omit_background=True,
+                                clip={"x": x, "y": y, "width": w, "height": h})
+            else:
+                texts = page.evaluate(TEXT_JS, {"help": ITEM_QR_BOX, "machine": ITEM_MACHINE_BEST,
+                                                 "gs": ITEM_GS_BEST})
+                qr = page.evaluate(QR_JS, ITEM_QR_CODE)
+                bx, by, bw, bh = qr["box"]
+                rot = math.degrees(math.atan2(qr["b"][1] - qr["a"][1], qr["b"][0] - qr["a"][0]))
+                side = (bw + bh) / 2 / (abs(math.cos(math.radians(rot))) + abs(math.sin(math.radians(rot))))
+
+                def lines(t):
+                    t = t[0]
+                    return dict(place(t["m"]), size=t["spans"][0]["size"],
+                                lineGap=t["spans"][1]["y"] - t["spans"][0]["y"])
+                anchors["qr"] = {
+                    "code": {"cx": bx + bw / 2, "cy": by + bh / 2, "size": side, "rot": rot},
+                    "help": lines(texts["help"]),
+                    "machine": lines(texts["machine"]),
+                    "gs": lines(texts["gs"]),
+                    "label": QR_LABEL_BOX,
+                }
+                page.evaluate(RENDER_JS, [[ITEM_BEST_BOXES, ITEM_QR_BOX, ITEM_BOLT], QR_HIDE])
+                page.wait_for_timeout(100)
+                page.screenshot(path=os.path.join(out_dir, "panel_qr.png"), omit_background=True,
+                                clip={"x": x, "y": y, "width": w, "height": h})
+            page.close()
+        browser.close()
+    os.remove(work)
+    anchors["page"] = dict(zip("xywh", PAGE_CROP))
+    return anchors
+
+
+def image_box_at(root, use, board):
+    """image_box() for a placed picture (<use> or <image>) on another artboard."""
+    if use.tag == SVG_NS + "image":
+        w, h = float(use.get("width")), float(use.get("height"))
+    else:
+        href = use.get("{http://www.w3.org/1999/xlink}href") or use.get("href")
+        image = next(e for e in root.iter(SVG_NS + "image") if e.get("id") == href.lstrip("#"))
+        w, h = float(image.get("width")), float(image.get("height"))
+    t = use.get("transform", "")
+    tx, ty = map(float, re.search(r"translate\(([-\d.]+)[ ,]+([-\d.]+)\)", t).groups())
+    r = re.search(r"rotate\(([-\d.]+)\)", t)
+    sc = re.search(r"scale\(([-\d.]+)\)", t)
+    rot = float(r.group(1)) if r else 0.0
+    k = float(sc.group(1)) if sc else 1.0
+    x, y = tx - board[0], ty - board[1]
+    c, s = math.cos(math.radians(rot)), math.sin(math.radians(rot))
+    hw, hh = w * k / 2, h * k / 2
+    return {"cx": x + hw * c - hh * s, "cy": y + hw * s + hh * c, "w": w * k, "h": h * k, "rot": rot}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--svg", default="tools/notes-radar/art/radar.svg")
@@ -339,6 +462,8 @@ def main():
     backdrop.convert("RGB").save(os.path.join(out_dir, "backdrop.png"), optimize=True)
 
 
+    pages = other_pages(source, svg_path, out_dir, root, items)
+
     plates, ladder = texts["plates"], texts["ladder"]
     rows = [dict(placement(t["m"]), size=t["spans"][0]["size"]) for t in ladder[:7]]
     # A row beside the holds box may run at most to a little short of the box's
@@ -377,6 +502,11 @@ def main():
         "graph": {"topLeft": list(graph_poly[1]), "topRight": list(graph_poly[2]),
                   "bottomRight": list(graph_poly[3]), "bottomLeft": list(graph_poly[0])},
         "head": dict(zip("xywh", HEAD_CROP)),
+        # The other pages: their bodies' crop, the NOTES/timing container's
+        # anchors and the QR page's.
+        "page": pages["page"],
+        "notes": pages["notes"],
+        "qr": pages["qr"],
         "body": dict(zip("xywh", BODY_CROP)),
         # The scatter plot's on-time line in the artwork (its height on the graph).
         "zeroLine": 0.5,

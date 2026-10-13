@@ -44,6 +44,8 @@ Cutout.StyleDesign = {
 	EvalName     = { Scale="Fit", MaxW=360, MaxH=118, Base=62, Tilt=3, MaxChars=16 },
 	EvalGrade    = { Scale="Fit", MaxW=250, MaxH=170, Base=120, Tilt=-10, MaxChars=2,
 		Opts={ upperChance=1 } },
+	-- The titles of the WANTED page's other pages (NOTES, TIMING, Qr).
+	EvalLabel    = { Scale="Fit", MaxW=250, MaxH=100, Base=70, Tilt=-5, MaxChars=8 },
 	-- ScreenSystemLayer: the credit line (theme units already).
 	CreditPlayer = { Scale="Theme", MaxW=260, MaxH=44, Base=22, MaxChars=16 },
 	CreditCentre = { Scale="Theme", MaxW=300, MaxH=50, Base=26, MaxChars=16 },

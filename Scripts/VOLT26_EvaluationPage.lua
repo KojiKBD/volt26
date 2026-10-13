@@ -8,7 +8,11 @@
 --                             note density per measure, the life line, the
 --                             judgment offsets and the point of failure, all
 --                             on one timeline normalised to 0..1
---   Page.PageCount()          how many pages a player can cycle through
+--   Page.GetColumns(player)   per-column judgment counts (the NOTES page)
+--   Page.GetTiming(player)    early/late counts, offset statistics and a
+--                             histogram of the offsets (the timing page)
+--   Page.GetBestScores(player) the machine's best scores on the chart
+--   Page.Pages                the pages a side turns through, in order
 
 VOLT26.EvaluationPage = VOLT26.EvaluationPage or {}
 local Page = VOLT26.EvaluationPage
@@ -21,8 +25,9 @@ Page.RowLabels = {
 	W4 = "Decent", W5 = "Way Off", Miss = "Miss",
 }
 
--- Number of pages each player can show: the WANTED page first, then the
--- inherited Simply Love panes until they are redesigned.
+-- The pages each side turns through with MenuLeft / MenuRight, in order.
+-- The inherited Simply Love panes are no longer shown on this screen.
+Page.Pages = { "wanted", "notes", "timing", "qr" }
 Page.InheritedPanes = 8
 
 local function floorPercent(value)
@@ -250,5 +255,127 @@ function Page.GetGraph(player)
 end
 
 function Page.PageCount()
-	return 1 + Page.InheritedPanes
+	return #Page.Pages
+end
+
+-- ---------------------------------------------------------------------------
+-- NOTES page: the judgments of every column, as Simply Love's per-column pane.
+-- The 10/15 ms Fantastic is split per column only when the player shows the
+-- FA+ window and pane (that is when gameplay records it per column);
+-- otherwise every Fantastic is in W1 and `splitFantastic` is false.
+
+function Page.GetColumns(player)
+	local result = VOLT26.Results.GetCurrent(player)
+	local modifiers = VOLT26.Options.GetPlayerModifiers(player) or {}
+	local style = GAMESTATE:GetCurrentStyle()
+	local columns = {}
+	for index = 1, style:ColumnsPerPlayer() do
+		local info = style:GetColumnInfo(player, index)
+		local counts = result.columnJudgments[index] or {}
+		local column = { name = info and info.Name or tostring(index), counts = {} }
+		for _, key in ipairs(Page.RowKeys) do column.counts[key] = counts[key] or 0 end
+		column.early = DeepCopy(counts.Early or {})
+		column.heldMisses = counts.MissBecauseHeld or 0
+		columns[#columns+1] = column
+	end
+	local windows = result.timingWindows or {}
+	return {
+		columns = columns,
+		splitFantastic = modifiers.ShowFaPlusWindow == true and modifiers.ShowFaPlusPane == true,
+		enabled = { W0 = true, W1 = true, W2 = windows[2] ~= false, W3 = windows[3] ~= false,
+			W4 = windows[4] ~= false, W5 = windows[5] ~= false, Miss = true },
+		noteskin = GAMESTATE:GetPlayerState(player):GetCurrentPlayerOptions():NoteSkin():lower(),
+	}
+end
+
+-- ---------------------------------------------------------------------------
+-- Timing page: Simply Love's offset pane as data.  An offset below zero is
+-- early, above zero late.
+
+Page.TimingBins = 41
+
+function Page.GetTiming(player)
+	local offsets = VOLT26.Analysis.GetTimingOffsets(player)
+	local worstIndex = math.max(3, VOLT26.Analysis.GetWorstJudgment(offsets))
+	local worst = GetTimingWindow(worstIndex)
+	local analysis = VOLT26.Analysis.AnalyzeTiming(offsets)
+	local histogram = VOLT26.Analysis.BuildHistogram(offsets, worst, Page.TimingBins)
+	local early, late, misses = 0, 0, 0
+	for _, sample in ipairs(offsets) do
+		if sample.offset == "Miss" then
+			misses = misses + 1
+		elseif not sample.is_autohit then
+			if sample.offset < 0 then early = early + 1 elseif sample.offset > 0 then late = late + 1 end
+		end
+	end
+	-- Each bin takes the colour of the window its centre falls in.
+	local fantasticPlus = VOLT26.Gameplay.GetMode() ~= "FA+" and GetTimingWindow(1, "FA+") or nil
+	for _, bin in ipairs(histogram.bins) do
+		local window = DetermineTimingWindow(bin.center)
+		if VOLT26.Gameplay.GetMode() == "FA+" then
+			bin.key = ({ "W0", "W1", "W2", "W3", "W4" })[window] or "W5"
+		elseif window == 1 then
+			bin.key = (fantasticPlus and math.abs(bin.center) > fantasticPlus) and "W1" or "W0"
+		else
+			bin.key = "W" .. window
+		end
+	end
+	-- The windows' edges, for the scale under the histogram.
+	local edges = {}
+	for index = 1, worstIndex do edges[index] = GetTimingWindow(index) end
+	return {
+		worst = worst,
+		edges = edges,
+		bins = histogram.bins,
+		peak = histogram.peak,
+		early = early,
+		late = late,
+		misses = misses,
+		count = analysis.count,
+		meanMs = analysis.meanOffsetMs,
+		meanAbsoluteMs = analysis.meanAbsoluteMs,
+		sigmaMs = analysis.sigmaMs,
+		maxErrorMs = analysis.maxErrorMs,
+	}
+end
+
+-- ---------------------------------------------------------------------------
+-- QR page: the machine's best scores on the chart (name, percent), and
+-- whether this play is among them.
+
+function Page.GetBestScores(player, count)
+	count = count or 6
+	local songOrCourse = GAMESTATE:IsCourseMode() and GAMESTATE:GetCurrentCourse() or GAMESTATE:GetCurrentSong()
+	local stepsOrTrail = stepsOrTrail(player)
+	local list = {}
+	if not (songOrCourse and stepsOrTrail) then return list end
+	local ok, scores = pcall(function()
+		return PROFILEMAN:GetMachineProfile():GetHighScoreList(songOrCourse, stepsOrTrail):GetHighScores()
+	end)
+	if not ok or not scores then return list end
+	local current = VOLT26.Results.GetStageStats(player):GetHighScore()
+	for i = 1, math.min(count, #scores) do
+		local score = scores[i]
+		local name = score:GetName()
+		if not name or name == "" then name = "----" end
+		list[#list+1] = {
+			name = name,
+			percent = floorPercent(score:GetPercentDP() * 100),
+			isThisPlay = current ~= nil and score:GetScore() == current:GetScore() and score:GetDate() == current:GetDate(),
+		}
+	end
+	return list
+end
+
+-- GrooveStats: whether this play can be uploaded, and the URL for the QR code
+-- (Simply Love's ValidForGrooveStats and Pane7/GrooveStatsURL.lua).  The URL
+-- is computed by the screen, which can load that file.
+function Page.GetGrooveStatsStatus(player)
+	local ok, checks, allPassed = pcall(ValidForGrooveStats, player)
+	if not ok then return { valid = false, reasons = {} } end
+	local reasons = {}
+	for index, passed in ipairs(checks or {}) do
+		if passed == false then reasons[#reasons+1] = index end
+	end
+	return { valid = allPassed == true, reasons = reasons }
 end
