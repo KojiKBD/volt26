@@ -68,7 +68,7 @@ The song wheel step follows the owner's Persona-style Illustrator mockup.
 | Difficulty column with the P1/P2 squares | `overlay/SongWheel/Difficulty.lua` |
 | Open pack's name (cutout), the song's place in it, the play mode | `overlay/SongWheel/PackTag.lua` |
 | Notes radar, free on the red | `overlay/SongWheel/Radar.lua` |
-| One card per player: name (cutout) and chart; best ITG, EX, grade, steps by, rate; notes/jumps/holds/mines/rolls/hands, peak NPS, stream measures; density graph | `overlay/SongWheel/Cards.lua` |
+| One card per player, as the owner drew them: white plate with the name (cutout, centred), STEPS BY and LV with the meter; best EX and ITG on the black frame; notes/jumps/holds/mines/rolls (dim leading zeros), peak NPS and stream in the white-rimmed box; the density in the slanted graph frame (red P1, blue P2) with the stream breakdown | `overlay/SongWheel/Cards.lua`, pictures and anchors from `tools/song-select/build_cards_art.py` (`Graphics/VOLT26/SongSelect/card1.png`, `card2.png`, `overlay/SongWheel/CardsArt.lua`) |
 | Names footer: the joined players' names in cutout lettering, right-justified at the bottom right, underlined in their colours | `overlay/SongWheel/Footer.lua` |
 | Cutout lettering of the screen (names, pack, length, BACK TO PACK SELECTION): drawn off screen in the background, shown through ActorProxies | `P.CutoutHost` / `P.CutoutSlot` in `overlay/SongWheel/P5.lua`, specs in `P.CutoutSpecs` |
 | The mockup's own solid info panel (names, facts, radar, graphs in one slab), set aside as too heavy; can replace the cards and the radar in `default.lua` | `overlay/SongWheel/Panel.lua` |
@@ -111,6 +111,11 @@ from File > Scripts > Other Script... (Ctrl+F12):
 2. `tools/song-select/export_song_select_parts.jsx` -> `art/part_*.png`, `parts.json`
 3. `tools/song-select/export_meter_digits.jsx` -> `art/digits_boxed.png`, `art/digits_plain.png`
    (Source Serif Black boxed digit, Futura Bold plain digits)
+
+The player cards come from the SVG export instead (vector shapes only):
+`python tools/song-select/build_cards_art.py [--svg tools/notes-radar/art/radar.svg]`
+(Playwright + Chromium) renders each card without its text and writes the
+anchors; card 1 is Layer_1's items 402-412, card 2 the group 413.
 
 Then `python tools/song-select/build_song_select_art.py` (Pillow, numpy)
 writes `Graphics/VOLT26/SongSelect/` and `overlay/SongWheel/Art.lua`.  The

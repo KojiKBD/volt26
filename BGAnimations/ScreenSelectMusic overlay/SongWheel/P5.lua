@@ -398,8 +398,8 @@ local function shared(name, halign)
 	return { MaxW=d.MaxW, MaxH=d.MaxH, Base=d.Base, Tilt=d.Tilt, HAlign=halign, MaxChars=d.MaxChars, Opts=d.Opts }
 end
 P.CutoutSpecs = {
-	Card1Name = shared("SongCardName", 0),
-	Card2Name = shared("SongCardName", 0),
+	Card1Name = shared("SongCardName", 0.5),
+	Card2Name = shared("SongCardName", 0.5),
 	FooterP1  = shared("SongFooterName", 1),
 	FooterP2  = shared("SongFooterName", 1),
 	Pack      = shared("SongPack", 0.5),
