@@ -208,8 +208,8 @@ local af = Def.ActorFrame{
 		tilted:rotationx(scale(tilt, -1, 1, 30, -30)):zoom(zoom):y(offset / L.Scale)
 	end,
 	VOLT26QuickModsChangedMessageCommand = function(self) self:playcommand("Refresh") end,
+	-- Laid out when the menu opens, not on Song Select's first frame.
 	ShowQuickModsCommand = function(self) self:playcommand("Refresh") end,
-	OnCommand = function(self) self:playcommand("Refresh") end,
 }
 
 -- ------------------------------------------------------------- the field

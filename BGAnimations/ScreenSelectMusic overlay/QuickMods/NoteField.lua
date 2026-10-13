@@ -276,12 +276,15 @@ local af = Def.ActorFrame{
 		self.notes, self.holds, self.loopBeats = VOLT26.DemoChart.Build(difficulty)
 		draw(self)
 	end,
-	VOLT26QuickModsChangedMessageCommand = function(self) draw(self) end,
+	VOLT26QuickModsChangedMessageCommand = function(self)
+		if self.notes then draw(self) end
+	end,
+	-- The preview is built and animated only while the menu is open: the
+	-- update function that lays out its notes every frame is installed on
+	-- Show and removed on Hide (it used to run, hidden, for the whole of
+	-- Song Select, and the preview was built on the screen's first frame).
 	ShowQuickModsCommand = function(self)
 		self.clock = 0
-		self:playcommand("Refresh")
-	end,
-	OnCommand = function(self)
 		self:playcommand("Refresh")
 		self:SetUpdateFunction(function(frame, delta)
 			if not frame:GetVisible() then return end
@@ -289,6 +292,7 @@ local af = Def.ActorFrame{
 			draw(frame)
 		end)
 	end,
+	HideQuickModsCommand = function(self) self:SetUpdateFunction(nil) end,
 }
 
 for column = 1, columnCount do

@@ -8,6 +8,7 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 - Song Select no longer freezes on entry, the song wheel animates again, and cutout lettering (profile names, pack names) no longer shows letters of the previous string. The 0.2.0 performance work hibernated hidden actors (`hibernate(1e9)`: Quick Mods, the unused wheel row kinds, cutout stampers, the cutout cache stage, still marquees), but ITGmania counts hibernation in `GetTweenTimeLeft()` for the actor and every frame above it, so screens locked their input at BeginScreen, tweens waiting on them never ended and cutout passes ran on timeouts. All of it is removed; still marquees now stop redrawing by turning their texture invisible instead.
 - Song Select opens without its long first-frame stall: the first refresh of the details is spread over the entrance (pack badge, focused row, Joker and difficulties at once, then jacket, grade, cards, radar and names one per frame), the safety-net check no longer repeats the whole refresh a quarter of a second in, and the gameplay texture warm-up waits 2 s. While a direction is held the details refresh only once the wheel has rested 0.15 s, so fast scrolling no longer crawls.
+- Quick Mods no longer works while closed: its two note-field previews are built when the menu opens instead of on Song Select's first frame, and their per-frame layout runs only while it is open.
 
 ## 0.2.0 - 2026-10-13
 
