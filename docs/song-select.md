@@ -66,7 +66,7 @@ The song wheel step follows the owner's Persona-style Illustrator mockup.
 | Pack tile under the jacket (pack-step hand-off target, fallback art) | `overlay/SongWheel/Header.lua`, at `K.Badge` |
 | Jacket (upright) and the song length in cutout lettering | `overlay/SongWheel/Jacket.lua` |
 | Difficulty column with the P1/P2 squares | `overlay/SongWheel/Difficulty.lua` |
-| Notes radar, free on the red at the top (centre 1240, 190, radius 170), where the pack's name used to be | `overlay/SongWheel/Radar.lua` |
+| Notes radar, free on the red (centre 1098, 278, radius 170), between the wheel and the cards | `overlay/SongWheel/Radar.lua` |
 | One card per player, as the owner drew them: white plate with the name (cutout, centred), STEPS BY and LV with the meter; best EX and ITG on the black frame; notes/jumps/holds/mines/rolls (dim leading zeros), peak NPS and stream in the white-rimmed box; the density in the slanted graph frame (red P1, blue P2) with the stream breakdown | `overlay/SongWheel/Cards.lua`, pictures and anchors from `tools/song-select/build_cards_art.py` (`Graphics/VOLT26/SongSelect/card1.png`, `card2.png`, `overlay/SongWheel/CardsArt.lua`) |
 | Names footer: the joined players' names in cutout lettering, right-justified at the bottom right, underlined in their colours | `overlay/SongWheel/Footer.lua` |
 | Cutout lettering of the screen (names, pack, length, BACK TO PACK SELECTION): drawn off screen in the background, shown through ActorProxies | `P.CutoutHost` / `P.CutoutSlot` in `overlay/SongWheel/P5.lua`, specs in `P.CutoutSpecs` |

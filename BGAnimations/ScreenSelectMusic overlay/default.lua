@@ -270,10 +270,10 @@ layout[#layout+1] = part("Header.lua", { K=K, S=S })
 local info = modalAware(Def.ActorFrame{ Name="Info" })
 info[#info+1] = part("Jacket.lua", { K=K, S=S })
 info[#info+1] = part("Difficulty.lua", { K=K, S=S })
--- The notes radar where the pack tag used to be (top centre-right), larger;
--- the pack tag (PackTag.lua) is no longer shown.  R=170 keeps its labels
--- (RadarArt Reach) clear of the top edge and the difficulty column.
-info[#info+1] = part("Radar.lua", { K=K, S=S, X=1240, Y=190, R=170 })
+-- The notes radar on the red between the wheel and the cards, larger;
+-- the pack tag (PackTag.lua) is no longer shown.  Its labels reach
+-- 0.93 R up and 1.12 R sideways (RadarArt Reach).
+info[#info+1] = part("Radar.lua", { K=K, S=S, X=1098, Y=278, R=170 })
 info[#info+1] = part("Cards.lua", { K=K, S=S })
 info[#info+1] = part("Jacket.lua", { K=K, S=S, Part="Length" })
 info[#info+1] = part("Footer.lua", { K=K, S=S })
