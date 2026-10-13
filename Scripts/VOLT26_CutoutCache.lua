@@ -516,10 +516,15 @@ function Cache.CreateHost()
 			Def.Quad{
 				InitCommand = function(self)
 					live.clear = self
-					-- CopySrc overwrites the region with this colour; the engine
-					-- skips actors whose alpha is exactly 0, so it carries an
-					-- alpha that still rounds to 0 in an 8-bit target.
-					self:halign(0):valign(0):diffuse(0, 0, 0, 0.001)
+					-- CopySrc overwrites the region with this colour.  Its alpha
+					-- must pass the renderer's alpha test, which is always on and
+					-- drops fragments at or below 1/256 (RageDisplay
+					-- SetDefaultRenderStates / RageDisplay_OGL SetAlphaTest): the
+					-- old 0.001 was dropped, the region was never cleared, and a
+					-- string drawn where a reclaimed one had been showed its
+					-- letters underneath.  0.005 passes and is stored as 1/255,
+					-- an invisible black.
+					self:halign(0):valign(0):diffuse(0, 0, 0, Cutout.CLEAR_ALPHA)
 						:blend("BlendMode_CopySrc"):visible(false)
 				end,
 			},

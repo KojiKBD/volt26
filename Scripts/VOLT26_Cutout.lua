@@ -320,6 +320,12 @@ end
 -- (PATIENCE_CACHE), for the tweens above it (PATIENCE_TWEEN) and for its
 -- ancestors to be fully opaque (PATIENCE_ALPHA) before drawing its string.
 Cutout.PATIENCE_CACHE = 1.5
+
+-- The alpha of the quads that clear a texture region (BlendMode_CopySrc).
+-- ITGmania keeps an alpha test on that drops fragments at or below 1/256, and
+-- skips actors whose alpha is exactly 0, so a clear must carry a little more:
+-- 0.005 is drawn, and stored as 1/255 (black no one can see).
+Cutout.CLEAR_ALPHA = 0.005
 Cutout.PATIENCE_TWEEN = 1.0
 Cutout.PATIENCE_ALPHA = 3.0
 
@@ -653,11 +659,9 @@ function Cutout.CreateSlot(params)
 				InitCommand=function(self)
 					state.clear = self
 					-- Belt and braces for the first pass: CopySrc overwrites the
-					-- texture with this colour.  The engine skips actors whose
-					-- alpha is exactly 0, so it carries an alpha that still
-					-- rounds to 0 in an 8-bit target.
+					-- texture with this colour (see Cutout.CLEAR_ALPHA).
 					self:halign(0):valign(0):zoomto(texW, texH)
-						:diffuse(0, 0, 0, 0.001):blend("BlendMode_CopySrc"):visible(false)
+						:diffuse(0, 0, 0, Cutout.CLEAR_ALPHA):blend("BlendMode_CopySrc"):visible(false)
 				end,
 			},
 			stamper.Actor(),
