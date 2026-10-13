@@ -218,10 +218,6 @@ af[#af+1] = Def.ActorFrame{
 -- is what made fast scrolling crawl.
 local SETTLE = 0.15
 
-local function schedule(self)
-	self:stoptweening():sleep(SETTLE):queuecommand("Settled")
-end
-
 local function refreshKey()
 	return table.concat({
 		tostring(S.Item()), tostring(S.Chart(PLAYER_1)), tostring(S.Chart(PLAYER_2)),
@@ -258,6 +254,15 @@ local function refreshParts(layout, paths)
 			return
 		end
 	end
+end
+
+-- The focused row's title and artist, the Joker and the pack badge follow
+-- the wheel on every step (they are light); the rest waits for it to rest.
+local LIVE = { {"Details", "Focus"}, {"Joker"}, {"Header"} }
+
+local function schedule(self)
+	refreshParts(self, LIVE)
+	self:stoptweening():sleep(SETTLE):queuecommand("Settled")
 end
 
 local layout = Def.ActorFrame{
