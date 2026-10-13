@@ -5,6 +5,9 @@
 -- operator's MusicWheel scroll speed (the MusicWheelSwitchSpeed preference,
 -- set in the VOLT26 options), the same speed the song wheel scrolls at.
 -- Start opens the focused pack on the song wheel (ScreenSelectMusic).
+-- Under a sort other than the group sort the carousel lists that sort's
+-- sections instead of packs (VOLT26.PackSelection.Mode): initials, genres,
+-- BPM or length ranges, meters.
 -- Back on the carousel leaves music selection; in event mode it has to be
 -- pressed twice, standing in for the exit prompt the song wheel used to show.
 -- The focused pack's name is drawn in the profile screen's cutout lettering
@@ -204,7 +207,7 @@ local function setName(text)
 end
 
 local function refreshName()
-	setName(count > 0 and packs[focus].Name or "")
+	setName(count > 0 and PackSelection.DisplayName(packs[focus]) or "")
 end
 
 -- The summary line is drawn white over eight black copies of itself, nudged

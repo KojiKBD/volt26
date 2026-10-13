@@ -122,10 +122,15 @@ local af = Def.ActorFrame{
 	OnCommand=function(self)
 		local wheel = K.Wheel()
 		if wheel then
-			-- The pack step works on the group sort: the wheel opens the section
-			-- of the song it made current.
-			if not GAMESTATE:IsCourseMode() and GAMESTATE:GetSortOrder() ~= "SortOrder_Group" then
-				wheel:ChangeSort("SortOrder_Group")
+			-- The pack step lists the sections of the sort in force (packs
+			-- for the group sort) and the wheel opens the section of the song
+			-- it made current.  A sort the pack step does not follow falls
+			-- back to the group sort.
+			if not GAMESTATE:IsCourseMode() then
+				if not VOLT26.PackSelection.FollowsSort(GAMESTATE:GetSortOrder()) then
+					wheel:ChangeSort("SortOrder_Group")
+				end
+				VOLT26.PackSelection.OpenChosenSection(wheel)
 			end
 			-- The wheel is the screen's own actor rather than a child of this
 			-- overlay, so it gets the design scale here.  Its origin is the
@@ -165,6 +170,10 @@ local af = Def.ActorFrame{
 	-- The wheel's BACK TO PACK SELECTION row ([VOLT26SongWheel] in metrics.ini).
 	-- The engine may send it once per joined player; leaveToPacks ignores repeats.
 	VOLT26BackToPacksMessageCommand=function(self) leaveToPacks() end,
+	-- A sort chosen in the SortMenu that the pack step follows: back to the
+	-- pack step, which now lists that sort's sections (queued by the
+	-- SortMenu's input handler after it has closed the menu).
+	VOLT26SortToPacksCommand=function(self) leaveToPacks() end,
 	ReloadScreenForMemoryCardsMessageCommand=function(self, params)
 		-- Wait some time for the profile screen to finish transitioning
 		-- before reloading the screen.

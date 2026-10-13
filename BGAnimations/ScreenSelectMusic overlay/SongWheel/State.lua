@@ -29,9 +29,14 @@ function S.Rate()
 	return VOLT26.MusicSelection.GetMusicRate()
 end
 
--- The pack the wheel is showing.
+-- The pack the wheel is showing -- or, when the pack step lists the sections
+-- of another sort, the key of the section it is showing (the header badge is
+-- the pack step's tile either way).
 function S.Pack()
 	local song = not S.IsCourseMode() and GAMESTATE:GetCurrentSong() or nil
+	if song and VOLT26.PackSelection.Mode() ~= "Pack" then
+		return VOLT26.PackSelection.KeyForSong(song) or ""
+	end
 	if song then
 		local ok, group = pcall(function() return song:GetGroupName() end)
 		if ok and type(group) == "string" and group ~= "" then return group end

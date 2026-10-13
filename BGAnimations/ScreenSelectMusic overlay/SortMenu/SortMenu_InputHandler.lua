@@ -57,6 +57,11 @@ local input = function(event)
 			if focus.kind == "SortBy" then
 				VOLT26.SongBrowsing.ChangeSort(focus.sort_by)
 				overlay:queuecommand("DirectInputToEngine")
+				-- The pack step lists this sort's sections: go back to it so
+				-- the players choose one (the overlay's VOLT26SortToPacks).
+				if not GAMESTATE:IsCourseMode() and VOLT26.PackSelection.FollowsSort(focus.sort_by) then
+					overlay:queuecommand("VOLT26SortToPacks")
+				end
 			elseif focus.kind == "PersonalPlaylist" then
 				local profileDir = PROFILEMAN:GetProfileDir(ProfileSlot[PlayerNumber:Reverse()[event.PlayerNumber] + 1])
 				if VOLT26.SongBrowsing.UsePlaylist(profileDir .."Playlists/" .. focus.new_overlay .. ".txt", screen) then

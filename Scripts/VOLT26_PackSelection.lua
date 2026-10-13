@@ -8,6 +8,13 @@
 -- one, a short summary of its contents, and handing the chosen pack to the
 -- engine.  It never builds actors, reads coordinates, or picks theme graphics;
 -- the screens own all of that.
+--
+-- The first step follows the song wheel's sort.  Under the group sort it lists
+-- packs; under the title, artist, genre, BPM, length and meter sorts it lists
+-- the sections that sort divides the library into (initials, genres, BPM and
+-- length ranges, meters), and the song wheel then opens on the chosen section
+-- alone.  Every function below that takes a pack name takes such a section's
+-- key as well; only packs have artwork.
 
 VOLT26.PackSelection = VOLT26.PackSelection or {}
 local PackSelection = VOLT26.PackSelection
@@ -79,6 +86,8 @@ end
 function PackSelection.List()
 	artworkCache = {}
 	summaryCache = {}
+	PackSelection.ForgetSections()
+	if PackSelection.Mode() ~= "Pack" then return PackSelection.Sections().list end
 	local list = {}
 	local ok, names = pcall(function() return SONGMAN:GetSongGroupNames() end)
 	if not ok or type(names) ~= "table" then return list end
@@ -104,7 +113,9 @@ function PackSelection.InitialIndex(list)
 		local ok, preferred = pcall(function() return GAMESTATE:GetPreferredSong() end)
 		song = ok and preferred or nil
 	end
-	if song then
+	if PackSelection.Mode() ~= "Pack" then
+		wanted = song and PackSelection.KeyForSong(song) or PackSelection.LastSection[PackSelection.Mode()]
+	elseif song then
 		local ok, group = pcall(function() return song:GetGroupName() end)
 		if ok and type(group) == "string" and group ~= "" then wanted = group end
 	end
@@ -172,6 +183,7 @@ end
 -- the fallback.  Movies are never answered: decoding one per carousel tile is
 -- more than the low-end path can afford.
 function PackSelection.Artwork(group)
+	if PackSelection.IsSection(group) then return nil end
 	local cached = artworkCache[group]
 	if cached ~= nil then return cached or nil end
 
@@ -195,7 +207,13 @@ function PackSelection.Summary(group)
 	local key = tostring(group) .. "|" .. tostring(stepsType)
 	if summaryCache[key] then return summaryCache[key] end
 
-	local songs = songsInGroup(group)
+	local songs
+	if PackSelection.IsSection(group) then
+		local entry = PackSelection.Sections().byKey[group]
+		songs = entry and entry.members or {}
+	else
+		songs = songsInGroup(group)
+	end
 	local summary = { Songs=#songs, Playable=0 }
 	for _, song in ipairs(songs) do
 		if isPlayable(song, stepsType) then
@@ -252,6 +270,8 @@ end
 -- the song that was left), otherwise the pack's first playable song by title.
 -- Answers whether a song was found.
 function PackSelection.Choose(group)
+	PackSelection.wheelSection = nil
+	if PackSelection.IsSection(group) then return PackSelection.ChooseSection(group) end
 	local songs = songsInGroup(group)
 	if #songs == 0 then return false end
 
@@ -303,4 +323,294 @@ end
 -- to know whether its scenery was already built by the screen being left.
 function PackSelection.TakenHandoff()
 	return PackSelection.taken
+end
+
+------------------------------------------------------------------------------
+-- Following the song wheel's sort.
+--
+-- The sections are worked out the way the engine's MusicWheel names them
+-- (SongUtil::GetSectionNameFromSongAndSort in ITGmania), so the section the
+-- pack step offers is the section the wheel opens on:
+--   Title, Artist  first letter of the transliterated main title / artist,
+--                  upper case, one leading "." skipped; digits make "0-9" and
+--                  anything else one shared "other" section
+--   Genre          the song's genre; songs without one share a section
+--   BPM            the highest display BPM, in [MusicWheel] SortBPMDivision
+--                  steps (120-129 with a division of 10)
+--   Length         the music length, in [MusicWheel] SortLengthDivision
+--                  second steps
+--   Meter          every meter the song has a chart of in the current style,
+--                  so a song can sit in several sections
+-- Only songs with a chart for the current style are listed.  The group sort
+-- lists packs as before.  Every other sort (series, popularity, recent, top
+-- grades, playlists) is not followed: the pack step shows packs and the song
+-- wheel goes back to the group sort when a pack is opened.
+
+local SECTION_PREFIX = "\1"
+local sectionSorts = { Title=true, Artist=true, Genre=true, BPM=true, Length=true, Meter=true }
+local sectionCache = nil
+PackSelection.LastSection = PackSelection.LastSection or {}
+
+local function shortSort(order)
+	return (tostring(order or ""):gsub("^SortOrder_", ""))
+end
+
+local function currentSort()
+	local ok, order = pcall(function() return GAMESTATE:GetSortOrder() end)
+	return ok and order and shortSort(order) or ""
+end
+
+-- Whether the pack step follows this sort (a SortOrder value, with or without
+-- its "SortOrder_" prefix), i.e. whether the song wheel may keep it when a
+-- pack or section is opened.
+function PackSelection.FollowsSort(order)
+	local short = shortSort(order)
+	return short == "Group" or sectionSorts[short] == true
+end
+
+-- What the pack step lists: "Pack", or the short name of the sort whose
+-- sections it lists ("Title", "Artist", "Genre", "BPM", "Length", "Meter").
+function PackSelection.Mode()
+	if GAMESTATE:IsCourseMode() then return "Pack" end
+	local short = currentSort()
+	return sectionSorts[short] and short or "Pack"
+end
+
+function PackSelection.IsSection(key)
+	return type(key) == "string" and key:sub(1, #SECTION_PREFIX) == SECTION_PREFIX
+end
+
+local function wheelMetric(name, fallback)
+	local ok, value = pcall(function() return THEME:GetMetric("MusicWheel", name) end)
+	value = ok and tonumber(value) or nil
+	if not value or value < 1 then return fallback end
+	return math.floor(value)
+end
+
+local function initialOf(text)
+	local s = tostring(text or ""):upper()
+	if s:sub(1, 1) == "." then s = s:sub(2) end
+	local c = s:sub(1, 1)
+	if c:match("^%d$") then return "0-9", 0 end
+	if c:match("^[A-Z]$") then return c, c:byte() - 64 end
+	return "", 27
+end
+
+local function call(song, method)
+	local ok, value = pcall(function() return song[method](song) end)
+	if ok then return value end
+	return nil
+end
+
+local function chartMeters(song, stepsType)
+	local meters, seen = {}, {}
+	if not stepsType then return meters end
+	local ok, charts = pcall(function() return song:GetStepsByStepsType(stepsType) end)
+	if not ok or type(charts) ~= "table" then return meters end
+	for _, chart in ipairs(charts) do
+		local meter = tonumber(chart:GetMeter())
+		if meter and not seen[meter] then
+			seen[meter] = true
+			meters[#meters+1] = meter
+		end
+	end
+	table.sort(meters)
+	return meters
+end
+
+-- The sections a song belongs to under a sort: a list of
+-- {Key=<section key>, Value=<what the section stands for>, Order=<sort key>}.
+local function sectionsOf(mode, song, stepsType)
+	local found = {}
+	local function add(value, order)
+		found[#found+1] = { Key=SECTION_PREFIX .. mode .. ":" .. tostring(value), Value=value, Order=order }
+	end
+	if mode == "Title" or mode == "Artist" then
+		local text = mode == "Title" and call(song, "GetTranslitMainTitle") or call(song, "GetTranslitArtist")
+		local value, order = initialOf(text)
+		add(value, order)
+	elseif mode == "Genre" then
+		local genre = tostring(call(song, "GetGenre") or "")
+		if genre == "" then add("", "\255") else add(genre, genre:upper()) end
+	elseif mode == "BPM" then
+		local size = wheelMetric("SortBPMDivision", 20)
+		local bpms = call(song, "GetDisplayBpms")
+		local high = type(bpms) == "table" and (tonumber(bpms[2]) or tonumber(bpms[1])) or 0
+		high = math.max(0, math.floor(high or 0))
+		high = high + (size - (high % size) - 1)
+		add(high - (size - 1), high)
+	elseif mode == "Length" then
+		local size = wheelMetric("SortLengthDivision", 60)
+		local seconds = math.max(0, math.floor(tonumber(call(song, "MusicLengthSeconds")) or 0))
+		seconds = seconds + (size - (seconds % size) - 1)
+		add(seconds - (size - 1), seconds)
+	elseif mode == "Meter" then
+		for _, meter in ipairs(chartMeters(song, stepsType)) do add(meter, meter) end
+	end
+	return found
+end
+
+local function orderBefore(a, b)
+	if type(a) ~= type(b) then return type(a) == "number" end
+	return a < b
+end
+
+local function buildSections(mode, stepsType)
+	local result = { mode=mode, stepsType=stepsType, list={}, byKey={} }
+	local ok, songs = pcall(function() return SONGMAN:GetAllSongs() end)
+	if not ok or type(songs) ~= "table" then return result end
+	for _, song in ipairs(songs) do
+		if isPlayable(song, stepsType) then
+			for _, section in ipairs(sectionsOf(mode, song, stepsType)) do
+				local entry = result.byKey[section.Key]
+				if not entry then
+					entry = { Name=section.Key, Kind=mode, Value=section.Value, Order=section.Order,
+						Songs=0, members={} }
+					result.byKey[section.Key] = entry
+					result.list[#result.list+1] = entry
+				end
+				entry.Songs = entry.Songs + 1
+				entry.members[#entry.members+1] = song
+			end
+		end
+	end
+	table.sort(result.list, function(a, b)
+		if a.Order ~= b.Order then return orderBefore(a.Order, b.Order) end
+		return a.Name < b.Name
+	end)
+	return result
+end
+
+-- The current sort's sections: {mode=, list={entry...}, byKey={key=entry}}.
+-- An entry is {Name=<key>, Kind=<mode>, Value=, Songs=<count>, members=<songs>}.
+function PackSelection.Sections()
+	local mode = PackSelection.Mode()
+	local stepsType = currentStepsType()
+	if not sectionCache or sectionCache.mode ~= mode or sectionCache.stepsType ~= stepsType then
+		sectionCache = buildSections(mode, stepsType)
+	end
+	return sectionCache
+end
+
+function PackSelection.ForgetSections()
+	sectionCache = nil
+end
+
+local function entryFor(key)
+	if not PackSelection.IsSection(key) then return nil end
+	return PackSelection.Sections().byKey[key]
+end
+
+-- The section (or pack) a song is listed under right now.  A song in several
+-- sections (meter sort) answers the one last opened when it is one of them.
+function PackSelection.KeyForSong(song)
+	if not song then return nil end
+	local mode = PackSelection.Mode()
+	if mode == "Pack" then
+		local ok, group = pcall(function() return song:GetGroupName() end)
+		return ok and group or nil
+	end
+	local found = sectionsOf(mode, song, currentStepsType())
+	local last = PackSelection.LastSection[mode]
+	for _, section in ipairs(found) do
+		if section.Key == last then return last end
+	end
+	return found[1] and found[1].Key or nil
+end
+
+local function mmss(seconds)
+	return string.format("%d:%02d", math.floor(seconds / 60), seconds % 60)
+end
+
+local function text(key)
+	return THEME:GetString("VOLT26MusicSelect", key)
+end
+
+-- The name a pack or section is shown by (under the splash on the pack step).
+-- Takes a list entry or a key.
+function PackSelection.DisplayName(entryOrKey)
+	local entry = type(entryOrKey) == "table" and entryOrKey or entryFor(entryOrKey)
+	if not entry then return tostring(type(entryOrKey) == "table" and entryOrKey.Name or entryOrKey or "") end
+	if not entry.Kind or entry.Kind == "Pack" then return entry.Name end
+	local v = entry.Value
+	if entry.Kind == "Title" or entry.Kind == "Artist" then
+		return string.format(text("Section" .. entry.Kind), v ~= "" and v or text("SectionOther"))
+	elseif entry.Kind == "Genre" then
+		return v ~= "" and v or text("SectionNoGenre")
+	elseif entry.Kind == "BPM" then
+		return string.format(text("SectionBPM"), v, v + wheelMetric("SortBPMDivision", 20) - 1)
+	elseif entry.Kind == "Length" then
+		return string.format(text("SectionLength"), mmss(v), mmss(v + wheelMetric("SortLengthDivision", 60) - 1))
+	elseif entry.Kind == "Meter" then
+		return string.format(text("SectionMeter"), v)
+	end
+	return tostring(v)
+end
+
+-- The few characters a section's tile shows in place of artwork, or nil for
+-- a pack (whose tile shows its initials until the artwork loads).
+function PackSelection.ShortName(key)
+	local entry = entryFor(key)
+	if not entry then return nil end
+	local v = entry.Value
+	if entry.Kind == "Title" or entry.Kind == "Artist" then
+		return v ~= "" and v or text("SectionOtherShort")
+	elseif entry.Kind == "Genre" then
+		return v ~= "" and v or text("SectionNoGenreShort")
+	elseif entry.Kind == "BPM" then
+		return string.format("%d-%d", v, v + wheelMetric("SortBPMDivision", 20) - 1)
+	elseif entry.Kind == "Length" then
+		return mmss(v)
+	end
+	return tostring(v)
+end
+
+-- Opening a section: like Choose for a pack, a song of the section is made
+-- current and the wheel opens on that song's section.  Under the meter sort a
+-- song sits in several sections and the wheel opens the first one (its
+-- lowest meter), so a song whose lowest meter is the chosen one is preferred;
+-- the meter is also kept for OpenChosenSection in case the wheel still opens
+-- elsewhere.
+function PackSelection.ChooseSection(key)
+	local entry = entryFor(key)
+	if not entry or #entry.members == 0 then return false end
+	local stepsType = currentStepsType()
+
+	local target
+	local current = GAMESTATE:GetCurrentSong()
+	if current then
+		for _, song in ipairs(entry.members) do
+			if song == current then target = current break end
+		end
+	end
+
+	if not target then
+		local bestKey, bestFits
+		for _, song in ipairs(entry.members) do
+			local fits = true
+			if entry.Kind == "Meter" then fits = chartMeters(song, stepsType)[1] == entry.Value end
+			local k = titleKey(song)
+			if not target or (fits and not bestFits) or (fits == bestFits and k < bestKey) then
+				target, bestKey, bestFits = song, k, fits
+			end
+		end
+	end
+
+	GAMESTATE:SetPreferredSong(target)
+	GAMESTATE:SetCurrentSong(target)
+	PackSelection.LastSection[entry.Kind] = key
+	if entry.Kind == "Meter" then PackSelection.wheelSection = tostring(entry.Value) end
+	return true
+end
+
+-- Called by the song wheel once it is built: when the wheel opened on another
+-- section than the one chosen (meter sort only), it is moved to the chosen
+-- one.  Answers whether it had to.
+function PackSelection.OpenChosenSection(wheel)
+	local wanted = PackSelection.wheelSection
+	PackSelection.wheelSection = nil
+	if not wanted or not wheel then return false end
+	local ok, open = pcall(function() return wheel:GetSelectedSection() end)
+	if ok and open == wanted then return false end
+	return (pcall(function() wheel:SetOpenSection(wanted) end))
 end

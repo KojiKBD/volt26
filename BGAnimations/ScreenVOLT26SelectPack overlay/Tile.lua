@@ -6,7 +6,9 @@
 -- and the badge it becomes are the same picture.
 --
 -- Commands:
---   SetPack {Group=<name or nil>}  show a pack; artwork is reset if it changed
+--   SetPack {Group=<name or nil>}  show a pack, or a section of the current sort
+--                                  (VOLT26.PackSelection keys); artwork is reset
+--                                  if it changed
 --   LoadPackArt                    load the shown pack's artwork now
 -- The tile keeps .group, .loadedGroup and .artPending on itself so the
 -- carousel can decide when artwork is worth loading.
@@ -42,7 +44,11 @@ return Def.ActorFrame{
 		local group = p and p.Group or nil
 		self.group = group
 		local b = self:GetChild("Body")
-		b:GetChild("Initials"):settext(group and K.Initials(group) or "")
+		-- A section has no artwork: its tile shows what it stands for (a
+		-- letter, a BPM range, a meter...); a pack shows its initials until
+		-- its artwork loads.
+		local label = group and (PackSelection.ShortName(group) or K.Initials(group)) or ""
+		b:GetChild("Initials"):settext(label)
 		if self.loadedGroup ~= group then
 			b:GetChild("Art"):visible(false)
 			self.loadedGroup = nil

@@ -286,7 +286,8 @@ local function addPackOrder(items, list, seeds)
 		if #order >= count then break end
 	end
 	for _, index in ipairs(order) do
-		local name = list[index].Name
+		local PS = VOLT26.PackSelection
+		local name = (PS and PS.DisplayName) and PS.DisplayName(list[index]) or list[index].Name
 		items[#items+1] = { text = name, style = "SongPack" }
 		items[#items+1] = { text = name, style = "PackName" }
 	end
