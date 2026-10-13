@@ -3,8 +3,7 @@
 -- the play-mode choice starts ("_volt26 menu transition.lua").  It holds the
 -- sequence's fully covered frame while the profiles load and leaves the
 -- transition data for the next screen, whose "Screen in.lua" plays the rest.
--- Performance mode, and any entry without a transition in progress, holds
--- plain black.
+-- An entry without a transition in progress holds plain black.
 
 local function continue()
 	local screen = SCREENMAN:GetTopScreen()

@@ -46,6 +46,8 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ### Removed
 
+- Performance mode and its first-run choice. VOLT26 now has one visual quality, the former Enhanced, everywhere: the title's animated star burst, flying shapes and full menu transition, idle motion on the pack and song select, the full-size jacket in Song Select, the glitch bursts (still under Theme Options -> Glitch Effects), Rainbow Mode backgrounds and four cutout cache pages. Startup goes straight to `ScreenVOLT26Warmup`; the `PerformanceMode` and `PerformanceModeConfigured` preferences are dropped from `Save/ThemePrefs.ini` on the next start and the Visual Quality row is gone from Theme Options. `ScreenVOLT26PerformanceSetup` was removed.
+
 - The title menu's Special Thanks choice and its overhead camera stop on the
   road date. The title now has five choices, ending at Event Countdown.
 

@@ -32,11 +32,6 @@ P.Gold   = { Lit=color("#F3A608"), Shade=color("#D38F00"), Seam=color("#823500")
 P.P1Star = { Lit=color("#ff2a2a"), Shade=color("#c40010"), Seam=color("#5a0006") }
 P.P2Star = { Lit=color("#38b8ff"), Shade=color("#0086d6"), Seam=color("#00365a") }
 
--- Idle motion (light breathing, stars turning, the logo rocking) is left out
--- in Performance mode; entrances and the kicks on a new song always play.
-function P.IdleMotion()
-	return not (VOLT26.Performance and VOLT26.Performance.IsEnabled())
-end
 
 function P.PlayerColor(player)
 	return player == PLAYER_2 and P.Blue or P.Flag

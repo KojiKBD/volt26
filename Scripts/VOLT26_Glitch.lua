@@ -11,7 +11,7 @@
 --   * The layer lives in ScreenSystemLayer and runs from an update function. It
 --     queues no tweens, so it cannot lengthen ScreenSelectMaster's
 --     m_fLockInputSecs (= GetTweenTimeLeft() at BeginScreen) on any screen.
---   * PerformanceMode and the GlitchIntensity preference can both turn it off.
+--   * The GlitchIntensity preference can turn it off.
 
 VOLT26.Glitch = VOLT26.Glitch or {}
 local Glitch = VOLT26.Glitch
@@ -65,7 +65,6 @@ local function rnd(low, high)
 end
 
 function Glitch.GetLevel()
-	if VOLT26.Performance.IsEnabled() then return nil end
 	return levels[VOLT26.ThemePrefs.Get("GlitchIntensity")]
 end
 

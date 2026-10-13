@@ -144,11 +144,11 @@ local radar = Def.ActorFrame{
 }
 local backdrop, labels = radarAsset("backdrop.png"), radarAsset("labels.png")
 if backdrop then
-	-- The dark star and its glow breathe (not in Performance mode).
+	-- The dark star and its glow breathe.
 	radar[#radar+1] = Def.Sprite{ Texture=backdrop,
 		InitCommand=function(self) self:zoom(RADAR_R / radarArt.ArtRadius) end,
 		OnCommand=function(self)
-			if P.IdleMotion() then self:pulse():effectmagnitude(1, 1.035, 1):effectperiod(2.4) end
+			self:pulse():effectmagnitude(1, 1.035, 1):effectperiod(2.4)
 		end }
 end
 for slot = 1, 2 do

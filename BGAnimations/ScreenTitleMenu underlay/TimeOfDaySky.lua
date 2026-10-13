@@ -1,7 +1,6 @@
 -- Screen-space sky behind the city, using the machine's local clock.
 local width, height = SCREEN_WIDTH, SCREEN_HEIGHT
-local performance = VOLT26.Performance.IsEnabled()
-local starCount = performance and 36 or 72
+local starCount = 72
 local stops = {
     {hour=0,  top="#050A24", middle="#111C46", bottom="#263457", stars=1},
     {hour=5,  top="#101735", middle="#34345E", bottom="#936078", stars=0.85},
@@ -100,7 +99,7 @@ stars.OnCommand=function(self)
     local elapsed, tick = 0, 0
     self:SetUpdateFunction(function(_, delta)
         elapsed, tick = elapsed + (delta or 0), tick + (delta or 0)
-        if starVisibility <= 0.001 or tick < (performance and 0.15 or 0.05) then return end
+        if starVisibility <= 0.001 or tick < 0.05 then return end
         tick = 0
         for i, point in ipairs(points) do
             local shimmer = 0.64 + 0.36 * math.sin(elapsed * point.speed + point.phase)

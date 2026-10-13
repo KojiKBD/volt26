@@ -41,9 +41,9 @@ local af = Def.ActorFrame{
 		if item then
 			if S.IsCourseMode() then path, cacheDir = K.CourseArt(item) else path, cacheDir = K.SongArt(item) end
 		end
-		-- The full image looks best at this size; the low-end path keeps to the
-		-- small cached copy.
-		if not VOLT26.Performance.IsEnabled() then cacheDir = nil end
+		-- The full image looks best at this size, so the small cached copy
+		-- is not used.
+		cacheDir = nil
 		self.wantedArt, self.wantedCache = path, cacheDir
 		if path ~= self.loadedArt then
 			self:GetChild("Art"):visible(false)

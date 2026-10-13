@@ -1,6 +1,5 @@
 local color1 = GetHexColor(VOLT26.State.Global.ActiveColorIndex-2, true)
 local color2 = GetHexColor(VOLT26.State.Global.ActiveColorIndex-1, true)
-local performance = VOLT26.Performance.IsEnabled()
 
 local assets = {}
 assets.flycenter = THEME:GetPathG("", "VOLT26/TitleMenu flycenter")
@@ -14,9 +13,7 @@ timing.img_accel= 0.8
 
 local t = Def.ActorFrame{}
 
--- Enhanced retains the original flying-shape composition. Performance uses
--- only the diagonal wipe of the shared menu transition.
-if not performance then
+-- The original flying-shape composition, under the shared menu transition.
 -- centers
 t[#t+1] = Def.ActorFrame {
 	InitCommand=function(self) self:xy(_screen.cx, _screen.cy+50) end,
@@ -301,8 +298,6 @@ t[#t+1] = Def.ActorFrame {
 		end
 	}
 }
-
-end
 
 -- VOLT26's menu transition (shared with the play-mode choice); it sets its
 -- own length, longer than the flying shapes' when it needs to be.

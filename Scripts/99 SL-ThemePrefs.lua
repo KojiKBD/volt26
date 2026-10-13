@@ -84,14 +84,6 @@ VOLT26_Prefs.Get = function()
 			},
 			Values = { true, false }
 		},
-		PerformanceMode = {
-			Default = true,
-			Choices = {
-				THEME:GetString("ThemePrefs", "Performance"),
-				THEME:GetString("ThemePrefs", "Enhanced")
-			},
-			Values = { true, false }
-		},
 		GlitchIntensity = {
 			Default = "Light",
 			Choices = {
@@ -109,11 +101,6 @@ VOLT26_Prefs.Get = function()
 				THEME:GetString("ThemePrefs", "On"),
 				THEME:GetString("ThemePrefs", "Off")
 			},
-			Values = { true, false }
-		},
-		PerformanceModeConfigured = {
-			Default = false,
-			Choices = { true, false },
 			Values = { true, false }
 		},
 		RainbowMode = {

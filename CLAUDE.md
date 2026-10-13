@@ -28,7 +28,7 @@ Start with:
 - `metrics.ini`: screen graph and initial screen (`ScreenVOLT26Warmup`).
 - `Scripts/06 VOLT26-Utilities.lua`: early bootstrap utilities.
 - `Scripts/SL_Init.lua`: public VOLT26 CORE domains and compatibility bridge.
-- `Scripts/99 SL-ThemePrefs.lua`: persistent theme preferences, including `PerformanceMode`.
+- `Scripts/99 SL-ThemePrefs.lua`: persistent theme preferences.
 - `BGAnimations/`: per-screen implementation.
 - `ThemeInfo.ini`: theme metadata.
 
@@ -38,4 +38,4 @@ There is no generic build step. Use focused static checks (metric references, Lu
 
 ## Current focus
 
-The active branch is removing legacy visual styles/assets and adding the low-end `PerformanceMode` warm-up path. See `docs/ai-handoff.md` before touching that work.
+The theme has a single visual quality (the former Enhanced); the `PerformanceMode` preference and its first-run choice were removed on 2026-10-13 (`codex/enhanced-only`). Startup goes straight to `ScreenVOLT26Warmup`. See `docs/ai-handoff.md` for the rest of the handoff.

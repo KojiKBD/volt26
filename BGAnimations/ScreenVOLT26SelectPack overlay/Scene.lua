@@ -21,8 +21,7 @@
 --   SceneLeave                       clear the set off for the song wheel,
 --                                    which has its own (shared) backdrop
 --   Bump                             a pack change: the frame jolts
--- Idle motion (pulsing sparkles, turning stars, a bobbing title) is left out
--- in PerformanceMode; entrances, exits and the bump stay.
+-- Idle motion: pulsing sparkles, turning stars, a bobbing title.
 local p = ...
 local K = p.K
 
@@ -32,7 +31,6 @@ local K = p.K
 -- badly in the engine.
 local Focus = { X = 948, Y = 517, Size = 420, Tilt = 0 }
 
-local lively = not VOLT26.Performance.IsEnabled()
 local LEAVE_SECONDS = 0.18      -- must finish within K.HandoffHold
 
 local function art(name)
@@ -160,9 +158,7 @@ front[#front+1] = Def.ActorFrame{
 	Name="TitleFrame",
 	InitCommand=function(self)
 		self:xy(967, 205)
-		if lively then
-			self:bob():effectmagnitude(0, 5, 0):effectperiod(2.6)
-		end
+		self:bob():effectmagnitude(0, 5, 0):effectperiod(2.6)
 	end,
 	Def.Sprite{
 		Name="Title", Texture=art("title"),
@@ -190,10 +186,8 @@ for i, at in ipairs(sparkles) do
 		Name="Sparkle" .. i, Texture=art("sparkle"),
 		InitCommand=function(self)
 			self:xy(at[1], at[2])
-			if lively then
-				self:pulse():effectmagnitude(1.15, 0.55, 1):effectperiod(1.1 + 0.17 * i)
-					:effectoffset(0.37 * i)
-			end
+			self:pulse():effectmagnitude(1.15, 0.55, 1):effectperiod(1.1 + 0.17 * i)
+				:effectoffset(0.37 * i)
 		end,
 		SceneEnterCommand=function(self)
 			self:stoptweening():diffusealpha(0):sleep(0.22 + 0.05 * i):linear(0.08):diffusealpha(1)
@@ -216,9 +210,7 @@ for i, at in ipairs(stars) do
 		Def.Sprite{
 			Texture=art("star"),
 			InitCommand=function(self)
-				if lively then
-					self:spin():effectmagnitude(0, 0, (i % 2 == 0) and -28 or 22)
-				end
+				self:spin():effectmagnitude(0, 0, (i % 2 == 0) and -28 or 22)
 			end,
 		},
 	}

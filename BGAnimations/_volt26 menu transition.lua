@@ -1,58 +1,18 @@
 -- VOLT26's menu transition, shared by every screen that leaves with it (the
 -- title menu, and the play-mode choice on its way to music selection).
 --
--- Enhanced mode plays one of the TransMenu frame sequences, picked at random,
+-- It plays one of the TransMenu frame sequences, picked at random,
 -- up to its fully covered frame; the rest of the sequence is played over the
 -- next screen by "_volt26 transition receiver.lua" (through "Screen in.lua"),
 -- which reads VOLT26.State.Global.Volt26TransData.  A screen in between that
 -- only holds the cover (ScreenProfileLoad) shows that covered frame and leaves
 -- the data for the screen after it.
 --
--- Performance mode draws a dark shade and one red diagonal wipe instead, and
--- hands nothing over.
---
 -- Load it into a screen's "out" transition; the actor's own sleep sets how
 -- long the transition lasts.
-local performance = VOLT26.Performance.IsEnabled()
 
 -- Let the press animation land before the covering frames begin.
 local KNIFE_DELAY = 0.35
-
-if performance then
-	local WIPE_TIME = 0.30
-	local WIPE_PAUSE = 0.08
-	local duration = KNIFE_DELAY + WIPE_TIME + WIPE_PAUSE + WIPE_TIME
-
-	return Def.ActorFrame{
-		Name="VOLT26_PerformanceTransition",
-		InitCommand=function(self) self:draworder(1000) end,
-		OffCommand=function(self)
-			VOLT26.State.Global.Volt26TransData = nil
-			self:sleep(duration)
-		end,
-		Def.Quad{
-			Name="TransitionShade",
-			InitCommand=function(self)
-				self:Center():zoomto(_screen.w, _screen.h)
-					:diffuse(color("#090909")):diffusealpha(0)
-			end,
-			OffCommand=function(self)
-				self:sleep(KNIFE_DELAY):linear(WIPE_TIME):diffusealpha(0.92)
-			end,
-		},
-		Def.Quad{
-			Name="AccentWipe",
-			InitCommand=function(self)
-				self:xy(-180, _screen.cy):rotationz(-8)
-					:diffuse(color("#ff0000")):zoomto(130, _screen.h*1.35)
-			end,
-			OffCommand=function(self)
-				self:sleep(KNIFE_DELAY):decelerate(WIPE_TIME):x(_screen.cx)
-					:sleep(WIPE_PAUSE):accelerate(WIPE_TIME):x(_screen.w+180)
-			end,
-		},
-	}
-end
 
 local FRAME_TIME = 1/30
 local SEQUENCES = {

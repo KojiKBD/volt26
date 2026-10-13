@@ -25,7 +25,7 @@
 local p = ...
 local K, S = p.K, p.S
 local P = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/P5.lua"))
-local idle = P.IdleMotion()
+local idle = true
 
 local LETTER = { X = 200, Y = 226 }  -- the middle of the cluster
 local FLIP_EVERY = 2.5               -- seconds each player's grade shows

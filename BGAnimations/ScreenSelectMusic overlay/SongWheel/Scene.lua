@@ -17,13 +17,12 @@
 -- on the song select's On, unless the pack step's bridge has just built it
 -- (VOLT26.PackSelection.TakenHandoff() == "ToSongWheel"), and on the bridge,
 -- quicker, while a pack opens; EXIT plays on the bridge on the way back.  A
--- new song gives the jacket frame a kick, and outside Performance mode the
--- light breathes.  The SELECT logo does not move (the owner's call); it only
+-- new song gives the jacket frame a kick, and the light breathes.  The SELECT logo does not move (the owner's call); it only
 -- fades with the bridge.
 local part = ... or "Back"
 local K = LoadActor(THEME:GetPathB("", "_volt26 music kit.lua"))
 local P = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/P5.lua"))
-local idle = P.IdleMotion()
+local idle = true
 
 -- A piece with an entrance (and optional idle and song-change motion).
 local function piece(name, enter, extra)

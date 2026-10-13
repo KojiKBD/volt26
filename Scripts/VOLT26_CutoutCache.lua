@@ -42,7 +42,6 @@ local WARM_MISSES = 6               -- consecutive strings that did not fit
 
 -- Pages are created only when needed, up to this many.
 local function maxPages()
-	if VOLT26.Performance and VOLT26.Performance.IsEnabled() then return 2 end
 	return 4
 end
 

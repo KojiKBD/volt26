@@ -111,7 +111,6 @@ local af = Def.ActorFrame{
 			if frame.modalOpen or H.SelectedPack() ~= frame.group then return end
 			if #frame.songs <= rowCount then return end
 			frame.scrollElapsed = frame.scrollElapsed+(delta or 0)
-			if VOLT26.Performance.IsEnabled() and frame.scrollElapsed < 1/30 then return end
 			local distance = pitch*frame.scrollElapsed/secondsPerSong
 			frame.scrollElapsed = 0
 			frame.scrollPixels = frame.scrollPixels+distance
