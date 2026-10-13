@@ -222,24 +222,72 @@ local function schedule(self)
 	self:stoptweening():sleep(SETTLE):queuecommand("Settled")
 end
 
+local function refreshKey()
+	return table.concat({
+		tostring(S.Item()), tostring(S.Chart(PLAYER_1)), tostring(S.Chart(PLAYER_2)),
+		tostring(#GAMESTATE:GetHumanPlayers()),
+	}, "|")
+end
+
+-- The parts of the layout by path (names of the actors in the tree below).
+-- The first group is refreshed on On; INTRO_STEPS one group a frame after.
+-- The cards come before the radar: the first of them to ask reads the chart
+-- (S.ChartData, the heaviest step), and the others find it cached.
+local INTRO_FIRST = { {"Header"}, {"Details", "Focus"}, {"Joker"}, {"Info", "Right", "Difficulty"} }
+local INTRO_STEPS = {
+	{ {"Info", "Right", "Jacket"}, {"Info", "Right", "JacketLength"} },
+	{ {"Details", "Grade"} },
+	{ {"Info", "Right", "Cards"} },
+	{ {"Info", "Right", "Radar"} },
+	{ {"Info", "Right", "Footer"} },
+}
+
+local function refreshParts(layout, paths)
+	for _, path in ipairs(paths) do
+		local actor = layout
+		for _, name in ipairs(path) do
+			actor = actor and actor:GetChild(name) or nil
+		end
+		-- A part that is missing (renamed, or a table of same-named actors)
+		-- falls back to a full refresh rather than staying empty.
+		if actor and actor.playcommand then
+			actor:playcommand("Refresh")
+		else
+			layout:playcommand("Refresh")
+			layout.introSteps = nil
+			return
+		end
+	end
+end
+
 local layout = Def.ActorFrame{
 	Name="SongWheelLayout",
 	InitCommand=function(self) self:xy(K.Left, K.Top):zoom(K.Scale) end,
 	OnCommand=function(self)
-		-- Refreshed at once rather than queued, so the header badge is in place
-		-- on the first frame, where the pack step's jacket just landed.
-		self:playcommand("Refresh")
+		-- The first refresh is spread over the entrance instead of landing
+		-- whole on its first frame (it used to stall the screen for most of a
+		-- second before anything moved).  The pack badge, the focused row, the
+		-- Joker and the difficulties are refreshed at once, so the hand-off
+		-- from the pack step lands on a finished header; the rest follows one
+		-- part a frame (INTRO_STEPS), while those parts are still sliding in.
+		refreshParts(self, INTRO_FIRST)
+		self.introSteps, self.introStep = INTRO_STEPS, 0
 		-- A safety net for changes the engine does not announce: compare a
-		-- small key a few times a second and refresh when it moves.
+		-- small key a few times a second and refresh when it moves.  The key
+		-- starts as it stands, so the net does not refresh everything again
+		-- a quarter of a second in.
+		self.refreshKey = refreshKey()
 		local elapsed = 0
 		self:SetUpdateFunction(function(frame, delta)
+			if frame.introSteps then
+				frame.introStep = frame.introStep + 1
+				local step = frame.introSteps[frame.introStep]
+				if step then refreshParts(frame, step) else frame.introSteps = nil end
+			end
 			elapsed = elapsed + (delta or 0)
 			if elapsed < 0.25 then return end
 			elapsed = 0
-			local key = table.concat({
-				tostring(S.Item()), tostring(S.Chart(PLAYER_1)), tostring(S.Chart(PLAYER_2)),
-				tostring(#GAMESTATE:GetHumanPlayers()),
-			}, "|")
+			local key = refreshKey()
 			if key ~= frame.refreshKey then
 				frame.refreshKey = key
 				schedule(frame)
@@ -247,7 +295,11 @@ local layout = Def.ActorFrame{
 		end)
 	end,
 	OffCommand=function(self) self:SetUpdateFunction(nil) end,
-	SettledCommand=function(self) self:playcommand("Refresh") end,
+	SettledCommand=function(self)
+		-- A full refresh: whatever the entrance had still to do is done.
+		self.introSteps = nil
+		self:playcommand("Refresh")
+	end,
 
 	CurrentSongChangedMessageCommand=schedule,
 	CurrentCourseChangedMessageCommand=schedule,
@@ -315,6 +367,8 @@ af[#af+1] = LoadActor("./SongSearch/default.lua")
 
 -- Use Song Select idle time to prepare the small shared gameplay/evaluation
 -- textures before the player confirms a chart.
-af[#af+1] = VOLT26.Warmup.CreateActor("Play", {Interval=0.12})
+-- It starts after the entrance (and the first refresh) is over, so its texture
+-- uploads do not land on the frames the screen is busiest.
+af[#af+1] = VOLT26.Warmup.CreateActor("Play", {Interval=0.12, Delay=2})
 
 return af
