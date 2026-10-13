@@ -94,7 +94,6 @@ NOTES_HIDE = [[ITEM_NOTES_BOX, 1], [ITEM_NOTES_BOX, 2], [ITEM_NOTES_GRAPH, 1, 1]
 QR_HIDE = [[ITEM_QR_BOX, 1]]
 # Where the owner's "Qr" lettering sits (a placed picture the SVG export does
 # not carry; measured on the owner's screenshot), centre and size.
-QR_LABEL_BOX = {"cx": 334, "cy": 592, "w": 200, "h": 116, "rot": -6.4}
 BODY_CROP = (0, 360, 832, 720)
 
 SVG_NS = "{http://www.w3.org/2000/svg}"
@@ -309,7 +308,8 @@ def other_pages(source, svg_path, out_dir, root, items):
                 texts = page.evaluate(TEXT_JS, {"rows": ITEM_NOTES_BOX})
                 rows = texts["rows"][0]
                 arrows = sorted(page.evaluate(ARROWS_JS, ITEM_NOTES_BOX))
-                label = image_box_at(root, items[ITEM_NOTES_LABEL], board)
+                label = label_picture(root, items[ITEM_NOTES_LABEL], board, os.path.join(LABELS, "notes.png"),
+                                      os.path.join(out_dir, "label_notes.png"))
                 anchors["notes"] = {
                     "rows": dict(place(rows["m"]), size=rows["spans"][0]["size"],
                                  lineGap=rows["spans"][1]["y"] - rows["spans"][0]["y"]),
@@ -340,7 +340,8 @@ def other_pages(source, svg_path, out_dir, root, items):
                     "help": lines(texts["help"]),
                     "machine": lines(texts["machine"]),
                     "gs": lines(texts["gs"]),
-                    "label": QR_LABEL_BOX,
+                    "label": label_picture(root, items[ITEM_QR_LABEL], board, os.path.join(LABELS, "qr.png"),
+                                           os.path.join(out_dir, "label_qr.png")),
                 }
                 page.evaluate(RENDER_JS, [[ITEM_BEST_BOXES, ITEM_QR_BOX, ITEM_BOLT], QR_HIDE])
                 page.wait_for_timeout(100)
@@ -351,6 +352,23 @@ def other_pages(source, svg_path, out_dir, root, items):
     os.remove(work)
     anchors["page"] = dict(zip("xywh", PAGE_CROP))
     return anchors
+
+
+LABELS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "labels")
+
+
+def label_picture(root, use, board, src, out_png):
+    """The owner's label picture (the artwork links it from outside the SVG),
+    cropped to its ink and saved; its box on the artboard."""
+    box = image_box_at(root, use, board)
+    img = Image.open(src).convert("RGBA")
+    k = box["w"] / img.width
+    x0, y0, x1, y1 = img.getbbox()
+    img.crop((x0, y0, x1, y1)).save(out_png, optimize=True)
+    du, dv = ((x0 + x1) / 2 - img.width / 2) * k, ((y0 + y1) / 2 - img.height / 2) * k
+    c, s = math.cos(math.radians(box["rot"])), math.sin(math.radians(box["rot"]))
+    return {"cx": box["cx"] + du * c - dv * s, "cy": box["cy"] + du * s + dv * c,
+            "w": (x1 - x0) * k, "h": (y1 - y0) * k, "rot": box["rot"]}
 
 
 def image_box_at(root, use, board):

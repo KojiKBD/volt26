@@ -34,6 +34,8 @@ local groups = {
 		"VOLT26/Wanted/backdrop.png",
 		"VOLT26/Wanted/panel_head.png",
 		"VOLT26/Wanted/panel_body.png",
+		"VOLT26/Wanted/label_notes.png",
+		"VOLT26/Wanted/label_qr.png",
 		"VOLT26/Wanted/panel_notes.png",
 		"VOLT26/Wanted/panel_qr.png",
 	},

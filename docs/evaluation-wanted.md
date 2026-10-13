@@ -82,9 +82,7 @@ stay on every page.
 | `timing` | `panel_notes.png` | `Wanted/Timing.lua`: Simply Love's offset pane. An offset histogram (early left, late right, bars in their windows' colours, windows' edges marked), early / late / miss counts, mean, standard deviation and largest error. |
 | `qr` | `panel_qr.png` (the QR artboard's boxes and bolt) | `Wanted/Qr.lua`: Simply Love's GrooveStats QR code (`Pane7/GrooveStatsURL.lua`), white on black as drawn. A play GrooveStats would not take shows why; an automatic submission replaces the code with "already submitted". GS BEST is the chart's GrooveStats leaderboard, from the `VOLT26GrooveStatsLeaderboard` message that `Shared/AutoSubmitScore.lua` now sends. MACHINE BEST is the machine's best scores, with this play highlighted. |
 
-The graph is drawn on every page except `qr`. The page titles (NOTES, TIMING,
-Qr) are cutout lettering (style `EvalLabel`, warmed at startup). The
-artwork's own titles are placed pictures the SVG export does not carry.
+The graph is drawn on every page except `qr`. The NOTES and Qr titles are the owner's own pictures (`label_notes.png`, `label_qr.png`, cropped from `tools/evaluation/labels/`, which the artwork links from outside the SVG), placed where the artwork has them and never flipped for player 2. TIMING, which the artwork lacks, is cutout lettering (style `EvalLabel`) where NOTES has its title.
 
 Input: `BGAnimations/ScreenEvaluation common/PageInputHandler.lua`, loaded
 instead of `InputHandler.lua` when the common evaluation is loaded with

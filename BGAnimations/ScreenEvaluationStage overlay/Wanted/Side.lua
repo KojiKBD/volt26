@@ -91,6 +91,20 @@ pageFrames.timing[#pageFrames.timing+1] = LoadActor("./Timing.lua", pageArgs)
 pageFrames.qr[#pageFrames.qr+1] = picture("panel_qr", Art.page)
 pageFrames.qr[#pageFrames.qr+1] = LoadActor("./Qr.lua", pageArgs)
 
+-- The owner's NOTES and Qr titles: placed (mirrored for player 2) but never
+-- flipped, so they still read.
+local function title(name, box)
+	return Def.Sprite{
+		Name=name,
+		Texture=THEME:GetPathG("", "VOLT26/Wanted/" .. name .. ".png"),
+		InitCommand=function(self)
+			self:xy(mx(box.cx), box.cy):zoomto(box.w, box.h):rotationz(mirror and -box.rot or box.rot)
+		end,
+	}
+end
+pageFrames.notes[#pageFrames.notes+1] = title("label_notes", Art.notes.label)
+pageFrames.qr[#pageFrames.qr+1] = title("label_qr", Art.qr.label)
+
 -- Level: "LV" and the chart's meter, the digits held to the artwork's width.
 local level, meter = Art.level, tostring(card.meter)
 art[#art+1] = T.Run({ x = level.x, y = level.y, rot = level.rot }, {
@@ -240,11 +254,10 @@ grade.VOLT26EvaluationPageMessageCommand = function(self, params)
 end
 cutouts[#cutouts+1] = grade
 
--- The other pages' titles, in cutout lettering where the artwork has them.
+-- The timing page's title, in cutout lettering where NOTES has its title
+-- (the artwork has no timing page; NOTES and Qr are the owner's pictures).
 local labels = {
-	{ page = "notes", text = "NOTES", box = Art.notes.label },
 	{ page = "timing", text = "TIMING", box = Art.notes.label },
-	{ page = "qr", text = "Qr", box = Art.qr.label },
 }
 for _, entry in ipairs(labels) do
 	local label = slot("EvalLabel", entry.box, entry.text)
