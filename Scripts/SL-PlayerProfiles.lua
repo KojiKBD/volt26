@@ -17,6 +17,10 @@ local permitted_profile_settings = {
 	SpeedMod         = "number",
 	Mini             = "string",
 	NoteSkin         = "string",
+	-- The chosen variant of a note skin that has them.  Its option row has no
+	-- fixed choices, so it is checked against the installed note skins
+	-- instead (NoteSkinVariantIsValid).
+	NoteSkinVariant  = "string",
 	JudgmentGraphic  = "string",
 	ComboFont        = "string",
 	HoldJudgment     = "string",
@@ -84,6 +88,11 @@ local permitted_profile_settings = {
 }
 
 -- -----------------------------------------------------------------------
+
+local function NoteSkinVariantIsValid(name)
+	local ok, exists = pcall(function() return NOTESKIN:DoesNoteSkinExist(name) end)
+	return ok and exists == true
+end
 
 local theme_name = THEME:GetThemeDisplayName()
 local filename =  theme_name .. " UserPrefs.ini"
@@ -201,7 +210,9 @@ LoadProfileCustom = function(profile, dir)
 				-- if the datatype is string and this key corresponds with an OptionRow in ScreenPlayerOptions
 				-- ensure that the string read in from the player's profile
 				-- is a valid value (or choice) for the corresponding OptionRow
-				if type(v) == "string" and CustomOptionRow(k) and FindInTable(v, CustomOptionRow(k).Values or CustomOptionRow(k).Choices)
+				if k == "NoteSkinVariant" then
+					if NoteSkinVariantIsValid(v) then SL[pn].ActiveModifiers[k] = v end
+				elseif type(v) == "string" and CustomOptionRow(k) and FindInTable(v, CustomOptionRow(k).Values or CustomOptionRow(k).Choices)
 				or type(v) ~= "string" then
 					SL[pn].ActiveModifiers[k] = v
 				end

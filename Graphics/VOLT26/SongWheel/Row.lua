@@ -14,7 +14,16 @@
 -- overlay.
 local kind = ... or "Song"
 
-local P = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/P5.lua"))
+-- The kit is loaded once for all the rows (some 85 of them: five kinds per
+-- wheel item) instead of once per row, and again only if the screen size
+-- changed since.
+local shared = VOLT26.SongWheelRowKit
+if not (shared and shared.W == _screen.w and shared.H == _screen.h) then
+	shared = { W = _screen.w, H = _screen.h,
+		P = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/P5.lua")) }
+	VOLT26.SongWheelRowKit = shared
+end
+local P = shared.P
 local R = P.Art.Row
 
 -- Text placement measured on the mockup (baselines, relative to the anchor).

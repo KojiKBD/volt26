@@ -66,10 +66,12 @@ return Def.ActorFrame{
 		-- its artwork loads.
 		local section = group and PackSelection.ShortName(group) or nil
 		b:GetChild("Initials"):settext(section and "" or (group and K.Initials(group) or ""))
-		local label = b:GetChild("Label")
-		label:visible(section ~= nil)
-		if section then label:GetChild("Slot"):playcommand("CutoutSet", { text = section }) end
+		-- The label is lettered with the artwork (LoadPackArt): only the tiles
+		-- on screen, once the carousel rests, so holding a direction never
+		-- queues a cutout render per tile passed.
+		self.section = section
 		if self.loadedGroup ~= group then
+			b:GetChild("Label"):visible(false)
 			b:GetChild("Art"):visible(false)
 			self.loadedGroup = nil
 			self.artPending = group ~= nil
@@ -81,6 +83,9 @@ return Def.ActorFrame{
 		local b = self:GetChild("Body")
 		local art = b:GetChild("Art")
 		art:visible(false)
+		local label = b:GetChild("Label")
+		label:visible(self.section ~= nil)
+		if self.section then label:GetChild("Slot"):playcommand("CutoutSet", { text = self.section }) end
 		if not self.group then return end
 
 		local info = PackSelection.Artwork(self.group)

@@ -308,6 +308,10 @@ local card = Def.ActorFrame{
 	InitCommand=function(self)
 		self:xy(L.center.x * sx, L.center.y * sy):rotationz(L.rot)
 		-- Only ActorFrames take an update function, so the card moves its rings.
+		-- In Performance mode the waves stand still: the texture is drawn for
+		-- a few frames and then kept as it is (FreezeCommand), instead of
+		-- being redrawn every frame.
+		if VOLT26.Performance and VOLT26.Performance.IsEnabled() then return end
 		local rings = self:GetChild("WaveTexture"):GetChild("Rings")
 		self:SetUpdateFunction(function(_, delta)
 			wavePhase = (wavePhase + delta / waves.period) % 1
@@ -322,6 +326,14 @@ local card = Def.ActorFrame{
 			self:EnableAlphaBuffer(false)
 			self:Create()
 		end,
+		OnCommand=function(self)
+			if VOLT26.Performance and VOLT26.Performance.IsEnabled() then
+				self:sleep(0.1):queuecommand("Freeze")
+			end
+		end,
+		-- A hibernating ActorFrameTexture is not drawn, so its texture keeps
+		-- the last picture rendered into it.
+		FreezeCommand=function(self) self:hibernate(1e9) end,
 		Def.Quad{
 			InitCommand=function(self)
 				self:align(0, 0):zoomto(texW, texH):diffuse(waves.field)

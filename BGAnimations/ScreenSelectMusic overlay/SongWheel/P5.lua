@@ -174,6 +174,7 @@ function P.Marquee(t)
 				self:setsize(texW, texH):SetTextureName(name)
 				self:EnableAlphaBuffer(true):EnablePreserveTexture(false):Create()
 			end,
+			FreezeCommand = function(self) self:hibernate(1e9) end,
 			Def.ActorFrame{
 				Name = "Zoom",
 				InitCommand = function(self) self:zoom(s) end,
@@ -212,6 +213,12 @@ function P.SetMarquee(frame, text, window)
 	actor:stoptweening():x(0):diffusealpha(1)
 	actor.overflow = overflow
 	if overflow > 0 then actor:queuecommand("Marquee") end
+	-- The texture is redrawn every frame only while the text scrolls; a text
+	-- that fits is drawn for a moment and then kept (a hibernating
+	-- ActorFrameTexture is not drawn, so its texture keeps its picture).
+	local texture = frame:GetChild("Texture")
+	texture:stoptweening():hibernate(0)
+	if overflow <= 0 then texture:sleep(0.25):queuecommand("Freeze") end
 	-- The sprite shows only the window.
 	frame:GetChild("View"):cropright(1 - window / frame.full)
 	return drawn
