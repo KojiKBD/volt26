@@ -97,6 +97,7 @@ local function leaveToPacks()
 		layoutPart(name):stoptweening():accelerate(0.15):addx(-DETAILS_SLIDE):diffusealpha(0)
 	end
 	layoutPart("Header"):playcommand("SongWheelOut")
+	layoutPart("Joker"):playcommand("Leave")
 	screen:Cancel()
 end
 
@@ -267,17 +268,24 @@ layout[#layout+1] = part("Header.lua", { K=K, S=S })
 -- is the mockup's own solid info panel (names, facts, radar and graphs in
 -- one slab); it was set aside as too heavy, but can stand in for the cards
 -- and the radar here.
+-- Its parts sit in "Right", which Joker.lua hides while the wheel rests on a
+-- row that is not a song.
 local info = modalAware(Def.ActorFrame{ Name="Info" })
-info[#info+1] = part("Jacket.lua", { K=K, S=S })
-info[#info+1] = part("Difficulty.lua", { K=K, S=S })
+local right = Def.ActorFrame{ Name="Right" }
+info[#info+1] = right
+
+right[#right+1] = part("Jacket.lua", { K=K, S=S })
+right[#right+1] = part("Difficulty.lua", { K=K, S=S })
 -- The notes radar on the red between the wheel and the cards, larger;
 -- the pack tag (PackTag.lua) is no longer shown.  Its labels reach
 -- 0.93 R up and 1.12 R sideways (RadarArt Reach).
-info[#info+1] = part("Radar.lua", { K=K, S=S, X=1098, Y=278, R=170 })
-info[#info+1] = part("Cards.lua", { K=K, S=S })
-info[#info+1] = part("Jacket.lua", { K=K, S=S, Part="Length" })
-info[#info+1] = part("Footer.lua", { K=K, S=S })
+right[#right+1] = part("Radar.lua", { K=K, S=S, X=1098, Y=278, R=170 })
+right[#right+1] = part("Cards.lua", { K=K, S=S })
+right[#right+1] = part("Jacket.lua", { K=K, S=S, Part="Length" })
+right[#right+1] = part("Footer.lua", { K=K, S=S })
 layout[#layout+1] = info
+-- Joker over everything while a pack row is focused (SongWheel/Joker.lua).
+layout[#layout+1] = part("Joker.lua", { K=K, S=S })
 af[#af+1] = layout
 
 -- Shared modal overlays, in their original draw order -----------------------
