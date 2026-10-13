@@ -7,6 +7,10 @@
 -- to it.  The bar hugs its content; when the content is wider than the screen
 -- allows, the bar stops growing and the content slides inside it so the
 -- focused pill stays in the middle.
+--
+-- Persona dress, as the dock: the bar is a black slab edged in white over a
+-- red one; pills are black parallelograms with a thin white edge, and the pill
+-- under the cursor turns white with a black name over a red shadow.
 
 local L = ...
 
@@ -25,19 +29,12 @@ function Strip.Build()
 		InitCommand=function(self) self:visible(false) end,
 	}
 
-	af[#af+1] = Def.Quad{
-		Name="BarFill",
-		InitCommand=function(self)
-			self:y(L.StripMid):zoomto(100, L.StripH):diffuse(L.Panel):diffusealpha(0.96)
-		end,
-	}
-
-	local barEdge = L.Frame("BarEdge", L.Line)
-	barEdge.InitCommand = function(self)
+	local bar = L.Slab("Bar")
+	bar.InitCommand = function(self)
 		self:y(L.StripMid)
-		L.SizeFrame(self, 100, L.StripH, 1)
+		L.SizeSlab(self, 100, L.StripH)
 	end
-	af[#af+1] = barEdge
+	af[#af+1] = bar
 
 	local pills = Def.ActorFrame{Name="Pills"}
 	for index = 1, L.MaxPills do
@@ -46,19 +43,28 @@ function Strip.Build()
 			InitCommand=function(self) self:y(L.StripMid) end,
 		}
 		pill[#pill+1] = Def.Quad{
-			Name="Fill",
+			Name="Shadow",
 			InitCommand=function(self)
-				self:zoomto(100, L.PillH):diffuse(L.Panel2):diffusealpha(0.55)
+				self:skewx(L.Slant):xy(8, 6):zoomto(100, L.PillH):diffuse(L.Red):visible(false)
 			end,
 		}
-		local edge = L.Frame("Edge", L.Line)
-		edge.InitCommand = function(self) L.SizeFrame(self, 100, L.PillH, 1) end
-		pill[#pill+1] = edge
+		pill[#pill+1] = Def.Quad{
+			Name="Edge",
+			InitCommand=function(self)
+				self:skewx(L.Slant):zoomto(104, L.PillH + 4):diffuse(L.White)
+			end,
+		}
+		pill[#pill+1] = Def.Quad{
+			Name="Fill",
+			InitCommand=function(self)
+				self:skewx(L.Slant):zoomto(100, L.PillH):diffuse(L.Black)
+			end,
+		}
 		pill[#pill+1] = Def.Quad{
 			Name="Mark",
 			InitCommand=function(self) self:zoomto(8, 8):diffuse(L.Accent):visible(false) end,
 		}
-		pill[#pill+1] = L.DisplayText{Name="Name", Px=L.PillNamePx, Tint=L.Mute, Align=left}
+		pill[#pill+1] = L.TagText{Name="Name", Px=L.PillNamePx, Tint=L.White, Align=left}
 		pill[#pill+1] = L.LabelText{Name="Meta", Px=L.PillMetaPx, Tint=L.Dim, Align=left}
 		pills[#pills+1] = pill
 	end
@@ -100,7 +106,7 @@ function Strip.Apply(af, descriptors, index, focused)
 			local name = pill:GetChild("Name")
 			local meta = pill:GetChild("Meta")
 
-			L.SetDisplay(name, L.Upper(descriptor.Name or ""), L.PillNamePx, 520)
+			L.SetTag(name, descriptor.Name or "", L.PillNamePx, 520)
 			L.SetLabel(meta, descriptor.Meta or "", L.PillMetaPx, 320)
 
 			local metaWidth = (descriptor.Meta and descriptor.Meta ~= "") and meta:GetZoomedWidth() or 0
@@ -132,9 +138,7 @@ function Strip.Apply(af, descriptors, index, focused)
 	local pills = af:GetChild("Pills")
 	pills:finishtweening():decelerate(0.12):x(start)
 
-	local fill = af:GetChild("BarFill")
-	fill:finishtweening():decelerate(0.12):zoomto(barWidth, L.StripH)
-	L.SizeFrame(af:GetChild("BarEdge"), barWidth, L.StripH, 1, L.Line)
+	L.SizeSlab(af:GetChild("Bar"), barWidth, L.StripH, 0.12)
 
 	for slot = 1, L.MaxPills do
 		local pill = pills:GetChild("Pill"..slot)
@@ -152,6 +156,7 @@ function Strip.Apply(af, descriptors, index, focused)
 
 			local pillFill = pill:GetChild("Fill")
 			local edge     = pill:GetChild("Edge")
+			local shadow   = pill:GetChild("Shadow")
 			local mark     = pill:GetChild("Mark")
 			local name     = pill:GetChild("Name")
 			local meta     = pill:GetChild("Meta")
@@ -171,23 +176,22 @@ function Strip.Apply(af, descriptors, index, focused)
 
 			pill:finishtweening()
 			pillFill:zoomto(width, L.PillH)
+			edge:zoomto(width + 4, L.PillH + 4)
+			shadow:zoomto(width, L.PillH)
 			pill:decelerate(0.09):zoom(isCursor and L.PillZoom or 1)
 
-			if isCursor and enabled then
-				pillFill:diffuse(L.Deep):diffusealpha(1)
-				L.SizeFrame(edge, width, L.PillH, 2, L.Accent)
-				name:diffuse(L.Ink)
-				meta:diffuse(L.Accent)
-			elseif isCursor then
-				pillFill:diffuse(L.Panel2):diffusealpha(1)
-				L.SizeFrame(edge, width, L.PillH, 2, L.Dim)
-				name:diffuse(L.Mute)
-				meta:diffuse(L.Dim)
+			if isCursor then
+				pillFill:diffuse(enabled and L.White or L.Mute)
+				edge:diffuse(L.White)
+				shadow:visible(true):diffuse(enabled and L.Red or L.Dim)
+				name:diffuse(L.Black)
+				meta:diffuse(enabled and L.Red or L.Dim)
 			else
-				pillFill:diffuse(L.Panel2):diffusealpha(enabled and 0.55 or 0.25)
-				L.SizeFrame(edge, width, L.PillH, 1, descriptor.Active and L.Border or L.Line)
-				name:diffuse(enabled and L.Mute or L.Fade(L.Dim, 0.6))
-				meta:diffuse(enabled and L.Dim or L.Fade(L.Dim, 0.6))
+				shadow:visible(false)
+				pillFill:diffuse(L.Black)
+				edge:diffuse(descriptor.Active and L.Red or (enabled and L.White or L.Dim))
+				name:diffuse(enabled and L.White or L.Fade(L.Mute, 0.6))
+				meta:diffuse(enabled and L.Mute or L.Fade(L.Dim, 0.6))
 			end
 		else
 			pill:visible(false)

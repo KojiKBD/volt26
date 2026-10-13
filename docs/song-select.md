@@ -130,6 +130,29 @@ slots inside the scaled layout, the AMV radar edge (`DrawMode_LineStrip`),
 wheel scrolling on the slant, and the pack-step hand-off into the jacket
 frame.  The animation pass is still to come.
 
+## Options dock (Sort Menu)
+
+Left and right together on the song wheel open the options dock (`BGAnimations/ScreenSelectMusic overlay/SortMenu/`).
+
+**Look.** It is dressed like the rest of the theme:
+- The bar is a black parallelogram slab, edged in white, over a red slab offset to the lower right (`L.Slab` / `L.SizeSlab` in `Layout.lua`). The category strip above it uses the same slab.
+- It swings up into place when opened.
+- Each tile is one of the owner's red icons with its word in the WANTED page's bold face (`VOLT26 Eval Bold`).
+- The tile under the cursor:
+  - swaps to the icon's outlined hover twin;
+  - is slapped onto a tilted white card over a red one;
+  - shows its word in black on a white tag.
+- An open category keeps the red card and a red word.
+- In the strip, pills are black parallelograms. The pill under the cursor is white with a black name over a red shadow.
+
+**Icons.** The icons are `Graphics/VOLT26/SortMenu/<name>.png` and `<name>_hover.png` (192 px square), drawn from the owner's `icons.ai` by `tools/sort-menu/build_icons.py`:
+
+```
+python tools/sort-menu/build_icons.py path/to/icons.ai
+```
+
+The script reads Illustrator's own data inside the file, so icons off the artboards are included. BACK and the neutral mark (`back.png`, `dot.png`) are not in `icons.ai`: they stay white line art, tinted red by the tile.
+
 ## Known limits
 
 - Changing the sort from the Sort Menu keeps `OnlyShowActiveSection`, so a non-group sort shows only the open bucket (one letter, one BPM range, ...).

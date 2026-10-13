@@ -6,9 +6,11 @@
 -- back to the neutral mark rather than drawing nothing, which would leave a
 -- tile that looks broken instead of merely generic.
 --
--- The files are white line art on transparency, drawn at 192px square, so a
--- tile tints them with diffuse and scales them down rather than shipping one
--- bitmap per state.
+-- The icons are the owner's (icons.ai): red cut-paper marks on transparency,
+-- 192 px square, each with a "_hover" twin outlined in black that the tile
+-- under the cursor shows.  They are drawn in their own colours.  BACK and the
+-- neutral mark have no new artwork: they stay white line art, tinted by the
+-- tile, and have no hover twin.
 
 local Icons = {}
 
@@ -37,21 +39,36 @@ function Icons.Name(key)
 	return byKey[key] or Icons.Fallback
 end
 
-function Icons.Path(name)
-	return THEME:GetPathG("", folder .. (name or Icons.Fallback))
+-- The icons that are line art to be tinted rather than coloured artwork.
+local tinted = { back = true, dot = true }
+
+function Icons.Tinted(name)
+	return tinted[name or Icons.Fallback] == true
 end
 
--- Every icon the dock can ask for, so a tile can be built with one of them and
--- swap texture later without the engine loading a file mid-frame.
+-- The hover twin when there is one, the plain icon otherwise.
+function Icons.Path(name, hover)
+	name = name or Icons.Fallback
+	if hover and not tinted[name] then name = name .. "_hover" end
+	return THEME:GetPathG("", folder .. name)
+end
+
+-- Every icon file the dock can ask for (hover twins included), so a tile can
+-- be built with one of them and swap texture later without the engine loading
+-- a file mid-frame.  Entries are paths.
 function Icons.All()
-	local seen, list = {}, {Icons.Fallback}
-	seen[Icons.Fallback] = true
-	for _, name in pairs(byKey) do
-		if not seen[name] then
-			seen[name] = true
-			list[#list+1] = name
+	local seen, list = {}, {}
+	local function add(name)
+		for _, hover in ipairs({false, true}) do
+			local path = Icons.Path(name, hover)
+			if not seen[path] then
+				seen[path] = true
+				list[#list+1] = path
+			end
 		end
 	end
+	add(Icons.Fallback)
+	for _, name in pairs(byKey) do add(name) end
 	return list
 end
 
