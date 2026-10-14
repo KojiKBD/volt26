@@ -4,6 +4,10 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ## Unreleased
 
+### Added
+
+- The end of a session follows the owner's "gameover" mockup. The summary shows every stage as a score card (the player's name in cutout lettering, the song, its meter, the jacket, the grade, ITG and EX) in a row that runs sideways by itself and can be stepped with left/right; player 1 has the upper half, player 2 the lower half mirrored, a lone player the middle. Name entry and the game over screen wear the same cards and plates: the stage cards cycling beside the name, the alphabet and the machine's top five; the session's figures, the avatar and the best grade. Pictures from `tools/gameover/build_gameover_art.py`; shared pieces in `BGAnimations/_volt26 gameover kit.lua`.
+
 ### Fixed
 
 - The menu transition (title menu and play-mode choice to the music selection) plays smoothly on slower machines. Its frames were decoded from 1920x1080 PNGs and uploaded as 16 MB textures one every 1/30 s while it played; they are now 960x540 (`tools/title-menu/shrink_transition_frames.py`, 1080p sources kept in `tools/title-menu/transition-frames-1080p/`) and the whole sequence is loaded with the screen (`VOLT26.PreloadTransitionFrames`), so playing it only switches textures already in memory.

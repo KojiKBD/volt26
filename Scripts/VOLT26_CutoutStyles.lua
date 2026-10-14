@@ -51,6 +51,9 @@ Cutout.StyleDesign = {
 		Opts={ upperChance=1 } },
 	-- The titles of the WANTED page's other pages (NOTES, TIMING, Qr).
 	EvalLabel    = { Scale="Fit", MaxW=250, MaxH=100, Base=70, Tilt=-5, MaxChars=8 },
+	-- The end-of-session screens' title on the band between the two halves
+	-- ("_volt26 gameover kit.lua": summary, name entry, game over).
+	GameOverTitle = { Scale="Fit", MaxW=700, MaxH=92, Base=64, Tilt=-3, MaxChars=24 },
 	-- ScreenSystemLayer: the credit line (theme units already).
 	CreditPlayer = { Scale="Theme", MaxW=260, MaxH=44, Base=22, MaxChars=16 },
 	-- Room for the pay-mode line ("CREDITS 0  0/2") in longer languages.

@@ -1,115 +1,128 @@
-local numStages = VOLT26.Evaluation.GetStageCount()
+-- The session summary, after the owner's "gameover" artboard: every stage a
+-- player played this session as a score card (the player's name in cutout
+-- lettering, the song, its meter, the jacket, the grade, ITG and EX), in a
+-- row that runs sideways.  Player 1's row fills the upper half, player 2's
+-- the lower half mirrored (its next cards are on the left); a lone player's
+-- row sits in the middle.  The shared pieces are in "_volt26 gameover kit.lua".
+--
+-- The focused card is whole, the next ones are seen faintly beside it.  Each
+-- row moves on by itself every AUTO seconds; a player's left/right (and
+-- up/down) steps through their own row, which then waits PAUSE seconds before
+-- moving on again.
+local G = LoadActor(THEME:GetPathB("", "_volt26 gameover kit.lua"))
+local players = G.Players()
+local solo = #players == 1
 
-local page = 1
-local pages = math.ceil(numStages/4)
-local next_page
+local AUTO = 4      -- seconds per card while nobody scrolls
+local PAUSE = 8     -- seconds a row rests after its player scrolled it
+local SLOTS = 4     -- cards per row: the one before, the focused one, two after
+local MOVE = 0.34   -- seconds a step takes
 
--- start by assuming that the player has dedicated MenuButtons
-local buttons = {
-	-- previous page
-	MenuLeft = -1,
-	MenuUp = -1,
-	-- next page
-	MenuRight = 1,
-	MenuDown = 1,
+-- Input: screen directions.  Player 2's row is mirrored, so for that player
+-- left and right swap (the next card is on the left).
+local STEP = {
+	MenuLeft = -1, Left = -1, DownLeft = -1, MenuUp = -1, Up = -1,
+	MenuRight = 1, Right = 1, DownRight = 1, MenuDown = 1, Down = 1,
 }
-
--- if OnlyDedicatedMenuButtons is disabled, add in support for navigating this screen with gameplay buttons
-if not PREFSMAN:GetPreference("OnlyDedicatedMenuButtons") then
-	-- previous page
-	buttons.Left=-1
-	buttons.Up=-1
-	buttons.DownLeft=-1
-	-- next page
-	buttons.Right=1
-	buttons.Down=1
-	buttons.DownRight=1
+local SIDEWAYS = { MenuLeft = true, Left = true, DownLeft = true, MenuRight = true, Right = true, DownRight = true }
+if PREFSMAN:GetPreference("OnlyDedicatedMenuButtons") then
+	for _, name in ipairs({ "Left", "Right", "Up", "Down", "DownLeft", "DownRight" }) do STEP[name] = nil end
 end
 
-local page_text = THEME:GetString("ScreenEvaluationSummary", "Page")
+local function row(player, delay)
+	local pn = ToEnumShortString(player)
+	local a = G.Anchor(player, solo)
+	local m = a.M
+	local stages = G.PlayerStages(player)
+	local n = #stages
+	local focus = 1
+	local slots = {}
 
--- -----------------------------------------------------------------------
+	local function wrap(i) return n > 0 and ((i - 1) % n) + 1 or 1 end
+	local function shown(o) return n > 0 and (o == 0 or (o > 0 and o < n) or (o < 0 and n > 1)) end
 
-
--- Utility function to collect the names of all unique profiles that played at least one song
--- as player pn this session.
-uniqueProfilesUsedForPlayer = function(pn)
-	return VOLT26.Evaluation.GetProfilesUsed(pn)
-end
-
-
--- -----------------------------------------------------------------------
-
-local t = Def.ActorFrame{
-	-- this CodeMessage is defined in metrics.ini under [ScreenEvaluationSummary]
-	-- it handles both page navigation and screenshot requests
-	CodeMessageCommand=function(self, param)
-
-		-- player wants to save a screenshot
-		if param.Name == "Screenshot" then
-			-- format a localized month string like "06-June" or "12-Diciembre"
-			local month = ("%02d-%s"):format(MonthOfYear()+1, THEME:GetString("Months", "Month"..MonthOfYear()+1))
-
-			-- organize screenshots Love into directories, like...
-			--      ./Screenshots/Simply_Love/2020/04-April/2020-04-22_175951.png
-			-- note that the engine's SaveScreenshot() function will convert whitespace
-			-- characters to underscores, so we might as well just use underscores here
-			local prefix = "Simply_Love/" .. Year() .. "/" .. month .. "/"
-
-			-- for more info on SaveScreenshot(), see ./BGA/ScreenEvaluation common/ScreenshotHandler.lua
-			SaveScreenshot(param.PlayerNumber, false, false, prefix)
+	-- Puts a card at its offset from the focused one; `jump` places it there
+	-- at once (a card coming round from the other end).
+	local function place(s, jump)
+		local card = s.actor
+		local stage = stages[wrap(focus + s.o)]
+		if s.stage ~= stage then
+			s.stage = stage
+			G.FillCard(card, player, stage)
 		end
-
-		if pages > 1 and buttons[param.Name] ~= nil then
-			next_page = page + buttons[param.Name]
-
-			if next_page > 0 and next_page < pages+1 then
-				page = next_page
-				self:finishtweening():queuecommand("Hide")
-			end
-		end
+		card:visible(shown(s.o))
+		local x = s.o * G.Step * m
+		local alpha = s.o == 0 and 1 or (s.o > 0 and G.Art.Card.NeighbourAlpha or 0)
+		card:draworder(10 - s.o)
+		if jump then card:stoptweening():x(x):diffusealpha(0) end
+		card:stoptweening():decelerate(MOVE):x(x):diffusealpha(alpha)
 	end
-}
 
--- centered text like "Page 2/5" where
--- 2 is the current page the player is viewing, and
--- 5 is the total number of pages
-t[#t+1] = LoadFont("Common Bold")..{
-	Name="PageNumber",
-	Text=("%s %i/%i"):format(page_text, page, pages),
-	InitCommand=function(self) self:diffusealpha(0):zoom(WideScale(0.5,0.6)):xy(_screen.cx, 15) end,
-	OnCommand=function(self) self:sleep(0.1):decelerate(0.33):diffusealpha(1) end,
-	OffCommand=function(self) self:accelerate(0.33):diffusealpha(0) end,
-	HideCommand=function(self) self:sleep(0.5):settext( ("%s %i/%i"):format(page_text, page, pages) ) end
-}
+	local function move(frame, d)
+		if n < 2 then return end
+		focus = wrap(focus + d)
+		for _, s in ipairs(slots) do
+			s.o = s.o - d
+			local jump = false
+			if s.o < -1 then s.o, jump = s.o + SLOTS, true
+			elseif s.o > SLOTS - 2 then s.o, jump = s.o - SLOTS, true end
+			place(s, jump)
+		end
+		frame:SortByDrawOrder()
+	end
 
-
-t[#t+1] = LoadActor("./LetterGrades.lua")
-
--- -----------------------------------------------------------------------
--- 4 rows
--- i will increment so that we progress down the screen from top to bottom
--- first song of the round at the top, more recently played song at the bottom
-
-for i=1,4 do
-
-	t[#t+1] = LoadActor("Row.lua", i)..{
-		Name="StageStats_"..i,
-		InitCommand=function(self) self:diffusealpha(0) end,
-		OnCommand=function(self)
-			self:xy(_screen.cx, ((_screen.h/4.75) * i))
-				:queuecommand("Hide")
+	local af = Def.ActorFrame{
+		Name = "Row" .. pn,
+		InitCommand = function(self) self:xy(a.X, a.Y) end,
+		OnCommand = function(self)
+			for k = 1, SLOTS do
+				slots[k] = { actor = self:GetChild("Card" .. k), o = k - 2 }
+				local card = slots[k].actor
+				card:x(slots[k].o * G.Step * m)
+				place(slots[k], false)
+				card:finishtweening()
+			end
+			self:SortByDrawOrder()
+			G.Arrive(self, m, delay)
+			local wait, elapsed = AUTO + 1, 0
+			self.rest = function() wait, elapsed = PAUSE, 0 end
+			self:SetUpdateFunction(function(frame, dt)
+				elapsed = elapsed + (dt or 0)
+				if elapsed >= wait then
+					elapsed, wait = 0, AUTO
+					move(frame, 1)
+				end
+			end)
 		end,
-		ShowCommand=function(self)
-			self:finishtweening():sleep(i*0.05):linear(0.15):diffusealpha(1)
+		MoveCommand = function(self, p)
+			self.rest()
+			move(self, p.Dir)
 		end,
-		HideCommand=function(self)
-			self:playcommand("DrawPage", {Page=page})
+		OffCommand = function(self)
+			self:SetUpdateFunction(nil)
+			G.Leave(self, m)
 		end,
 	}
-
+	for k = 1, SLOTS do af[#af+1] = G.Card("Card" .. k, m) end
+	return af
 end
 
--- -----------------------------------------------------------------------
+local t = G.Root{
+	Name = "VOLT26Summary",
+	CodeMessageCommand = function(self, param)
+		-- Screenshots go where Simply Love put them.
+		if param.Name == "Screenshot" then
+			local month = ("%02d-%s"):format(MonthOfYear() + 1, THEME:GetString("Months", "Month" .. MonthOfYear() + 1))
+			SaveScreenshot(param.PlayerNumber, false, false, "Simply_Love/" .. Year() .. "/" .. month .. "/")
+			return
+		end
+		local d = STEP[param.Name]
+		if not d or not param.PlayerNumber then return end
+		if SIDEWAYS[param.Name] and param.PlayerNumber == PLAYER_2 then d = -d end
+		local r = self:GetChild("Row" .. ToEnumShortString(param.PlayerNumber))
+		if r then r:playcommand("Move", { Dir = d }) end
+	end,
+}
+for i, player in ipairs(players) do t[#t+1] = row(player, 0.1 + (i - 1) * 0.08) end
 
 return t
