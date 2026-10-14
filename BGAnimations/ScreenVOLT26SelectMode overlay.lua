@@ -1,11 +1,13 @@
 -- ScreenVOLT26SelectMode: one page for how the session is played.
 --
---   row 1  REGULAR / MARATHON   (PlayMode_Regular / PlayMode_Nonstop)
---   row 2  ITG / FA+            (rule set, VOLT26.ThemePrefs.ApplyGameMode)
+--   REGULAR / MARATHON   (PlayMode_Regular / PlayMode_Nonstop)
 --   OK
 --
+-- The rule set is always ITG: the owner removed the ITG / FA+ choice on
+-- 2026-10-14 (the artboard's "itg" and "faplus" states are no longer drawn).
+--
 -- Left/Right changes the focused row's choice, Start confirms it and moves the
--- focus down; Start on OK applies both choices and moves on to profile load.
+-- focus down; Start on OK applies the choice and moves on to profile load.
 -- Back (or Up) moves the focus up, and Back on the first row leaves the screen.
 -- Each choice is a pre-rendered state from the artboard (Graphics/VOLT26/
 -- ModeSelect, rendered from charter_card.ai "MODES" and its state column),
@@ -19,26 +21,21 @@ local function art(name) return THEME:GetPathG("", "VOLT26/ModeSelect/" .. name 
 
 -- Row centres are the artboard plates' centres; each state is drawn from its
 -- top-left corner at `x, y` with zoom `k` (its plate is larger in the state
--- column than on the artboard).
+-- column than on the artboard).  With the rules row gone, the play-mode row
+-- moves down to where the two rows' middle was (DROP).
+local DROP = (638.5 - 459.7) / 2
 local rows = {
 	{
-		name = "PlayMode", cx = 960.0, cy = 459.7,
+		name = "PlayMode", cx = 960.0, cy = 459.7 + DROP,
 		states = {
-			{ file = "regular",  x = 595.0, y = 362.5, k = 0.7326 },
-			{ file = "marathon", x = 601.1, y = 362.1, k = 0.7326 },
-		},
-	},
-	{
-		name = "Rules", cx = 935.0, cy = 638.5,
-		states = {
-			{ file = "itg",    x = 702.5, y = 549.4, k = 0.7324 },
-			{ file = "faplus", x = 704.3, y = 540.6, k = 0.7324 },
+			{ file = "regular",  x = 595.0, y = 362.5 + DROP, k = 0.7326 },
+			{ file = "marathon", x = 601.1, y = 362.1 + DROP, k = 0.7326 },
 		},
 	},
 }
 local ok = { cx = 960.0, cy = 1006.4, x = 743.5, y = 877.9 }
 
-local choice = { 1, 1 }       -- Regular, ITG
+local choice = { 1 }          -- Regular
 local focus = 1               -- 1..#rows are rows, #rows + 1 is OK
 local finished = false
 local af
@@ -60,7 +57,7 @@ end
 local function finish()
 	if finished then return end
 	finished = true
-	VOLT26.ThemePrefs.ApplyGameMode(choice[2] == 1 and "ITG" or "FA+")
+	VOLT26.ThemePrefs.ApplyGameMode("ITG")
 	THEME:ReloadMetrics()
 	GAMESTATE:SetCurrentPlayMode(choice[1] == 1 and "PlayMode_Regular" or "PlayMode_Nonstop")
 	af:GetChild("Start"):play()

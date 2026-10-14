@@ -84,9 +84,10 @@ function Navigation.AfterSelectProfile()
 	return "ScreenSelectStyle"
 end
 
--- ITG is the default rule set.  With either play-mode theme preference on,
--- ScreenVOLT26SelectMode asks for REGULAR/MARATHON and ITG/FA+ on one page and
--- applies them itself; otherwise ITG and the regular play mode stand.
+-- ITG is the rule set.  With either play-mode theme preference on,
+-- ScreenVOLT26SelectMode asks for REGULAR/MARATHON (the ITG/FA+ choice was
+-- removed on 2026-10-14) and applies it itself; otherwise the regular play
+-- mode stands.
 function Navigation.AllowScreenSelectPlayMode()
 	VOLT26.State.Global.GameMode = "ITG"
 	if VOLT26.ThemePrefs.Get("AllowScreenSelectPlayMode")
