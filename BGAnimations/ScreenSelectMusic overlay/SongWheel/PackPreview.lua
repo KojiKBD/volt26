@@ -49,7 +49,7 @@ end
 -- The line under the heading's black band: how much the pack holds.
 local function infoLine(contents)
 	if contents.Kind == "Series" then
-		return ("%d PACKS - %d SONGS"):format(#contents.Packs, contents.Songs)
+		return ("COLLECTION - %d PACKS - %d SONGS"):format(#contents.Packs, contents.Songs)
 	end
 	local count = #contents.Songs
 	local text = ("%d SONG%s"):format(count, count == 1 and "" or "S")
@@ -193,8 +193,11 @@ local af = Def.ActorFrame{
 	OffCommand = function(self) self:stoptweening() end,
 }
 
--- The mockup's info panel, under everything else.
-af[#af+1] = P.Piece("Panel", 0, 0)
+-- The mockup's info panel, under everything else, in the heading's black so
+-- the heading's black band runs into it seamlessly.
+af[#af+1] = P.Piece("Panel", 0, 0, {
+	OnCommand = function(self) self:diffuse(P.Black) end,
+})
 
 -- The heading, as a wheel row.
 af[#af+1] = Def.ActorFrame{

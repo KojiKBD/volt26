@@ -87,10 +87,9 @@ VOLT26_Prefs.Get = function()
 		-- How songs are chosen: "Carousel" picks a pack on the pack carousel
 		-- (ScreenVOLT26SelectPack) and then a song on a wheel of that pack
 		-- alone; "SimplyLove" skips the carousel and lists packs and songs
-		-- together on one wheel, as Simply Love does.  Asked once on the
-		-- first launch (MusicSelectionLayoutConfigured, see
-		-- VOLT26.MusicSelection.GetInitialScreen) and changeable in VOLT26
-		-- Options.
+		-- together on one wheel, as Simply Love does.  This is the layout a
+		-- session starts with; the players can change it for the session on
+		-- ScreenVOLT26SelectMode (VOLT26.MusicSelection.SetSessionLayout).
 		MusicSelectionLayout = {
 			Default = "Carousel",
 			Choices = {
@@ -98,11 +97,6 @@ VOLT26_Prefs.Get = function()
 				THEME:GetString("ThemePrefs", "LayoutSimplyLove"),
 			},
 			Values = { "Carousel", "SimplyLove" }
-		},
-		MusicSelectionLayoutConfigured = {
-			Default = false,
-			Choices = { true, false },
-			Values = { true, false }
 		},
 		GlitchIntensity = {
 			Default = "Light",

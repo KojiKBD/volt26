@@ -77,7 +77,12 @@ return Def.ActorFrame{
 		else
 			title = sectionName(params)
 			local songs = sectionSongCount(title)
-			if songs > 0 then artist = ("%d SONGS"):format(songs) end
+			if songs > 0 then
+				artist = ("%d SONGS"):format(songs)
+			elseif VOLT26.PackSelection.IsSeries(title) then
+				-- A series of packs (a parent section).
+				artist = "COLLECTION"
+			end
 		end
 
 		-- PACK SELECTION fills both bands in cutout lettering.

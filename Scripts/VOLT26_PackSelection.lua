@@ -668,6 +668,13 @@ function PackSelection.SeriesPacks(series)
 	return seriesMap()[series] or {}
 end
 
+-- Whether a section row of the wheel names a series (a collection of packs)
+-- rather than a pack.
+function PackSelection.IsSeries(name)
+	if type(name) ~= "string" or name == "" or #songsInGroup(name) > 0 then return false end
+	return #PackSelection.SeriesPacks(name) > 0
+end
+
 local function sortedByTitle(songs)
 	local list, keys = {}, {}
 	for _, song in ipairs(songs) do

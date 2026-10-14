@@ -1,6 +1,8 @@
 -- ScreenVOLT26SelectMode: one page for how the session is played.
 --
---   REGULAR / MARATHON   (PlayMode_Regular / PlayMode_Nonstop)
+--   REGULAR / MARATHON         (PlayMode_Regular / PlayMode_Nonstop)
+--   CAROUSEL / SIMPLY LOVE     (the music selection layout for the session,
+--                               VOLT26.MusicSelection.SetSessionLayout)
 --   OK
 --
 -- The rule set is always ITG: the owner removed the ITG / FA+ choice on
@@ -9,10 +11,13 @@
 -- Left/Right changes the focused row's choice, Start confirms it and moves the
 -- focus down; Start on OK applies the choice and moves on to profile load.
 -- Back (or Up) moves the focus up, and Back on the first row leaves the screen.
--- Each choice is a pre-rendered state from the artboard (Graphics/VOLT26/
--- ModeSelect, rendered from charter_card.ai "MODES" and its state column),
--- placed so its white plate sits where the artboard's plate is.  Coordinates
--- are design pixels on the 1920x1080 artboard.
+-- Each play-mode choice is a pre-rendered state from the artboard
+-- (Graphics/VOLT26/ModeSelect, rendered from charter_card.ai "MODES" and its
+-- state column), placed so its white plate sits where the artboard's plate
+-- is.  The layout row has no artwork yet: its states are drawn as plain white
+-- plates with the layout's title and subtitle (placeholder() below) until the
+-- owner's graphics arrive.  Coordinates are design pixels on the 1920x1080
+-- artboard.
 
 local scale = SCREEN_HEIGHT / 1080
 local originX = (SCREEN_WIDTH - 1920 * scale) / 2
@@ -21,21 +26,33 @@ local function art(name) return THEME:GetPathG("", "VOLT26/ModeSelect/" .. name 
 
 -- Row centres are the artboard plates' centres; each state is drawn from its
 -- top-left corner at `x, y` with zoom `k` (its plate is larger in the state
--- column than on the artboard).  With the rules row gone, the play-mode row
--- moves down to where the two rows' middle was (DROP).
-local DROP = (638.5 - 459.7) / 2
+-- column than on the artboard).  The layout row takes the place of the former
+-- rules row (ITG / FA+, removed on 2026-10-14).
+local layouts = VOLT26.MusicSelection.Layouts
+local layoutStates = {}
+local layoutChoice = 1
+for index, layout in ipairs(layouts) do
+	layoutStates[index] = { title = layout.Title, subtitle = layout.Subtitle, value = layout.Value }
+	if layout.Value == VOLT26.MusicSelection.GetLayout() then layoutChoice = index end
+end
+
 local rows = {
 	{
-		name = "PlayMode", cx = 960.0, cy = 459.7 + DROP,
+		name = "PlayMode", cx = 960.0, cy = 459.7,
 		states = {
-			{ file = "regular",  x = 595.0, y = 362.5 + DROP, k = 0.7326 },
-			{ file = "marathon", x = 601.1, y = 362.1 + DROP, k = 0.7326 },
+			{ file = "regular",  x = 595.0, y = 362.5, k = 0.7326 },
+			{ file = "marathon", x = 601.1, y = 362.1, k = 0.7326 },
 		},
 	},
+	{ name = "Layout", cx = 960.0, cy = 638.5, states = layoutStates },
 }
 local ok = { cx = 960.0, cy = 1006.4, x = 743.5, y = 877.9 }
 
-local choice = { 1 }          -- Regular
+-- The placeholder plate of a layout state, about the size of the play-mode
+-- plates.
+local PLATE = { W = 660, H = 150 }
+
+local choice = { 1, layoutChoice }   -- Regular; the layout the session has
 local focus = 1               -- 1..#rows are rows, #rows + 1 is OK
 local finished = false
 local af
@@ -60,6 +77,7 @@ local function finish()
 	VOLT26.ThemePrefs.ApplyGameMode("ITG")
 	THEME:ReloadMetrics()
 	GAMESTATE:SetCurrentPlayMode(choice[1] == 1 and "PlayMode_Regular" or "PlayMode_Nonstop")
+	VOLT26.MusicSelection.SetSessionLayout(layoutStates[choice[2]].value)
 	af:GetChild("Start"):play()
 	local screen = SCREENMAN:GetTopScreen()
 	screen:SetNextScreenName("ScreenProfileLoad")
@@ -145,13 +163,39 @@ for _, row in ipairs(rows) do
 		InitCommand=function(self) self:xy(row.cx, row.cy) end,
 	})
 	for s, state in ipairs(row.states) do
-		frame[#frame+1] = Def.Sprite{
-			Name="State" .. s,
-			Texture=art(state.file),
-			InitCommand=function(self)
-				self:align(0, 0):xy(state.x - row.cx, state.y - row.cy):zoom(state.k)
-			end,
-		}
+		if state.file then
+			frame[#frame+1] = Def.Sprite{
+				Name="State" .. s,
+				Texture=art(state.file),
+				InitCommand=function(self)
+					self:align(0, 0):xy(state.x - row.cx, state.y - row.cy):zoom(state.k)
+				end,
+			}
+		else
+			-- Placeholder until the artwork: a white plate, the title in
+			-- black and the subtitle under it, centred on the row.
+			frame[#frame+1] = Def.ActorFrame{
+				Name="State" .. s,
+				Def.Quad{ InitCommand=function(self)
+					self:zoomto(PLATE.W + 12, PLATE.H + 12):diffuse(Color.Black)
+				end },
+				Def.Quad{ InitCommand=function(self)
+					self:zoomto(PLATE.W, PLATE.H):diffuse(Color.White)
+				end },
+				LoadFont("Common Bold")..{
+					Text=state.title:upper(),
+					InitCommand=function(self)
+						self:y(-22):zoom(1.5):maxwidth((PLATE.W - 40) / 1.5):diffuse(Color.Black)
+					end,
+				},
+				LoadFont("Common Normal")..{
+					Text=state.subtitle,
+					InitCommand=function(self)
+						self:y(38):zoom(0.9):maxwidth((PLATE.W - 40) / 0.9):diffuse(color("#444444"))
+					end,
+				},
+			}
+		end
 	end
 	t[#t+1] = frame
 end

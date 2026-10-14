@@ -150,6 +150,10 @@ local GlobalDefaults = {
 			}
 			self.ContinuesRemaining = ThemePrefs.Get("NumberOfContinuesAllowed") or 0
 			self.GameMode = "ITG"
+			-- The music selection layout chosen for this session on
+			-- ScreenVOLT26SelectMode; nil follows the MusicSelectionLayout
+			-- theme preference (VOLT26.MusicSelection.GetLayout).
+			self.MusicSelectionLayout = nil
 			self.ScreenshotTexture = nil
 			self.MenuTimer = {
 				ScreenGrooveStatsLogin  = ThemePrefs.Get("ScreenGrooveStatsLoginMenuTimer"),
@@ -1209,22 +1213,45 @@ end
 
 VOLT26.MusicSelection = {}
 
--- The two ways of choosing a song (theme preference MusicSelectionLayout).
+-- The two ways of choosing a song.  The players pick one for the session on
+-- ScreenVOLT26SelectMode, next to REGULAR / MARATHON; the theme preference
+-- MusicSelectionLayout (VOLT26 Options) is the one offered first, and the
+-- one used when that screen is not shown.
 -- "Carousel": ScreenVOLT26SelectPack picks a pack, then ScreenSelectMusic
 -- opens a wheel of that pack alone ([VOLT26SongWheel] in metrics.ini).
 -- "SimplyLove": ScreenSelectMusic alone, with one wheel listing the packs as
 -- sections that open and close in place ([VOLT26PackSongWheel]).
--- Each pair is a title and a subtitle, for the first-run choice and the
--- option row's explanation.
+-- Each pair is a title and a subtitle, for the choice on
+-- ScreenVOLT26SelectMode.
 VOLT26.MusicSelection.Layouts = {
 	{ Value = "Carousel", Title = "Carousel", Subtitle = "Pack carousel plus song wheel" },
 	{ Value = "SimplyLove", Title = "Simply Love", Subtitle = "Song and Pack wheel" },
 }
 
-function VOLT26.MusicSelection.GetLayout()
+local function validLayout(layout)
+	return layout == "Carousel" or layout == "SimplyLove"
+end
+
+-- The theme preference: the layout a session starts with.
+function VOLT26.MusicSelection.GetDefaultLayout()
 	local ok, layout = pcall(function() return VOLT26.ThemePrefs.Get("MusicSelectionLayout") end)
 	if ok and layout == "SimplyLove" then return "SimplyLove" end
 	return "Carousel"
+end
+
+function VOLT26.MusicSelection.GetLayout()
+	local session = VOLT26.State.Global.MusicSelectionLayout
+	if validLayout(session) then return session end
+	return VOLT26.MusicSelection.GetDefaultLayout()
+end
+
+-- The layout chosen for this session (ScreenVOLT26SelectMode).  It lasts
+-- until the next session starts (VOLT26.Core.ResetSession).  Answers whether
+-- the value was accepted.
+function VOLT26.MusicSelection.SetSessionLayout(layout)
+	if not validLayout(layout) then return false end
+	VOLT26.State.Global.MusicSelectionLayout = layout
+	return true
 end
 
 -- Whether songs are chosen in two steps, pack carousel first.
@@ -1237,25 +1264,6 @@ function VOLT26.MusicSelection.GetSongWheelType()
 	return VOLT26.MusicSelection.UsesPackStep() and "VOLT26SongWheel" or "VOLT26PackSongWheel"
 end
 
-function VOLT26.MusicSelection.NeedsFirstRunChoice()
-	local ok, configured = pcall(function() return VOLT26.ThemePrefs.Get("MusicSelectionLayoutConfigured") end)
-	return not (ok and configured == true)
-end
-
--- [Common] InitialScreen: the layout is asked once, before the warm-up.
-function VOLT26.MusicSelection.GetInitialScreen()
-	if VOLT26.MusicSelection.NeedsFirstRunChoice() then return "ScreenVOLT26LayoutSetup" end
-	return "ScreenVOLT26Warmup"
-end
-
--- Records the first-run choice.  Answers whether the value was accepted.
-function VOLT26.MusicSelection.ChooseLayout(layout)
-	if layout ~= "Carousel" and layout ~= "SimplyLove" then return false end
-	VOLT26.ThemePrefs.Set("MusicSelectionLayout", layout)
-	VOLT26.ThemePrefs.Set("MusicSelectionLayoutConfigured", true)
-	VOLT26.ThemePrefs.Save()
-	return true
-end
 
 -- Song wheel geometry, in the screen's virtual 1920x1080 design space.  The
 -- rows hang down the black panel on the left of the screen on a slant, as in

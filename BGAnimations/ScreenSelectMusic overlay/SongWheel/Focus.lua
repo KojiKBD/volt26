@@ -53,7 +53,10 @@ local function rowContent()
 	-- as the wheel's own rows do (Graphics/VOLT26/SongWheel/Row.lua).
 	local okSongs, songs = pcall(function() return SONGMAN:GetSongsInGroup(section) end)
 	local count = section ~= "" and okSongs and type(songs) == "table" and #songs or 0
-	return count > 0 and ("%d SONGS"):format(count) or "", "", section, nil
+	if count > 0 then return ("%d SONGS"):format(count), "", section, nil end
+	-- A series of packs (a parent section).
+	if VOLT26.PackSelection.IsSeries(section) then return "COLLECTION", "", section, nil end
+	return "", "", section, nil
 end
 
 return Def.ActorFrame{
