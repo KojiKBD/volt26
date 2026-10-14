@@ -1316,6 +1316,30 @@ local songBrowsingActions = {
 	ViewDownloads = false,
 }
 
+-- Charts that forbid CMods say so in the title or the subtitle, spelled in
+-- many ways: "No CMOD", "[NO CMOD]", "(no cmods)", "No-CMod", "NoCMod",
+-- "No C-Mod".  The match ignores case and the brackets around the words.
+function VOLT26.SongBrowsing.TextForbidsCMod(text)
+	if type(text) ~= "string" or text == "" then return false end
+	return text:lower():find("%f[%w]no[%s%-_]*c[%s%-_]*mod") ~= nil
+end
+
+-- The title the song wheel shows: the main title, followed by "[NO CMOD]"
+-- when only the subtitle (which the wheel does not show) carries the warning.
+function VOLT26.SongBrowsing.WheelTitle(song)
+	if not song then return "" end
+	local title = song:GetDisplayMainTitle() or ""
+	if VOLT26.SongBrowsing.TextForbidsCMod(title)
+		or VOLT26.SongBrowsing.TextForbidsCMod(song:GetTranslitMainTitle()) then
+		return title
+	end
+	if VOLT26.SongBrowsing.TextForbidsCMod(song:GetDisplaySubTitle())
+		or VOLT26.SongBrowsing.TextForbidsCMod(song:GetTranslitSubTitle()) then
+		return title .. " [NO CMOD]"
+	end
+	return title
+end
+
 function VOLT26.SongBrowsing.IsActionEnabled(action)
 	return songBrowsingActions[action] == true
 end
@@ -2972,7 +2996,7 @@ function VOLT26.Tournament.SongForbidsCMod(song)
 		song:GetDisplaySubTitle(), song:GetTranslitSubTitle(),
 	}
 	for _, label in ipairs(labels) do
-		if type(label) == "string" and label:lower():find("no cmod", 1, true) then return true end
+		if VOLT26.SongBrowsing.TextForbidsCMod(label) then return true end
 	end
 	return false
 end

@@ -42,7 +42,7 @@ local function rowContent()
 			return count > 0 and ("%d STAGES"):format(count) or "", "", item:GetDisplayFullTitle(), nil
 		end
 		local artist, bpm = P.ArtistParts(item)
-		return artist, bpm, item:GetDisplayMainTitle(), P.TopMeter(item)
+		return artist, bpm, VOLT26.SongBrowsing.WheelTitle(item), P.TopMeter(item)
 	end
 	local wheel = K.Wheel()
 	local selected = wheel and wheel:GetSelectedType() or nil

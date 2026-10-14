@@ -65,7 +65,7 @@ return Def.ActorFrame{
 		local artist, bpm, title, meter = "", "", "", nil
 		if isSong then
 			artist, bpm = P.ArtistParts(params.Song)
-			title = params.Song:GetDisplayMainTitle()
+			title = VOLT26.SongBrowsing.WheelTitle(params.Song)
 			meter = P.TopMeter(params.Song)
 		elseif isCourse then
 			local course = params.Course
