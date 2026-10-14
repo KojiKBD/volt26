@@ -10,7 +10,8 @@
 -- wheel lists every pack as a section row that opens and closes in place
 -- (Start on it, or the engine's close-folder code), the Joker stands in for
 -- the right side while a pack row is focused, and Back leaves music
--- selection.
+-- selection.  A focused pack row shows a preview of the pack instead of the
+-- Joker (SongWheel/PackPreview.lua).
 --
 -- The layout is the owner's Persona-style mockup (tools/song-select): the
 -- engine MusicWheel's rows hang down a black panel on the left on a slant,
@@ -245,7 +246,7 @@ end
 -- The first group is refreshed on On; INTRO_STEPS one group a frame after.
 -- The cards come before the radar: the first of them to ask reads the chart
 -- (S.ChartData, the heaviest step), and the others find it cached.
-local INTRO_FIRST = { {"Header"}, {"Details", "Focus"}, {"Joker"}, {"Info", "Right", "Difficulty"} }
+local INTRO_FIRST = { {"Header"}, {"Details", "Focus"}, {"Joker"}, {"PackPreview"}, {"Info", "Right", "Difficulty"} }
 local INTRO_STEPS = {
 	{ {"Info", "Right", "Jacket"}, {"Info", "Right", "JacketLength"} },
 	{ {"Details", "Grade"} },
@@ -274,7 +275,7 @@ end
 
 -- The focused row's title and artist, the Joker and the pack badge follow
 -- the wheel on every step (they are light); the rest waits for it to rest.
-local LIVE = { {"Details", "Focus"}, {"Joker"}, {"Header"} }
+local LIVE = { {"Details", "Focus"}, {"Joker"}, {"PackPreview"}, {"Header"} }
 
 local function schedule(self)
 	refreshParts(self, LIVE)
@@ -375,7 +376,12 @@ right[#right+1] = part("Cards.lua", { K=K, S=S })
 right[#right+1] = part("Jacket.lua", { K=K, S=S, Part="Length" })
 right[#right+1] = part("Footer.lua", { K=K, S=S })
 layout[#layout+1] = info
--- Joker over everything while a pack row is focused (SongWheel/Joker.lua).
+-- In the Simply Love layout a focused pack row is previewed in place of the
+-- song's details: its songs (or a series' packs) on the info panel, its
+-- artwork in the jacket frame (SongWheel/PackPreview.lua).
+layout[#layout+1] = part("PackPreview.lua", { K=K, S=S })
+-- Joker over everything while a pack row is focused in the Carousel layout
+-- (SongWheel/Joker.lua).
 layout[#layout+1] = part("Joker.lua", { K=K, S=S })
 af[#af+1] = layout
 

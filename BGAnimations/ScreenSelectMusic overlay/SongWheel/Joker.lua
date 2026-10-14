@@ -34,8 +34,9 @@ local function showRight(layout, shown)
 	end
 end
 
+-- The Simply Love layout previews a hovered pack instead (PackPreview.lua).
 local function onPackRow()
-	if S.IsCourseMode() then return false end
+	if S.IsCourseMode() or not VOLT26.MusicSelection.UsesPackStep() then return false end
 	return S.Item() == nil
 end
 

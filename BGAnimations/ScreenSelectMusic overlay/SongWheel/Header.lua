@@ -6,6 +6,12 @@
 local p = ...
 local K, S = p.K, p.S
 
+-- The first pack is lettered at once (the hand-off from the pack step lands
+-- on a finished badge); a later change waits for the wheel to rest this long,
+-- so scrolling across the packs of the Simply Love layout does not load a
+-- full-size jacket on every step.
+local ART_DELAY = 0.12
+
 local af = Def.ActorFrame{
 	Name="Header",
 	RefreshCommand=function(self)
@@ -14,9 +20,18 @@ local af = Def.ActorFrame{
 		local badge = self:GetChild("Badge")
 		badge:visible(not course and pack ~= "")
 		if not course and pack ~= badge.group then
+			local first = badge.group == nil
 			badge:playcommand("SetPack", { Group = pack ~= "" and pack or nil })
-			badge:playcommand("LoadPackArt")
+			if first then
+				badge:playcommand("LoadPackArt")
+			else
+				self:stoptweening():sleep(ART_DELAY):queuecommand("LoadBadgeArt")
+			end
 		end
+	end,
+	LoadBadgeArtCommand=function(self)
+		local badge = self:GetChild("Badge")
+		if badge.artPending then badge:playcommand("LoadPackArt") end
 	end,
 	SongWheelInCommand=function(self) end,
 	SongWheelOutCommand=function(self) end,

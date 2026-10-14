@@ -29,10 +29,30 @@ function S.Rate()
 	return VOLT26.MusicSelection.GetMusicRate()
 end
 
+-- The section row under the wheel's highlight in the Simply Love layout
+-- (theme preference MusicSelectionLayout), where the wheel lists every pack:
+-- its name and whether it is a parent section (a series of packs).  nil on
+-- any other row, in course mode and in the Carousel layout.
+function S.HoveredSection()
+	if S.IsCourseMode() or VOLT26.MusicSelection.UsesPackStep() then return nil end
+	local wheel = K.Wheel()
+	if not wheel then return nil end
+	local ok, selected = pcall(function() return wheel:GetSelectedType() end)
+	if not ok then return nil end
+	local parent = selected == "WheelItemDataType_ParentSection"
+	if selected ~= "WheelItemDataType_Section" and not parent then return nil end
+	local okName, name = pcall(function() return wheel:GetSelectedSection() end)
+	if not okName or type(name) ~= "string" or name == "" then return nil end
+	return name, parent
+end
+
 -- The pack the wheel is showing -- or, when the pack step lists the sections
 -- of another sort, the key of the section it is showing (the header badge is
--- the pack step's tile either way).
+-- the pack step's tile either way).  In the Simply Love layout a hovered pack
+-- row shows that pack.
 function S.Pack()
+	local hovered = S.HoveredSection()
+	if hovered then return hovered end
 	local song = not S.IsCourseMode() and GAMESTATE:GetCurrentSong() or nil
 	if song and VOLT26.PackSelection.Mode() ~= "Pack" then
 		return VOLT26.PackSelection.KeyForSong(song) or ""

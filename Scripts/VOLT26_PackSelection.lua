@@ -24,6 +24,10 @@ local PackSelection = VOLT26.PackSelection
 -- clears both caches whenever the pack screen asks for a fresh list.
 local artworkCache = {}
 local summaryCache = {}
+-- What the song wheel's section rows hold (WheelSectionContents) and the
+-- packs of every series (SeriesPacks), cleared with the others.
+local contentsCache = {}
+local seriesCache = nil
 
 local imageExtensions = { png=true, jpg=true, jpeg=true, gif=true, bmp=true }
 local movieExtensions = {
@@ -86,6 +90,8 @@ end
 function PackSelection.List()
 	artworkCache = {}
 	summaryCache = {}
+	contentsCache = {}
+	seriesCache = nil
 	PackSelection.ForgetSections()
 	if PackSelection.Mode() ~= "Pack" then return PackSelection.Sections().list end
 	local list = {}
@@ -193,7 +199,14 @@ function PackSelection.Artwork(group)
 		art = { Path=jacket, Kind="Jacket" }
 	else
 		local banner = groupBanner(group)
-		if banner then art = { Path=banner, Kind="Banner" } end
+		if banner then
+			art = { Path=banner, Kind="Banner" }
+		elseif #songsInGroup(group) == 0 then
+			-- Not a pack: a series (a collection of packs, the wheel's
+			-- parent sections under the series sort) may have a banner.
+			local ok, path = pcall(function() return SONGMAN:GetSeriesBannerPath(group) end)
+			if ok and usablePath(path) then art = { Path=path, Kind="Banner" } end
+		end
 	end
 	artworkCache[group] = art
 	return art or nil
@@ -613,4 +626,108 @@ function PackSelection.OpenChosenSection(wheel)
 	local ok, open = pcall(function() return wheel:GetSelectedSection() end)
 	if ok and open == wanted then return false end
 	return (pcall(function() wheel:SetOpenSection(wanted) end))
+end
+
+------------------------------------------------------------------------------
+-- What a section row of the song wheel holds (the Simply Love layout's pack
+-- preview, BGAnimations/ScreenSelectMusic overlay/SongWheel/PackPreview.lua).
+
+-- Series (collections of packs, ITGmania's Group.ini "Series") to their packs
+-- in name order, worked out once from the first song of every pack.
+local function seriesMap()
+	if seriesCache then return seriesCache end
+	seriesCache = {}
+	local ok, names = pcall(function() return SONGMAN:GetSongGroupNames() end)
+	if not ok or type(names) ~= "table" then return seriesCache end
+	for _, name in ipairs(names) do
+		local song = songsInGroup(name)[1]
+		if song then
+			local okSeries, series = pcall(function()
+				local group = SONGMAN:GetGroup(song)
+				return group and group:GetSeries() or nil
+			end)
+			if okSeries and type(series) == "string" and series ~= "" then
+				seriesCache[series] = seriesCache[series] or {}
+				local packs = seriesCache[series]
+				packs[#packs+1] = name
+			end
+		end
+	end
+	for _, packs in pairs(seriesCache) do
+		table.sort(packs, function(a, b)
+			local ka, kb = nameKey(a), nameKey(b)
+			if ka ~= kb then return ka < kb end
+			return a < b
+		end)
+	end
+	return seriesCache
+end
+
+-- The packs of a series, in name order (an empty list for an unknown one).
+function PackSelection.SeriesPacks(series)
+	return seriesMap()[series] or {}
+end
+
+local function sortedByTitle(songs)
+	local list, keys = {}, {}
+	for _, song in ipairs(songs) do
+		list[#list+1] = song
+		keys[song] = titleKey(song)
+	end
+	table.sort(list, function(a, b)
+		if keys[a] ~= keys[b] then return keys[a] < keys[b] end
+		return tostring(a) < tostring(b)
+	end)
+	return list
+end
+
+-- The section of the current sort that the wheel names `name`, matched by
+-- what it stands for (the engine and this module name some sections apart:
+-- "OTHER" against "", "120-129" against 120...).
+local function sortSectionNamed(name)
+	local wanted = nameKey(name)
+	for _, entry in ipairs(PackSelection.Sections().list) do
+		local short = PackSelection.ShortName(entry.Name)
+		if nameKey(entry.Value) == wanted or nameKey(short) == wanted
+			or nameKey(PackSelection.DisplayName(entry)) == wanted then
+			return entry
+		end
+	end
+	return nil
+end
+
+-- What a section row of the song wheel holds, for a preview of it:
+--   {Kind="Series", Name=, Packs={pack names}, Songs=<number of songs>}
+--     for a parent section (isParent true): a series of packs;
+--   {Kind="Pack", Name=, Songs={songs}}       for a pack;
+--   {Kind="Section", Name=, Songs={songs}}    for a section of another sort
+--     (an initial, a genre, a BPM range...), when it can be matched.
+-- Songs are in title order and limited to the current style's playable ones
+-- when the style is known.  Cached per sort and style until List() runs.
+function PackSelection.WheelSectionContents(name, isParent)
+	if type(name) ~= "string" or name == "" then return nil end
+	local stepsType = currentStepsType()
+	local key = table.concat({ tostring(isParent), currentSort(), tostring(stepsType), name }, "|")
+	if contentsCache[key] then return contentsCache[key] end
+
+	local contents
+	if isParent then
+		local packs = PackSelection.SeriesPacks(name)
+		local total = 0
+		for _, pack in ipairs(packs) do total = total + #songsInGroup(pack) end
+		contents = { Kind="Series", Name=name, Packs=packs, Songs=total }
+	else
+		local songs, kind = songsInGroup(name), "Pack"
+		if #songs == 0 and PackSelection.Mode() ~= "Pack" then
+			local entry = sortSectionNamed(name)
+			songs, kind = entry and entry.members or {}, "Section"
+		end
+		local playable = {}
+		for _, song in ipairs(songs) do
+			if isPlayable(song, stepsType) then playable[#playable+1] = song end
+		end
+		contents = { Kind=kind, Name=name, Songs=sortedByTitle(playable) }
+	end
+	contentsCache[key] = contents
+	return contents
 end
