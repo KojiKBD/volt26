@@ -32,14 +32,16 @@ local InputHandler = function(event)
 
 	if event.type ~= "InputEventType_Release" then
 		local pn = ToEnumShortString(event.PlayerNumber)
+		-- The owner's direction: right brings the letters on the left into
+		-- focus, left the ones on the right (the strip follows the press).
 		-- Player 2's half is mirrored, but the alphabet still reads left to
-		-- right, so left and right keep their meaning.
+		-- right, so left and right mean the same for both.
 		if event.GameButton == "MenuRight" and SL[pn].HighScores.EnteringName then
-			AlphabetWheels[pn]:scroll_by_amount(1)
+			AlphabetWheels[pn]:scroll_by_amount(-1)
 			t:GetChild("move"):playforplayer(event.PlayerNumber)
 
 		elseif event.GameButton == "MenuLeft" and SL[pn].HighScores.EnteringName then
-			AlphabetWheels[pn]:scroll_by_amount(-1)
+			AlphabetWheels[pn]:scroll_by_amount(1)
 			t:GetChild("move"):playforplayer(event.PlayerNumber)
 
 		elseif event.GameButton == "Start" then

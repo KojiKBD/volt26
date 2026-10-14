@@ -108,7 +108,7 @@ local function half(player, delay)
 	-- Places of the entry, on player 1's artboard (the card is at its own
 	-- place, see the kit).
 	local BANDS = { X = 1250, Y = 150, Zoom = 1.3 }
-	local PLATE = { X = 1250, Y = 362, Zoom = 1.7 }
+	local PLATE = { X = 1250, Y = 362 }
 	local LIST = { X = 1630, Y = 112, Gap = 52, W = 270 }
 	local bands = G.Art.Pieces.Bands
 	local bandTop = BANDS.Y - bands.H * BANDS.Zoom / 2
@@ -142,36 +142,33 @@ local function half(player, delay)
 	}
 	af[#af+1] = G.Card("Card", m)
 
-	-- The name: the label on the black band, the name on the white one.
+	-- The name: the label on the black band, the name on the white one, both
+	-- along the bands' slope and in the card title's light face.
+	local SLOPE = 8 / 473                      -- the bands picture falls 8 px over its width
+	local ROT = math.deg(math.atan(SLOPE)) * m
+	local function onBand(y) return select(2, at(0, y)) + SLOPE * m * (nameX - bx) end
 	local entry = Def.ActorFrame{
 		Name = "PlayerNameAndDecorations_" .. pn,
 		Def.Sprite{
 			Texture = THEME:GetPathG("", "VOLT26/GameOver/bands.png"),
 			InitCommand = function(self) self:xy(bx, by):zoom(BANDS.Zoom):zoomx(BANDS.Zoom * m) end,
 		},
-		P.Text{ Name = "Label", Cap = 30, X = nameX, Baseline = select(2, at(0, bandTop + 58)),
+		P.Text{ Name = "Label", Cap = 26, X = nameX, Baseline = onBand(bandTop + 56), Rot = ROT,
 			Align = m < 0 and 1 or 0, Tint = G.White, Text = ScreenString("EnterName"):upper() },
-		LoadFont(G.Font.Bold)..{
-			Name = "PlayerName",
-			InitCommand = function(self)
-				self:halign(m < 0 and 1 or 0):valign(0.5):xy(nameX, select(2, at(0, bandTop + 118)))
-					:zoom(BOLD(52)):diffuse(G.Black)
-			end,
+		P.Text{ Name = "PlayerName", Cap = 46, Condense = 0.85, X = nameX, Baseline = onBand(bandTop + 128), Rot = ROT,
+			Align = m < 0 and 1 or 0, Tint = G.Black }..{
 			OnCommand = function(self) self:playcommand("Set") end,
 			SetCommand = function(self)
 				local name = SL[pn].HighScores.Name or ""
 				self:settext(name ~= "" and name or (entering and "----" or ""))
 			end,
 		},
-		-- The alphabet's plate (InputHandler hides the "Cursor" when done).
+		-- The alphabet's panel (InputHandler hides the "Cursor" when done).
 		Def.ActorFrame{
 			Name = "Cursor",
-			InitCommand = function(self) self:xy(px, py):zoom(PLATE.Zoom) end,
+			InitCommand = function(self) self:xy(px, py) end,
 			HideCommand = function(self) self:linear(0.25):diffusealpha(0) end,
-			Def.Sprite{
-				Texture = THEME:GetPathG("", "VOLT26/GameOver/score_plate.png"),
-				InitCommand = function(self) self:zoomx(m) end,
-			},
+			G.Panel("Panel", 690, 118, m),
 		},
 		LoadFont(G.Font.Bold)..{
 			Name = "OutOfRanking",

@@ -14,6 +14,7 @@ for name, f in pairs({
 function Actor:GetDiffuseAlpha() return self.col[4] end
 
 THEME.GetMetric = function() return 23 end
+Trace = Trace or function() end
 function ScreenString(k)
 	return ({ EnterName = "Enter your name", OutOfRanking = "Out of Ranking", HeaderText = HARNESS_HEADER,
 		Session = "Session", StatSongs = "Songs", StatNotes = "Notes", StatTime = "Time",

@@ -68,19 +68,14 @@ function G.Root(t)
 	return Def.ActorFrame(t)
 end
 
--- The ground: the artboard's navy, both halves' art and the band.  With one
--- player a darker panel runs across the middle, where that player's half is.
+-- The ground: the artboard's navy, both halves' art and the band.  (`solo`
+-- is kept for the callers; a lone player has no panel of its own.)
 function G.Background(solo)
 	return G.Root{
 		Name = "GameOverGround",
 		Def.Sprite{
 			Texture = file("background"),
 			InitCommand = function(self) self:xy(960, 540) end,
-		},
-		Def.Quad{
-			InitCommand = function(self)
-				self:xy(960, 540):zoomto(1920, 560):diffuse(G.Navy):diffusealpha(solo and 0.82 or 0)
-			end,
 		},
 	}
 end
@@ -270,6 +265,23 @@ local TITLE = { X = Art.Title.Box[1] + 4, Baseline = 185, Cap = 30, Width = 380 
 function G.Card(name, m, parts)
 	parts = parts or {}
 	local card = Def.ActorFrame{ Name = name }
+	-- Drawn bottom to top (the owner's numbering: 0 on top): 2 the score
+	-- plate, 1 the jacket frame and the grade, 0 the bands with RANK.
+	if parts.Scores ~= false then
+		card[#card+1] = G.Piece("ScorePlate", m)
+		card[#card+1] = G.Piece("ItgLine", m)
+		card[#card+1] = G.Piece("ExLine", m)
+		card[#card+1] = G.ScoreLine("Itg", parts.TagA or "ITG", G.Pink, m, parts.TagCap)
+		card[#card+1] = G.ScoreLine("Ex", parts.TagB or "EX", G.Cyan, m, parts.TagCap)
+	end
+	card[#card+1] = G.Piece("JacketFrame", m)
+	local jx, jy = G.At(JACKET.X, JACKET.Y, m)
+	card[#card+1] = Def.Sprite{ Name = "Jacket", InitCommand = function(self) self:xy(jx, jy):visible(false) end }
+	card[#card+1] = LoadFont(G.Font.Bold)..{
+		Name = "JacketText",
+		InitCommand = function(self) self:xy(jx, jy):zoom(0.9):diffuse(G.White):maxwidth(JACKET.W / 0.9 - 20) end,
+	}
+	card[#card+1] = G.Grade(m)
 	card[#card+1] = G.Piece("Bands", m)
 	if parts.Rank ~= false then
 		card[#card+1] = G.Piece("Rank", m, true)
@@ -281,21 +293,6 @@ function G.Card(name, m, parts)
 		Align = m < 0 and 1 or 0, Tint = G.Black, Width = TITLE.Width }
 	local nx, ny = G.At(NAME_X, NAME_Y, m)
 	card[#card+1] = G.Slot("Name", "SongCardName", nx, ny, m < 0 and 1 or 0, m)
-	card[#card+1] = G.Piece("JacketFrame", m)
-	local jx, jy = G.At(JACKET.X, JACKET.Y, m)
-	card[#card+1] = Def.Sprite{ Name = "Jacket", InitCommand = function(self) self:xy(jx, jy):visible(false) end }
-	card[#card+1] = LoadFont(G.Font.Bold)..{
-		Name = "JacketText",
-		InitCommand = function(self) self:xy(jx, jy):zoom(0.9):diffuse(G.White):maxwidth(JACKET.W / 0.9 - 20) end,
-	}
-	card[#card+1] = G.Grade(m)
-	if parts.Scores ~= false then
-		card[#card+1] = G.Piece("ScorePlate", m)
-		card[#card+1] = G.Piece("ItgLine", m)
-		card[#card+1] = G.Piece("ExLine", m)
-		card[#card+1] = G.ScoreLine("Itg", parts.TagA or "ITG", G.Pink, m, parts.TagCap)
-		card[#card+1] = G.ScoreLine("Ex", parts.TagB or "EX", G.Cyan, m, parts.TagCap)
-	end
 	return card
 end
 
@@ -395,7 +392,36 @@ function G.BestGrade(player)
 	return best
 end
 
--- A score plate of its own (the card's, with its two lines), centred at
+-- A slanted panel: a black quadrilateral in a white rim, rising to the
+-- right like the card's plate (mirrored with m = -1), w x h about (0, 0).
+-- For the name entry's alphabet and the game over's figures.
+local PANEL_RIM = 6
+local function panelCorners(w, h, grow)
+	local hw, hh = w / 2 + grow, h / 2 + grow
+	return {
+		{ -hw, -hh + 14 }, { hw, -hh - 8 }, { hw - 22, hh - 12 }, { -hw + 12, hh + 6 },
+	}
+end
+function G.Panel(name, w, h, m, x, y)
+	local function shape(grow, tint)
+		local v = {}
+		for _, c in ipairs(panelCorners(w, h, grow)) do v[#v+1] = { { c[1] * m, c[2], 0 }, tint } end
+		return Def.ActorMultiVertex{
+			InitCommand = function(self)
+				self:SetDrawState{ Mode = "DrawMode_Quads" }
+				P.SetVertices(self, v)
+			end,
+		}
+	end
+	return Def.ActorFrame{
+		Name = name,
+		InitCommand = function(self) self:xy(x or 0, y or 0) end,
+		shape(PANEL_RIM, { 1, 1, 1, 1 }),
+		shape(0, { 0, 0, 0, 1 }),
+	}
+end
+
+-- A plate of its own (a G.Panel with the card's two lines), centred at
 -- (x, y) of player 1's artboard and zoomed: for the game over's figures.
 -- Its lines are "Itg" (pink) and "Ex" (cyan), tagged tagA and tagB.
 function G.Plate(name, m, x, y, zoom, tagA, tagB, tagCap)
@@ -408,7 +434,7 @@ function G.Plate(name, m, x, y, zoom, tagA, tagB, tagCap)
 		Def.ActorFrame{
 			Name = "Inner",
 			InitCommand = function(self) self:xy(-ix, -iy) end,
-			G.Piece("ScorePlate", m),
+			G.Panel("ScorePlate", 410, 104, m, G.At(plate.X, plate.Y + 8, m)),
 			G.Piece("ItgLine", m),
 			G.Piece("ExLine", m),
 			G.ScoreLine("Itg", tagA or "", G.Pink, m, tagCap),
