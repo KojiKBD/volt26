@@ -77,6 +77,9 @@ return Def.ActorFrame{
 		artistText:ClearAttributes()
 		if artist ~= "" then artistText:AddAttribute(0, { Length=1, Diffuse=P.Cyan }) end
 		self:GetChild("Title"):visible(not custom)
+		-- A pack row's name in red, a collection's in purple; songs in black.
+		local sectionRow = not custom and not S.IsCourseMode() and S.Item() == nil
+		P.MarqueeText(self:GetChild("Title")):diffuse(sectionRow and P.SectionNameTint(title) or P.Black)
 		P.SetMarquee(self:GetChild("Title"), title)
 		local label = self:GetChild("LabelFrame")
 		label:visible(custom)

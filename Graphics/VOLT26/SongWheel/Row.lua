@@ -93,6 +93,7 @@ return Def.ActorFrame{
 		P.SetArtistLineShrink(ARTIST.X, self:GetChild("Artist"), self:GetChild("Bpm"),
 			artist, bpm, ARTIST.Width, 0.78)
 		self:GetChild("Title"):visible(not isCustom)
+			:diffuse(kind == "Section" and P.SectionNameTint(title) or P.Black)
 		P.FitText(self:GetChild("Title"), title, TITLE.Width, 0.72, true)
 		local label = self:GetChild("Label")
 		label:visible(isCustom)

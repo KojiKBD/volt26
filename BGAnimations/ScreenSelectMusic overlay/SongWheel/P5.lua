@@ -28,6 +28,11 @@ P.Black  = color("#000000")
 P.Body   = color("#0b0b0b")   -- the info panel
 P.Cyan   = color("#00fffc")   -- white seen through P1's red (exclusion)
 P.Orange = color("#ff4e00")   -- white seen through P2's blue (exclusion)
+-- The name of a section row on its white band: packs in red, collections
+-- (series of packs) in purple, so the two read apart in the Simply Love
+-- layout's wheel.  Songs stay black.
+P.PackName       = color("#e40001")
+P.CollectionName = color("#7b2fd6")
 P.Gold   = { Lit=color("#F3A608"), Shade=color("#D38F00"), Seam=color("#823500") }
 P.P1Star = { Lit=color("#ff2a2a"), Shade=color("#c40010"), Seam=color("#5a0006") }
 P.P2Star = { Lit=color("#38b8ff"), Shade=color("#0086d6"), Seam=color("#00365a") }
@@ -301,6 +306,11 @@ function P.SetBadge(badge, value, boxInk, plainInk)
 	badge:SortByDrawOrder()
 end
 
+-- The colour of a section row's name (a pack's or a collection's).
+function P.SectionNameTint(name)
+	return VOLT26.PackSelection.IsSeries(name) and P.CollectionName or P.PackName
+end
+
 -- Song facts the rows and the focused row share ------------------------------
 
 local function rate()
@@ -411,7 +421,9 @@ P.CutoutSpecs = {
 	GradeP1   = shared("SongGradeP1", 0.5),
 	GradeP2   = shared("SongGradeP2", 0.5),
 	Length    = { MaxW=170, MaxH=62, Base=46, Tilt=-7, HAlign=1, MaxChars=8 },
-	BackLabel = { MaxW=440, MaxH=96, Base=50, Tilt=-2, HAlign=0, MaxChars=32 },
+	-- The song wheel's PACK SELECTION row (Carousel layout), in red letters.
+	BackLabel = { MaxW=440, MaxH=96, Base=50, Tilt=-2, HAlign=0, MaxChars=32,
+		Opts={ fg=color("#e5001a") } },
 }
 
 local function cutoutOpts(spec, s)

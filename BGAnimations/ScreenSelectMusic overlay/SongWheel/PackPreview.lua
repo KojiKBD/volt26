@@ -154,6 +154,7 @@ local af = Def.ActorFrame{
 		if not wanted then return end
 		self.name, self.parent = name, parent
 		local head = self:GetChild("Head")
+		head:GetChild("Name"):diffuse(parent and P.CollectionName or P.PackName)
 		setText(head:GetChild("Name"), name, HEAD_NAME.Width, 0.55)
 		head:GetChild("Info"):settext("")
 		self:sleep(FILL_DELAY):queuecommand("Fill")
