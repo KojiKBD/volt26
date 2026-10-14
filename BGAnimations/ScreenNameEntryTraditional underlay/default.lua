@@ -64,7 +64,8 @@ local alphabet_character_mt = {
 			self.container:finishtweening()
 			local edge = item_index <= 0 or item_index >= num_items - 1
 			self.container:linear(0.075):diffusealpha(edge and 0 or 1)
-				:x(CHAR_W * (item_index - math.ceil(num_items / 2)))
+				-- The focused letter (the middle one shown) on the plate's centre.
+				:x(CHAR_W * (item_index - (num_items - 1) / 2))
 			self.box:visible(has_focus)
 			self.bmt:diffuse(has_focus and G.Black or G.White)
 		end,
@@ -126,7 +127,11 @@ local function half(player, delay)
 			self:queuecommand("NextStage")
 		end,
 		NextStageCommand = function(self)
-			if #stages == 0 then return end
+			-- No stage of this player in the session: no card, no list.
+			if #stages == 0 then
+				self:GetChild("Card"):visible(false)
+				return
+			end
 			self.index = (self.index or 0) % #stages + 1
 			local stage = stages[self.index]
 			G.FillCard(self:GetChild("Card"), player, stage)
@@ -205,7 +210,7 @@ local function half(player, delay)
 			{ "Tail", 22, G.Pink, "" },
 		}, "Bold")
 		local init = line.InitCommand
-		line.InitCommand = function(self) init(self); self:xy(lx, ly):rotationz(-3 * m) end
+		line.InitCommand = function(self) init(self); self:xy(lx, ly):rotationz(-3 * m):visible(false) end
 		list[#list+1] = line
 	end
 	af[#af+1] = list

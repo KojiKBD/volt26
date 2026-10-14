@@ -47,13 +47,13 @@ function G.Players()
 end
 
 -- Where a player's half is: the centre of its card and whether it is
--- mirrored (player 2's).  `solo` (one player) puts the half in the middle.
+-- mirrored (player 2's, in the lower half).  A lone player -- either side --
+-- takes player 1's unmirrored layout in the middle of the screen.
 function G.Anchor(player, solo)
+	if solo then return { X = Art.Card.P1.X, Y = 540, M = 1 } end
 	local mirror = player == PLAYER_2
 	local c = mirror and Art.Card.P2 or Art.Card.P1
-	local y = c.Y
-	if solo then y = 540 + (c.Y - (mirror and Art.Card.P2.Y or Art.Card.P1.Y)) end
-	return { X = c.X, Y = y, M = mirror and -1 or 1 }
+	return { X = c.X, Y = c.Y, M = mirror and -1 or 1 }
 end
 
 -- A point of player 1's card in the card's own frame, mirrored with m = -1.
@@ -349,6 +349,8 @@ function G.FillCard(card, player, index)
 	local stage = index and VOLT26.Evaluation.GetStageContext(index)
 	local item = stage and (stage.item or stage.song)
 	if not snapshot or not item then
+		Trace(("VOLT26 gameover: no card for %s stage %s (snapshot %s, item %s)"):format(
+			tostring(player), tostring(index), tostring(snapshot ~= nil), tostring(item ~= nil)))
 		card:visible(false)
 		return false
 	end
@@ -377,6 +379,8 @@ function G.PlayerStages(player)
 	for i = 1, G.StageCount() do
 		if VOLT26.Evaluation.GetPlayerStageSnapshot(player, i) then list[#list+1] = i end
 	end
+	-- For the cabinet's log: what the end-of-session screens found.
+	Trace(("VOLT26 gameover: %s has %d of %d stage(s)"):format(tostring(player), #list, G.StageCount()))
 	return list
 end
 
