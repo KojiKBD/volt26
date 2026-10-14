@@ -4,6 +4,10 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ## Unreleased
 
+### Added
+
+- The stage evaluation's WANTED page shows the song's name on a white plate under "WANTED" (the owner's `songname.svg`), in Helvetica Bold, with one or two players.
+
 ## 1.0.0 - 2026-10-14
 
 ### Added

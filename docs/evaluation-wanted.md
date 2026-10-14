@@ -16,6 +16,7 @@ artwork.
 | Player name, letter grade | Cutout lettering (`VOLT26.Cutout`), styles `EvalName` and `EvalGrade` in `Scripts/VOLT26_CutoutStyles.lua`; warmed at startup. Star grades (Tier00-04) use the grade star picture. |
 | Graph | `overlay/Wanted/Graph.lua` |
 | Song title | `overlay/default.lua`, along the frame's bottom edge, centred on the artwork's title. A title longer than 1100 px scrolls as a marquee (two copies, clipped at the band's ends by z-buffer masks). |
+| Song name plate | `overlay/Wanted/SongName.lua`: the owner's `songname.svg` rendered 1:1 to `Graphics/VOLT26/Wanted/songname.png`, under "WANTED" (centre 1013,156, placed from the owner's Illustrator screenshot), with the song's name (course: full title) in Helvetica Bold, black, about 2° along the plate's slope, squeezed past 440 px. One plate for one or two players, drawn over the sides. |
 | Data | `VOLT26.EvaluationPage` (`Scripts/VOLT26_EvaluationPage.lua`): `GetCard(player)` and `GetGraph(player)`. No actors. |
 
 All drawing is in artboard pixels (1920x1080) under one frame zoomed to the

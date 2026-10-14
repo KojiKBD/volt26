@@ -156,6 +156,9 @@ for _, player in ipairs(players) do
 	cutouts[#cutouts+1] = side.cutouts
 end
 
+-- The song name plate under "WANTED", over the sides (Wanted/SongName.lua).
+page[#page+1] = LoadActor("./Wanted/SongName.lua", { Text = T })
+
 return Def.ActorFrame{
 	OnCommand=function(self)
 		local common = self:GetChild("ScreenEval Common")
