@@ -15,7 +15,7 @@
 --     (Scripts/VOLT26_CutoutMetrics.lua, generated with the fonts).
 --   * VOLT26.Cutout.CreateSlot(params) is the presentation.
 --
--- The grade letters also exist in "Cutout Back Large" / "Cutout Ink Large"
+-- The grade letters also exist in "Cutout Large Back" / "Cutout Large Ink"
 -- (same looks, a larger em), used when a slot draws them big.
 
 VOLT26.Cutout = VOLT26.Cutout or {}

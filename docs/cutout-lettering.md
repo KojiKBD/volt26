@@ -32,7 +32,7 @@ Slot sizes live in `VOLT26.Cutout.StyleDesign` (`Scripts/VOLT26_CutoutStyles.lua
   merge. Each glyph's cell holds its whole drawing; the ini draws the full
   cell (`DrawExtraPixelsLeft/Right` = half a cell), and the advance is the
   letter's own spacing.
-* **Large fonts.** `Cutout Back Large` / `Cutout Ink Large` carry the grade
+* **Large fonts.** `Cutout Large Back` / `Cutout Large Ink` carry the grade
   letters (S A B C D F Q + -) at a 160 px em with the same looks; a slot uses
   them when its letters would be drawn more than 1.3 times the regular 56 px em
   on the display and the string only has those characters.
