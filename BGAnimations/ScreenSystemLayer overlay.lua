@@ -7,13 +7,6 @@ local t = Def.ActorFrame{}
 -- top of it. See Scripts/VOLT26_Glitch.lua for where it is allowed to appear.
 t[#t+1] = VOLT26.Glitch.CreateLayer()
 
--- The cutout lettering's shared texture cache (Scripts/VOLT26_CutoutCache.lua).
--- It lives here because this layer outlasts every screen: the six cutout
--- faces stay loaded for the whole session, and strings rendered once (or at
--- startup by ScreenVOLT26Warmup) appear at once wherever they come back.  It
--- draws nothing on screen.
-t[#t+1] = VOLT26.Cutout.Cache.CreateHost()
-
 -- Cutout lettering (Scripts/VOLT26_Cutout.lua) for the credit line: the
 -- player names and the centre text (EVENT MODE, credits, free play).
 --

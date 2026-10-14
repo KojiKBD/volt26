@@ -1,143 +1,99 @@
 # Cutout lettering
 
 `VOLT26.Cutout` (`Scripts/VOLT26_Cutout.lua`) draws a runtime string in the
-Persona 5 menu style: a different face per letter, mixed case, tilted letters,
-white on one merged black backing, and some letters inverted inside a box.
+Persona 5 menu style: a different face per letter, tilted letters of mixed
+sizes, white on one merged black backing, and some letters inverted inside a
+box.
+
+Since 2026-10-15 (`codex/static-cutout-font`) the look is **baked into bitmap
+fonts**. Every character was given its face, size, tilt, baseline offset and
+box once, offline, so a letter always looks the same wherever it appears (it
+used to be chosen per string, seeded with the string). In exchange nothing is
+rendered at runtime: no render textures, no texture cache, no startup
+warm-up, and a string shows on the frame it is set.
 
 ## Where it is used
 
-`BGAnimations/ScreenSystemLayer overlay.lua` mirrors the two credit texts
-("PRESS START", the profile or GrooveStats name) and the centre footer
-("EVENT MODE") into cutout slots on the screens listed in
-`VOLT26.Cutout.Screens` (currently only `ScreenTitleMenu`). The plain texts still
-decide what is shown and when; on those screens they are only made transparent.
-Add a screen name to `VOLT26.Cutout.Screens` to extend it.
-
-## Tuning
-
-`VOLT26.Cutout.Defaults` holds the look; every key can be overridden per slot
-through `CreateSlot{ opts = {...} }`:
-
-| Key | Default | Meaning |
-| --- | --- | --- |
-| `base` | 22 | letter size in theme units (the credit slots use 22, the footer 26) |
-| `chaos` | 0.45 | scales baseline jitter and per-letter rotation |
-| `boxChance` | 0.28 | chance a letter is inverted inside a box |
-| `upperChance` | 0.68 | chance a letter is upper case (the typed case is ignored) |
-| `sizeMin`, `sizeMax` | 0.82, 1.22 | per-letter size range, as fractions of `base` |
-| `lowerBoost` | 1.08 | extra size for lower-case letters |
-| `outline` | 0.11 | backing thickness, as a fraction of `base` |
-| `tiltDeg` | -5 | rotation of the whole block |
-| `fg`, `bk` | white, black | face and backing colours |
-
-Slot geometry (`maxW`, `maxH`, `halign`, `valign`, position) is set where the
-slot is created; the lettering is scaled down to fit and never up.
+The credit line (`BGAnimations/ScreenSystemLayer overlay.lua`, on the screens
+in `VOLT26.Cutout.Screens` and the ones it always applies to), profile names
+(ScreenSelectProfile), pack names and section tiles (ScreenVOLT26SelectPack),
+the song wheel's pack, player names, length and grade (ScreenSelectMusic,
+`SongWheel/P5.lua`), the WANTED page's name, grade and page titles, the
+end-of-session titles, the Free Play / Pay join prompt and the menu timer.
+Slot sizes live in `VOLT26.Cutout.StyleDesign` (`Scripts/VOLT26_CutoutStyles.lua`).
 
 ## How it works
 
-* `VOLT26.Cutout.Layout(text, opts)` is pure data: letters, faces, sizes and
-  bounds. The generator is seeded with a hash of the string, so the same name
-  always gets the same lettering. It cannot match the browser prototype letter
-  for letter (Lua 5.1 has no bit operations, so the PRNG differs).
-* `VOLT26.Cutout.CreateSlot(params)` renders a layout once into an
-  `ActorFrameTexture` and shows it as a sprite drawn at display resolution.
-  The backing is built by stamping the black letters around a circle (16
-  directions plus centre, for the letter and for the drop shadow). The letters
-  are laid out once per pass and stamped at every offset through
-  `ActorProxy`s, so a string takes three texture frames (centre backing, ring
-  backing, letters) the first time it appears and nothing afterwards. (It used
-  to take one frame per stamp, 35 in all: about 0.6 s at 60 Hz, during which a
-  new name was invisible.) Eight directions left serrated edges. The texture is
-  redrawn only when the slot receives a different string.
-* A string with a character no face has, or longer than `maxChars` (16), falls
-  back to plain text.
+* **Fonts.** `Fonts/Cutout Back` (the backings: each letter grown by the
+  outline plus a drop shadow; a boxed letter's box grown) and `Fonts/Cutout
+  Ink` (the white letters; a boxed letter is a white box with the letter cut
+  out in black) share one layout. A slot draws the same string with Back, then
+  Ink, so every backing lies under every letter and neighbouring backings
+  merge. Each glyph's cell holds its whole drawing; the ini draws the full
+  cell (`DrawExtraPixelsLeft/Right` = half a cell), and the advance is the
+  letter's own spacing.
+* **Large fonts.** `Cutout Back Large` / `Cutout Ink Large` carry the grade
+  letters (S A B C D F Q + -) at a 160 px em with the same looks; a slot uses
+  them when its letters would be drawn more than 1.3 times the regular 56 px em
+  on the display and the string only has those characters.
+* **Layout.** `VOLT26.Cutout.Layout(text, opts)` is pure data from the baked
+  metrics (`Scripts/VOLT26_CutoutMetrics.lua`): the drawn string (case
+  applied), its advance width and its bounds with the block's tilt. Callers use
+  it to know how wide a string will be (profile wings, song wheel badges).
+* **Slot.** `VOLT26.Cutout.CreateSlot(params)` is two BitmapTexts in a tilted
+  frame, scaled down (never up) to fit `maxW` x `maxH` and aligned by
+  `halign` / `valign` on the drawn bounds. A string with a character the fonts
+  do not have, or longer than `maxChars`, falls back to plain text
+  (`fallbackFont`).
 
-## Slot options
+## Options
 
-Besides geometry, `CreateSlot` takes `held` (render without showing until a
-`CutoutHold{held=false}` command) and `onReady(slot)` (called when a string has
-finished rendering or fallen back to plain text). ScreenSelectProfile uses two
-held slots per side and swaps them in `onReady`, so a name stays on screen
-while the next one renders. Slots render only while they and all their
-ancestors are visible and fully opaque, because a parent's alpha would be baked
-into the texture.
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `base` | 22 | letter size (em) in theme units |
+| `upperChance` | 0.5 | 1: every letter upper case (grades), 0: lower case, otherwise the case as typed |
+| `tiltDeg` | -5 | rotation of the whole block |
+| `fg`, `bk` | white, black | letter and backing colours (BitmapText diffuse; a box takes `fg`) |
 
-## Texture cache and startup warm-up
+The per-letter look (faces, size range, box chance, tilts, outline) is set in
+`tools/cutout-fonts/generate.py` and needs the fonts regenerated; `SEED` there
+re-rolls every letter.
 
-`VOLT26.Cutout.Cache` (`Scripts/VOLT26_CutoutCache.lua`) keeps rendered
-strings for the whole session, so a string that comes back (a pack name when
-scrolling back, a profile name on the next screen) appears at once instead of
-after three invisible frames.
+`CreateSlot` also takes `held` (set a string without showing it until
+`CutoutHold{held=false}`) and `onReady(slot)` (called on the update after a
+string is set). Commands: `CutoutSet{text=...}`, `CutoutHold{held=...}`.
 
-* **Host.** `Cache.CreateHost()` is placed in `ScreenSystemLayer overlay.lua`,
-  which outlasts every screen. It owns one stamper sized for 64 letters (so the
-  six cutout faces stay loaded all session) and up to four 2048x1024 page
-  textures (two in Performance mode), each created only when first needed
-  (8 MB of video memory per page). Strings are packed into pages in shelves.
-* **Slots.** `CreateSlot` asks the cache first (`Cache.Acquire`). A cached
-  string is shown at once as a cropped region of its page; a new one is
-  rendered by the host in three frames (one pass per frame, a slot's request
-  ahead of the warm-up queue). The slot renders on its own only when the cache
-  cannot take the string (no host, over 64 letters, larger than a page, every
-  page in use). Strings the faces cannot draw still fall back to plain text.
-* **Keys.** An entry is keyed by the string, the merged options
-  (`Cutout.Signature`, numbers rounded to 3 decimals) and the drawn zoom, so a
-  slot never shows a texture drawn for another size or look.
-* **Reclaiming.** Slots touch the entry they show every frame. When every page
-  is full, the least recently used page whose entries have all been untouched
-  for 0.5 s (and none still rendering) is cleared and reused.
-* **Display resets.** A change of video mode can recreate the rendering
-  context and wipe render targets. The host checks the display size and the
-  `Windowed`, `FullscreenIsBorderlessWindow`, `DisplayColorDepth` and `Vsync`
-  preferences every second; on a change it drops every entry and the slots ask
-  again.
-* **Warm-up.** `ScreenVOLT26Warmup` calls `Cache.WarmStartup()`, which queues
-  the strings known before any screen asks: the credit line (EVENT MODE, FREE
-  PLAY, PRESS START), every local profile's name (profile screen, song wheel
-  cards and footer, plus GUEST and P1/P2), then pack names nearest first around
-  the packs the local profiles last played and the one the carousel opens on,
-  in both the pack screen's and the song wheel's size. It fills only free page
-  space and never evicts. The warm-up screen waits for it at most 3 s (a second
-  thin progress bar); the rest keeps rendering in the background, one pass a
-  frame. `Cache.Stats()` reports pages, entries and the queue.
-* **Kept strings.** `Cache.Warm` items may carry `keep = true`: such an entry
-  is never reclaimed (its page is never reset) and is queued again right after
-  a display reset. The song wheel's grade letters use it: the fifteen lettered
-  grades (`VOLT26.Cutout.GradeLetters`: S+ .. D, Q, F; always upper case) in
-  three colours -- white for one player (`SongGrade`), red and blue for two
-  (`SongGradeP1`, `SongGradeP2`, letters and boxes in the player's colour) --
-  are drawn once at startup and stay for the whole session (45 small entries).
-  The star grades are not lettered; `SongWheel/Grade.lua` draws them with the
-  grade star picture.
-* **Shared geometry.** For a warmed string to be found, the warm-up must draw
-  it exactly as its screen does, so those slots take their size from
-  `VOLT26.Cutout.StyleDesign` / `Cutout.Style(name)` in
-  `Scripts/VOLT26_CutoutStyles.lua` (`ProfileName`, `PackName`, `SongPack`,
-  `SongCardName`, `SongFooterName`, `SongGrade`, `SongGradeP1`, `SongGradeP2`, `CreditPlayer`, `CreditCentre`). Change
-  those sizes there, not in the screens.
+## Regenerating
 
-Verified outside the engine only: Lua 5.1 syntax and a harness that runs the
-real slot and cache code against a mocked actor tree (warm-up, hits, misses,
-held slots, eviction while scrolling, display reset, fallbacks, Performance
-mode). Not yet checked in ITGmania: the page textures' regions on screen
-(crop and alignment), the CopySrc region clear inside a shared page, and the
-frame cost of background warm-up on the title screen on slow hardware.
+```
+python tools/cutout-fonts/generate.py --src <dir with the .ttf files>
+```
 
-## Faces
+The six SIL OFL faces (Tinos Bold, Caprasimo, League Spartan, Besley, Jost,
+Archivo; see `Fonts/Cutout/README.md` and the `OFL-*.txt` licences) come from
+the google/fonts repository (`ofl/<family>/`). Requires Pillow, fontTools,
+numpy and scipy. It writes the pages and inis in `Fonts/Cutout`, the four
+`.redir` files and `Scripts/VOLT26_CutoutMetrics.lua`.
 
-`Fonts/Cutout` holds six bitmap fonts generated by
-`tools/cutout-fonts/generate.py` from SIL OFL typefaces (see
-`Fonts/Cutout/README.md` and the `OFL-*.txt` licences). Each face is a single
-1020x1022 page (about 4 MB of video memory) covering printable ASCII, the
-Latin-1 letters and common Latin Extended-A letters; Æ and Œ are drawn lower
-case. `Scripts/VOLT26_CutoutMetrics.lua` is generated alongside and must be
-regenerated with the pages.
+Video memory: the regular fonts are three pages of about 1020x928 each per
+layer, the large ones one 940x416 page per layer, about 28 MB in all once
+padded to powers of two (the six old per-face pages were 24 MB, plus the
+render caches).
+
+## Leftovers from the runtime renderer
+
+Some screens still carry workarounds that were only needed while strings were
+rendered into textures; they are harmless and can be simplified later:
+ScreenSelectProfile's two alternating name slots, and the song wheel's slots
+living in the background (`P.CutoutHost`) and shown through ActorProxies,
+which existed because a slot only rendered while every ancestor was opaque and
+still.
 
 ## Verification status
 
-Static checks (Lua syntax with `luac 5.1`, the layout run outside the engine,
-an offline preview from the generated font pages), plus a first owner run in
-ITGmania on the title screen: lettering renders; the 8-direction backing was
-serrated and was raised to 16 directions (not yet re-tested in the engine). Points to check in the engine: the baseline of the letters
-(BitmapText bottom alignment), the `ActorFrameTexture` preserve/clear passes,
-edge quality of the backing, and the slot positions on 16:9 and 16:10.
+Offline only: Lua syntax, `Layout` run against the generated metrics, and a
+preview that composes the font pages as ITGmania's BitmapText does (cells
+centred on the advance, whole cell drawn) at the slot sizes of
+`CutoutStyles.lua`. Not yet checked in ITGmania: the baseline of the letters
+(BitmapText bottom alignment, as the old renderer assumed), the multi-page
+fonts loading, and every screen that shows cutout lettering.

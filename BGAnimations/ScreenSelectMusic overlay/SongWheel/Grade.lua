@@ -5,10 +5,8 @@
 -- It is the player's best grade on the chart they have selected
 -- (VOLT26.ScoreIndex through S.Best):
 --   * a lettered grade (S+ .. D, Q, F) in cutout lettering in the middle of
---     the cluster.  The letters are drawn once at startup and kept for the
---     whole session (VOLT26.Cutout.Cache; styles SongGrade, SongGradeP1,
---     SongGradeP2 in Scripts/VOLT26_CutoutStyles.lua), so a grade never waits
---     to render;
+--     the cluster (styles SongGrade, SongGradeP1, SongGradeP2 in
+--     Scripts/VOLT26_CutoutStyles.lua);
 --   * a star grade (one to five stars) as the grade star picture, laid out
 --     as the evaluation screen lays it out (Graphics/_grades/Grade_Tier00-04:
 --     one large star, two on a diagonal, three in a triangle, four in the

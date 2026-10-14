@@ -1,62 +1,281 @@
 #!/usr/bin/env python3
-"""Generate the VOLT26 cutout-lettering bitmap fonts and their Lua metrics.
+"""Bake the VOLT26 cutout lettering into static bitmap fonts.
 
-ITGmania cannot rasterise TrueType at runtime, so every face used by the
-cutout lettering (Scripts/VOLT26_Cutout.lua) is baked here into a single
-StepMania font page plus an .ini, and the per-glyph metrics the layout needs
-(advance and ink extents, in em units) are written to a generated Lua table.
+The "ransom note" look of VOLT26.Cutout (Scripts/VOLT26_Cutout.lua) used to
+be composed at runtime: every string was stamped letter by letter into a
+render texture.  It is now baked here once.  Every character gets its own
+face, size, tilt, baseline offset and (sometimes) an inverted box, chosen by a
+generator seeded with the character itself, so a letter always looks the same
+wherever it appears.
 
-Usage (from the theme root):
+Each character is drawn into two fonts that share one layout:
+  Cutout Back   the backing (white here, tinted black at runtime): the letter grown by an outline, plus a drop
+                shadow (a boxed letter: its box, grown)
+  Cutout Ink    the white letter (a boxed letter: a white box with the letter
+                cut out in black)
+A slot draws the same string with Back, then Ink, so every backing lies under
+every letter and neighbouring backings merge, as the old renderer did.
+
+"Cutout Back Large" / "Cutout Ink Large" carry the grade letters at a larger
+em, for the big grades (same choices, sharper pixels).
+
+Outputs (from the theme root):
+  Fonts/Cutout/_cutout back [main] CxR.png, [p2] ..., _cutout back.ini
+  Fonts/Cutout/_cutout ink ...
+  Fonts/Cutout/_cutout back large ..., _cutout ink large ...
+  Fonts/Cutout Back.redir, Cutout Ink.redir, Cutout Back Large.redir,
+  Fonts/Cutout Ink Large.redir
+  Scripts/VOLT26_CutoutMetrics.lua   per-glyph advance and drawn extents
+
+Usage:
     python tools/cutout-fonts/generate.py --src <dir with the .ttf files>
 
-Requires Pillow and fontTools.  Re-run after changing EM, CHARSET or FACES.
+The faces are the OFL fonts listed in FACES (Google Fonts); the licences are
+next to this script.  Requires Pillow, fontTools, numpy and scipy.
 """
 import argparse
+import glob
 import io
+import math
 import os
-import unicodedata
+import random
 
+import numpy as np
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 from PIL import Image, ImageDraw, ImageFont
+from scipy import ndimage
 
-# Rendered em size in texture pixels.  The largest em that still fits every
-# glyph of a face on one 1024x1024 page (4 MB of VRAM per face); the lettering
-# is drawn at roughly 50-70 px per letter on a 1080p display.
-EM = int(os.environ.get("CUTOUT_EM", 48))
-PAD = 2          # transparent gutter around each glyph cell
-MAX_TEXTURE = 1024
+EM = 56            # em of the regular fonts, texture pixels (3 pages of 1024)
+EM_LARGE = 160     # em of the large (grade) fonts
+PAGE = 1024        # texture page size
+SEED = 26          # change to re-roll every letter
 
-# (face id, file, variation axes, licence file)
+# The look, as the runtime renderer had it (Cutout.Defaults).
+CHAOS = 0.45
+BOX_CHANCE = 0.28
+SIZE_MIN, SIZE_MAX = 0.82, 1.22
+LOWER_BOOST = 1.08
+OUTLINE = 0.11     # of the em
+SHADOW = (0.55, 0.7)  # of the outline
+SPACE = 0.38       # of the em
+
+# (face id, file glob, variation axes)
 FACES = [
-    ("tinos",     "Tinos-Bold.ttf",        {},                          "OFL"),
-    ("caprasimo", "Caprasimo-Regular.ttf", {},                          "OFL"),
-    ("spartan",   "LeagueSpartan-VF.ttf",  {"wght": 700},               "OFL"),
-    ("besley",    "Besley-VF.ttf",         {"wght": 800},               "OFL"),
-    ("jost",      "Jost-VF.ttf",           {"wght": 700},               "OFL"),
-    ("archivo",   "Archivo-VF.ttf",        {"wght": 800, "wdth": 100},  "OFL"),
+    ("tinos",     "Tinos-Bold*.ttf",                 {}),
+    ("caprasimo", "Caprasimo-Regular*.ttf",          {}),
+    ("spartan",   "LeagueSpartan*.ttf",              {"wght": 700}),
+    ("besley",    "Besley[[]wght[]]*.ttf",           {"wght": 800}),
+    ("jost",      "Jost[[]wght[]]*.ttf",             {"wght": 700}),
+    ("archivo",   "Archivo[[]wdth,wght[]]*.ttf",     {"wght": 800, "wdth": 100}),
 ]
 
-# Printable ASCII, the Latin-1 letters, and the Latin Extended-A letters most
-# common in European player names.  Anything else falls back to plain text.
 EXTENDED_A = "ĄąĆćČčĎďĘęĚěĞğİıŁłŃńŇňŐőœŘřŚśŞşŠšŤťŰűŮůŹźŻżŽž"
 CHARSET = (
     [chr(c) for c in range(0x20, 0x7F)]
-    # Æ and Œ are left out: in Besley they are wide enough to force a second
-    # texture page for every face.  Their lower-case forms stay lower case.
-    + [chr(c) for c in range(0xC0, 0x100) if c not in (0xC6, 0xD7, 0xF7)]
-    + list(EXTENDED_A)
+    + [chr(c) for c in range(0xC0, 0x100) if c not in (0xD7, 0xF7)]
+    + list(EXTENDED_A) + ["Œ"]
 )
+# The grade letters (Cutout.GradeLetters), also in the large fonts.
+LARGE_CHARSET = list(" SABCDFQ+-")
 
 
-def instance(path, axes):
-    font = TTFont(path)
-    if axes and "fvar" in font:
-        font = instancer.instantiateVariableFont(font, axes)
-    buf = io.BytesIO()
-    font.save(buf)
-    buf.seek(0)
-    return font, buf
+def load_faces(src):
+    faces = []
+    for face_id, pattern, axes in FACES:
+        matches = sorted(glob.glob(os.path.join(src, pattern)))
+        if not matches:
+            raise SystemExit("missing face %s (%s) in %s" % (face_id, pattern, src))
+        tt = TTFont(matches[0])
+        if axes and "fvar" in tt:
+            tt = instancer.instantiateVariableFont(tt, axes)
+        buf = io.BytesIO()
+        tt.save(buf)
+        faces.append({"id": face_id, "data": buf.getvalue(), "cmap": set(tt.getBestCmap())})
+    return faces
+
+
+def is_lower(ch):
+    u = ch.upper()
+    return u != ch and len(u) == 1
+
+
+def choices(ch, faces):
+    """The fixed look of one character."""
+    seed = SEED * 1000003 + ord(ch)
+    R = random.Random(seed)
+    usable = [f for f in faces if ord(ch) in f["cmap"]]
+    if not usable:
+        return None
+    face = usable[int(R.random() * len(usable))]
+    return {
+        "face": face,
+        "size": (SIZE_MIN + R.random() * (SIZE_MAX - SIZE_MIN)) * (LOWER_BOOST if is_lower(ch) else 1),
+        "box": R.random() < BOX_CHANCE,
+        "dy": (R.random() - 0.5) * 0.32 * CHAOS,
+        "rot": math.degrees((R.random() - 0.5) * 0.5 * CHAOS),
+    }
+
+
+_font_cache = {}
+
+
+def pil_font(face, px):
+    key = (face["id"], px)
+    if key not in _font_cache:
+        _font_cache[key] = ImageFont.truetype(io.BytesIO(face["data"]), px)
+    return _font_cache[key]
+
+
+def render(ch, look, em):
+    """Back and ink images of one character, and where its origin is.
+
+    The origin is the start of the character's advance on the baseline.
+    Returns (back, ink, origin_x, origin_y, advance) with images in RGBA."""
+    if ch == " " or look is None:
+        return None, None, 0, 0, SPACE * em
+    px = max(4, int(round(look["size"] * em)))
+    font = pil_font(look["face"], px)
+    w = font.getlength(ch)
+    x0, y0, x1, y1 = font.getbbox(ch, anchor="ls")
+    asc, desc = -y0, y1
+    box = look["box"]
+    pad = px * 0.07 if box else 0
+    advance = w + 2 * pad + em * (0.05 if box else -0.015)
+    outline = em * OUTLINE
+    shadow = (outline * SHADOW[0], outline * SHADOW[1])
+
+    S = int(em * 4)
+    cx, cy = S / 2, S / 2               # letter centre on its baseline
+    base_y = cy + look["dy"] * em
+
+    letter = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(letter).text((cx - w / 2, base_y), ch, font=font, anchor="ls", fill=255)
+
+    def rect(grow):
+        return (cx - w / 2 - pad - grow, base_y - asc - pad - grow,
+                cx + w / 2 + pad + grow, base_y + desc + pad + grow)
+
+    # Backing: the letter grown by the outline (a boxed letter: its box grown
+    # by 0.8 outline), at the letter and at the drop-shadow offset.
+    if box:
+        shape = Image.new("L", (S, S), 0)
+        ImageDraw.Draw(shape).rectangle(rect(outline * 0.8), fill=255)
+        grown = np.asarray(shape, dtype=np.float32) / 255
+    else:
+        a = np.asarray(letter, dtype=np.float32) / 255
+        dist = ndimage.distance_transform_edt(a < 0.5)
+        grown = np.clip(outline - dist + 0.5, 0, 1)
+        grown = np.maximum(grown, a)
+    shifted = ndimage.shift(grown, (shadow[1], shadow[0]), order=1, mode="constant")
+    backing = np.maximum(grown, shifted)
+    # White, so the runtime can tint it (diffuse) to the backing colour.
+    back = Image.new("RGBA", (S, S), (255, 255, 255, 0))
+    back.putalpha(Image.fromarray((backing * 255).astype(np.uint8)))
+
+    ink = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    if box:
+        plate = Image.new("L", (S, S), 0)
+        ImageDraw.Draw(plate).rectangle(rect(0), fill=255)
+        white = Image.new("RGBA", (S, S), (255, 255, 255, 255))
+        ink.paste(white, mask=plate)
+        black = Image.new("RGBA", (S, S), (0, 0, 0, 255))
+        ink.paste(black, mask=letter)
+    else:
+        white = Image.new("RGBA", (S, S), (255, 255, 255, 255))
+        ink.paste(white, mask=letter)
+
+    # The letter turns about its centre on the baseline (rotationz: clockwise
+    # for positive angles, so PIL's counter-clockwise rotate takes -rot).
+    back = back.rotate(-look["rot"], resample=Image.BICUBIC, center=(cx, cy))
+    ink = ink.rotate(-look["rot"], resample=Image.BICUBIC, center=(cx, cy))
+
+    # The advance starts pad before the letter's left edge.
+    origin_x = cx - w / 2 - pad
+    return back, ink, origin_x, cy, advance
+
+
+def build(charset, faces, em, theme, name_back, name_ink, redir_back, redir_ink):
+    glyphs = []
+    for ch in charset:
+        look = choices(ch, faces) if ch != " " else None
+        if ch != " " and look is None:
+            continue
+        back, ink, ox, oy, adv = render(ch, look, em)
+        g = {"ch": ch, "adv": int(round(adv)), "look": look}
+        if back is not None:
+            bbox = back.getbbox()
+            ib = ink.getbbox()
+            if ib:
+                bbox = (min(bbox[0], ib[0]), min(bbox[1], ib[1]), max(bbox[2], ib[2]), max(bbox[3], ib[3]))
+            # Extents relative to the origin (advance start, baseline).
+            g.update(back=back.crop(bbox), ink=ink.crop(bbox),
+                     left=bbox[0] - ox, top=bbox[1] - oy, right=bbox[2] - ox, bottom=bbox[3] - oy)
+        glyphs.append(g)
+
+    # One cell for every glyph: centred on the advance's middle and the
+    # baseline, so it must hold the farthest extent on each side.
+    half_w = max(max(abs(g.get("left", 0) - g["adv"] / 2), abs(g.get("right", 0) - g["adv"] / 2)) for g in glyphs)
+    up = max(-g.get("top", 0) for g in glyphs)
+    down = max(g.get("bottom", 0) for g in glyphs)
+    cell_w = int(math.ceil(half_w)) * 2 + 4
+    cell_h = int(math.ceil(up + down)) + 4
+    baseline = int(math.ceil(up)) + 2
+    columns = PAGE // cell_w
+    rows = PAGE // cell_h
+    per_page = columns * rows
+    pages = [glyphs[i:i + per_page] for i in range(0, len(glyphs), per_page)]
+    page_names = ["main"] + ["p%d" % (i + 2) for i in range(len(pages) - 1)]
+
+    font_dir = os.path.join(theme, "Fonts", "Cutout")
+    os.makedirs(font_dir, exist_ok=True)
+    cap_glyph = next((g for g in glyphs if g["ch"] == "H"), None)
+    cap = em * 0.7
+    if cap_glyph and cap_glyph["look"]:
+        f = pil_font(cap_glyph["look"]["face"], em)
+        cap = -f.getbbox("H", anchor="ls")[1]
+
+    for layer, name in (("back", name_back), ("ink", name_ink)):
+        ini = ["[common]",
+               "Baseline=%d" % baseline,
+               "Top=%d" % (baseline - int(round(cap))),
+               "LineSpacing=%d" % cell_h,
+               # The whole cell is drawn: a letter's backing and tilt reach
+               # past its advance.
+               "DrawExtraPixelsLeft=%d" % (cell_w // 2),
+               "DrawExtraPixelsRight=%d" % (cell_w // 2),
+               "AdvanceExtraPixels=0",
+               ""]
+        for pname, page_glyphs in zip(page_names, pages):
+            # The last page only has as many rows as it needs.
+            used_rows = -(-len(page_glyphs) // columns)
+            img = Image.new("RGBA", (columns * cell_w, used_rows * cell_h), (0, 0, 0, 0))
+            lines = []
+            ini.append("[%s]" % pname)
+            for i, g in enumerate(page_glyphs):
+                r, c = divmod(i, columns)
+                if c == 0:
+                    lines.append("")
+                lines[-1] += g["ch"]
+                if layer in g:
+                    # The advance is centred in the cell; the origin sits at
+                    # its start, on the baseline.
+                    ox = c * cell_w + cell_w / 2 - g["adv"] / 2
+                    oy = r * cell_h + baseline
+                    img.alpha_composite(g[layer], (int(round(ox + g["left"])), int(round(oy + g["top"]))))
+            png = "%s [%s] %dx%d.png" % (name, pname, columns, used_rows)
+            img.save(os.path.join(font_dir, png), optimize=True)
+            ini += ["Line %d=%s" % (i, line) for i, line in enumerate(lines)]
+            ini += ["%d=%d" % (i, g["adv"]) for i, g in enumerate(page_glyphs)]
+            ini.append("")
+        with open(os.path.join(font_dir, name + ".ini"), "w", encoding="utf-8", newline="\r\n") as f:
+            f.write("\n".join(ini))
+    for redir, name in ((redir_back, name_back), (redir_ink, name_ink)):
+        with open(os.path.join(theme, "Fonts", redir + ".redir"), "w", newline="\r\n") as f:
+            f.write("Cutout/%s" % name)
+    print("%s: em %d, cell %dx%d, %d glyphs on %d page(s) of %dx%d cells"
+          % (name_ink, em, cell_w, cell_h, len(glyphs), len(pages), columns, rows))
+    return glyphs
 
 
 def lua_string(s):
@@ -75,110 +294,56 @@ def lua_string(s):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", required=True, help="directory with the source .ttf files")
-    ap.add_argument("--theme", default=os.path.join(os.path.dirname(__file__), "..", ".."))
+    ap.add_argument("--theme", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
     args = ap.parse_args()
     theme = os.path.abspath(args.theme)
-    font_dir = os.path.join(theme, "Fonts", "Cutout")
-    os.makedirs(font_dir, exist_ok=True)
+    faces = load_faces(args.src)
 
-    faces = []
-    for face_id, filename, axes, _ in FACES:
-        tt, buf = instance(os.path.join(args.src, filename), axes)
-        cmap = tt.getBestCmap()
-        pil = ImageFont.truetype(buf, EM)
-        glyphs = {}
-        for ch in CHARSET:
-            if ch != " " and ord(ch) not in cmap:
-                continue
-            adv = pil.getlength(ch)
-            box = pil.getbbox(ch, anchor="ls")  # x0, y0 (neg = above), x1, y1
-            glyphs[ch] = (adv, box)
-        faces.append((face_id, pil, glyphs))
+    regular = build(CHARSET, faces, EM, theme, "_cutout back", "_cutout ink", "Cutout Back", "Cutout Ink")
+    build(LARGE_CHARSET, faces, EM_LARGE, theme,
+          "_cutout back large", "_cutout ink large", "Cutout Back Large", "Cutout Ink Large")
 
-    # One cell size shared by every face keeps the pages uniform.
-    ascent = max(-b[1] for _, _, g in faces for _, b in g.values())
-    descent = max(b[3] for _, _, g in faces for _, b in g.values())
-    width = max(max(adv, b[2] - min(b[0], 0)) for _, _, g in faces for adv, b in g.values())
-    cell_w = int(width) + 2 * PAD + 2
-    cell_w += cell_w % 2
-    cell_h = int(ascent + descent) + 2 * PAD + 2
-    columns = MAX_TEXTURE // cell_w
-    rows = -(-len(CHARSET) // columns)
-    tex_w, tex_h = cell_w * columns, cell_h * rows
-    if tex_h > MAX_TEXTURE:
-        raise SystemExit("EM %d does not fit a %dpx page (%dx%d); lower EM" % (EM, MAX_TEXTURE, tex_w, tex_h))
-    baseline = PAD + 1 + int(round(ascent))
-
-    metrics = []
-    for face_id, pil, glyphs in faces:
-        page = Image.new("RGBA", (tex_w, tex_h), (255, 255, 255, 0))
-        draw = ImageDraw.Draw(page)
-        lines, widths = [], []
-        for i, ch in enumerate(CHARSET):
-            row, col = divmod(i, columns)
-            if col == 0:
-                lines.append("")
-            # A face that lacks a glyph still occupies the frame (as a space)
-            # so every page shares one layout; the metrics omit it, which is
-            # how the Lua layout knows to pick another face for that letter.
-            glyph = glyphs.get(ch)
-            lines[-1] += ch if glyph else " "
-            adv = int(round(glyph[0])) if glyph else int(round(glyphs[" "][0]))
-            widths.append(adv)
-            if glyph and ch != " ":
-                x = col * cell_w + (cell_w - adv) / 2
-                y = row * cell_h + baseline
-                draw.text((x, y), ch, font=pil, anchor="ls", fill=(255, 255, 255, 255))
-        cap = -pil.getbbox("H", anchor="ls")[1]
-        name = "_cutout %s" % face_id
-        png = "%s [main] %dx%d.png" % (name, columns, rows)
-        page.save(os.path.join(font_dir, png), optimize=True)
-        ini = ["[common]",
-               "Baseline=%d" % baseline,
-               "Top=%d" % (baseline - int(round(cap))),
-               "LineSpacing=%d" % cell_h,
-               "DrawExtraPixelsLeft=%d" % (cell_w // 2),
-               "DrawExtraPixelsRight=%d" % (cell_w // 2),
-               "AdvanceExtraPixels=0",
-               "",
-               "[main]"]
-        ini += ["Line %d=%s" % (i, line) for i, line in enumerate(lines)]
-        ini += ["%d=%d" % (i, w) for i, w in enumerate(widths)]
-        with open(os.path.join(font_dir, name + ".ini"), "w", encoding="utf-8", newline="\r\n") as f:
-            f.write("\n".join(ini) + "\n")
-        with open(os.path.join(theme, "Fonts", "Cutout %s.redir" % face_id.capitalize()), "w", newline="\r\n") as f:
-            f.write("Cutout/%s" % name)
-        metrics.append((face_id, glyphs))
-
-    # Generated Lua: advance and ink extents per glyph, in em units, plus the
-    # case map for the covered letters (Lua's string.upper is ASCII-only).
+    covered = [g["ch"] for g in regular]
     out = ["-- GENERATED by tools/cutout-fonts/generate.py. Do not edit by hand.",
-           "-- Per-face glyph metrics in em units: {advance, ink above baseline, ink below baseline}.",
+           "-- The baked cutout fonts (Fonts/Cutout Back, Cutout Ink and their Large",
+           "-- versions).  Per glyph, in em units of the regular fonts:",
+           "--   {advance, left, top, right, bottom}",
+           "-- left/right/top/bottom are the drawn extents (backing and tilt included)",
+           "-- relative to the start of the advance on the baseline (top < 0).",
            "VOLT26.CutoutMetrics = {",
            "\tem = %d," % EM,
-           "\tfaces = {"]
-    for face_id, glyphs in metrics:
-        out.append("\t\t{ id = %s, font = %s, glyphs = {" % (lua_string(face_id), lua_string("Cutout " + face_id.capitalize())))
-        for ch, (adv, box) in glyphs.items():
-            out.append("\t\t\t[%s] = {%.4f, %.4f, %.4f}," % (lua_string(ch), adv / EM, -box[1] / EM, box[3] / EM))
-        out.append("\t\t} },")
+           "\temLarge = %d," % EM_LARGE,
+           "\tfont = { back = \"Cutout Back\", ink = \"Cutout Ink\" },",
+           "\tfontLarge = { back = \"Cutout Back Large\", ink = \"Cutout Ink Large\" },",
+           "\tglyphs = {"]
+    for g in regular:
+        if "left" in g:
+            out.append("\t\t[%s] = {%.4f, %.4f, %.4f, %.4f, %.4f}," % (
+                lua_string(g["ch"]), g["adv"] / EM, g["left"] / EM, g["top"] / EM, g["right"] / EM, g["bottom"] / EM))
+        else:
+            out.append("\t\t[%s] = {%.4f, 0, 0, 0, 0}," % (lua_string(g["ch"]), g["adv"] / EM))
     out.append("\t},")
+    out.append("\t-- Characters the large fonts carry.")
+    out.append("\tlarge = {")
+    for ch in LARGE_CHARSET:
+        out.append("\t\t[%s] = true," % lua_string(ch))
+    out.append("\t},")
+    # Case maps for the covered letters (Lua's string.upper is ASCII-only).
     out.append("\tupper = {")
-    for ch in CHARSET:
+    for ch in covered:
         u = ch.upper()
-        if u != ch and len(u) == 1 and u in CHARSET:
+        if u != ch and len(u) == 1 and u in covered:
             out.append("\t\t[%s] = %s," % (lua_string(ch), lua_string(u)))
     out.append("\t},")
     out.append("\tlower = {")
-    for ch in CHARSET + ["\u00c6", "\u0152"]:
+    for ch in covered:
         l = ch.lower()
-        if l != ch and len(l) == 1 and l in CHARSET:
+        if l != ch and len(l) == 1 and l in covered:
             out.append("\t\t[%s] = %s," % (lua_string(ch), lua_string(l)))
     out.append("\t},")
     out.append("}")
     with open(os.path.join(theme, "Scripts", "VOLT26_CutoutMetrics.lua"), "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(out) + "\n")
-    print("cell %dx%d, page %dx%d, %d glyphs, baseline %d" % (cell_w, cell_h, tex_w, tex_h, len(CHARSET), baseline))
 
 
 if __name__ == "__main__":

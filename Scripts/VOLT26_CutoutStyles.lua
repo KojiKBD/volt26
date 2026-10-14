@@ -2,11 +2,9 @@
 -- known before their screen opens (profile names, pack names, the credit
 -- line), in one place.
 --
--- The screens build their slots from these entries, and the startup warm-up
--- (Scripts/VOLT26_CutoutCache.lua) pre-renders the same strings with the same
--- entries.  The cache is keyed by the string, the lettering options and the
--- drawn size, so a slot only finds a pre-rendered string when both sides use
--- exactly these numbers: change a slot's size here, not in its screen.
+-- The screens build their slots from these entries: change a slot's size
+-- here, not in its screen.  (The lettering itself is baked into the cutout
+-- fonts, see Scripts/VOLT26_Cutout.lua.)
 --
 -- Design entries are in pixels of the screens' 1920x1080 artboards; Style()
 -- answers them in theme units.  Scale "Fit" uses the music kit's scale
@@ -66,7 +64,7 @@ Cutout.StyleDesign = {
 }
 
 -- The letters of the lettered grades, drawn in cutout lettering (styles
--- SongGrade, SongGradeP1, SongGradeP2) and pre-rendered once at startup.  The
+-- SongGrade, SongGradeP1, SongGradeP2; the large cutout fonts carry them).  The
 -- star grades (Tier00-04) are drawn with the grade star picture instead.
 Cutout.GradeLetters = {
 	Grade_Tier05 = "S+", Grade_Tier06 = "S", Grade_Tier07 = "S-",
