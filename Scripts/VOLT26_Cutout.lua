@@ -600,7 +600,15 @@ function Cutout.CreateSlot(params)
 		end
 
 		if not state.passes or not drawnOpaque(slot, waited()) then return end
-		state.pass = state.pass + 1
+		-- A pass only counts once it has really been drawn into the texture
+		-- (state.drew, set by the Ink frame's draw function).  Once the
+		-- patience above runs out, a pass can be set up on a frame where the
+		-- slot is not drawn after all (an ancestor still at alpha 0, or one
+		-- that never draws), and moving on regardless lost the first pass --
+		-- the one that clears the texture -- so a new name was stamped over
+		-- the previous one.  An undrawn pass is set up again instead.
+		if state.pass == 0 or state.drew then state.pass = state.pass + 1 end
+		state.drew = false
 		local pass = state.passes[state.pass]
 		if not pass then
 			state.passes = nil
@@ -655,16 +663,33 @@ function Cutout.CreateSlot(params)
 				self:Create()
 				self:visible(false)
 			end,
-			Def.Quad{
+			-- Everything a pass draws, behind a draw function that records that
+			-- the pass reached the texture (see update()).
+			Def.ActorFrame{
+				Name="Ink",
 				InitCommand=function(self)
-					state.clear = self
-					-- Belt and braces for the first pass: CopySrc overwrites the
-					-- texture with this colour (see Cutout.CLEAR_ALPHA).
-					self:halign(0):valign(0):zoomto(texW, texH)
-						:diffuse(0, 0, 0, Cutout.CLEAR_ALPHA):blend("BlendMode_CopySrc"):visible(false)
+					local clear, stamp
+					self:SetDrawFunction(function(frame)
+						if not clear then
+							clear, stamp = frame:GetChild("Clear"), frame:GetChild("Stamp")
+						end
+						state.drew = true
+						clear:Draw()
+						stamp:Draw()
+					end)
 				end,
+				Def.Quad{
+					Name="Clear",
+					InitCommand=function(self)
+						state.clear = self
+						-- Belt and braces for the first pass: CopySrc overwrites the
+						-- texture with this colour (see Cutout.CLEAR_ALPHA).
+						self:halign(0):valign(0):zoomto(texW, texH)
+							:diffuse(0, 0, 0, Cutout.CLEAR_ALPHA):blend("BlendMode_CopySrc"):visible(false)
+					end,
+				},
+				stamper.Actor()..{ Name="Stamp" },
 			},
-			stamper.Actor(),
 		},
 		Def.Sprite{
 			InitCommand=function(self)
