@@ -1,9 +1,16 @@
 -- ScreenSelectMusic (and ScreenSelectCourse): the song wheel.
 --
--- The second step of music selection.  ScreenVOLT26SelectPack has already
--- chosen the pack and made one of its songs current, and the [VOLT26SongWheel]
--- wheel lists that pack alone.  Back, the close-folder buttons or the wheel's
--- BACK TO PACK SELECTION row return to the pack step through VOLT26.Navigation.
+-- In the Carousel layout (theme preference MusicSelectionLayout) this is the
+-- second step of music selection.  ScreenVOLT26SelectPack has already chosen
+-- the pack and made one of its songs current, and the [VOLT26SongWheel] wheel
+-- lists that pack alone.  Back, the close-folder buttons or the wheel's BACK
+-- TO PACK SELECTION row return to the pack step through VOLT26.Navigation.
+--
+-- In the Simply Love layout there is no pack step: the [VOLT26PackSongWheel]
+-- wheel lists every pack as a section row that opens and closes in place
+-- (Start on it, or the engine's close-folder code), the Joker stands in for
+-- the right side while a pack row is focused, and Back leaves music
+-- selection.
 --
 -- The layout is the owner's Persona-style mockup (tools/song-select): the
 -- engine MusicWheel's rows hang down a black panel on the left on a slant,
@@ -25,7 +32,10 @@ local S = LoadActor(THEME:GetPathB("ScreenSelectMusic", "overlay/SongWheel/State
 
 local modalOpen = false
 local leaving = false
-local handoff = not GAMESTATE:IsCourseMode() and VOLT26.PackSelection.TakeHandoff() or nil
+-- Whether Back and the close-folder buttons return to a pack step (the
+-- Carousel layout); courses and the Simply Love layout have none.
+local packStep = not GAMESTATE:IsCourseMode() and VOLT26.MusicSelection.UsesPackStep()
+local handoff = packStep and VOLT26.PackSelection.TakeHandoff() or nil
 local WHEEL_SLIDE = -700       -- design units the wheel travels in and out (from the left)
 local DETAILS_SLIDE = 40
 
@@ -40,6 +50,7 @@ local function layoutPart(name)
 end
 
 local function leaveMusicSelection()
+	if leaving then return end
 	local screen = SCREENMAN:GetTopScreen()
 	if not screen then return end
 	leaving = true
@@ -84,7 +95,7 @@ end
 -- Back to the pack step: the reverse.  Everything but the badge leaves; the
 -- pack step then grows its jacket out of the badge.
 local function leaveToPacks()
-	if leaving or modalOpen or GAMESTATE:IsCourseMode() then return end
+	if leaving or modalOpen or not packStep then return end
 	local screen = SCREENMAN:GetTopScreen()
 	if not screen then return end
 	leaving = true
@@ -110,7 +121,11 @@ local function input(event)
 	-- A modal overlay redirects input away from the engine; Back belongs to it.
 	local ok, redirected = pcall(function() return SCREENMAN:get_input_redirected(event.PlayerNumber) end)
 	if ok and redirected then return false end
-	leaveToPacks()
+	if packStep then
+		leaveToPacks()
+	elseif not modalOpen then
+		leaveMusicSelection()
+	end
 	return false
 end
 
@@ -125,8 +140,9 @@ local af = Def.ActorFrame{
 			-- The pack step lists the sections of the sort in force (packs
 			-- for the group sort) and the wheel opens the section of the song
 			-- it made current.  A sort the pack step does not follow falls
-			-- back to the group sort.
-			if not GAMESTATE:IsCourseMode() then
+			-- back to the group sort.  The Simply Love layout's wheel shows
+			-- every sort as it is.
+			if packStep then
 				if not VOLT26.PackSelection.FollowsSort(GAMESTATE:GetSortOrder()) then
 					wheel:ChangeSort("SortOrder_Group")
 				end

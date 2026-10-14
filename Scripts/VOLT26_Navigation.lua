@@ -17,22 +17,26 @@ function Navigation.SelectMusicOrCourse()
 	if GAMESTATE:IsCourseMode() then return "ScreenSelectCourse" end
 	-- The song wheel opens on the pack of the current or preferred song.  With
 	-- neither (for example after switching back from course mode in the Sort
-	-- Menu) there is no pack to open, so the pack step comes first.
-	if not GAMESTATE:GetCurrentSong() then
+	-- Menu) there is no pack to open, so the pack step comes first.  The
+	-- Simply Love layout has no pack step: its wheel lists every pack.
+	if VOLT26.MusicSelection.UsesPackStep() and not GAMESTATE:GetCurrentSong() then
 		local ok, preferred = pcall(function() return GAMESTATE:GetPreferredSong() end)
 		if not (ok and preferred) then return "ScreenVOLT26SelectPack" end
 	end
 	return "ScreenSelectMusic"
 end
 
--- The first entry into music selection for a set.  Songs are chosen in two
--- steps: ScreenVOLT26SelectPack picks the pack, then ScreenSelectMusic opens
--- the wheel on that pack alone.  Courses have no pack step.  Every return to
+-- The first entry into music selection for a set.  In the Carousel layout
+-- songs are chosen in two steps: ScreenVOLT26SelectPack picks the pack, then
+-- ScreenSelectMusic opens the wheel on that pack alone.  In the Simply Love
+-- layout ScreenSelectMusic lists packs and songs on one wheel.  Courses have
+-- no pack step.  Every return to
 -- music selection within the set (after evaluation, options, reloads) still
 -- goes through SelectMusicOrCourse and lands on the song wheel of the pack the
 -- players were already in.
 function Navigation.EnterMusicSelection()
 	if GAMESTATE:IsCourseMode() then return "ScreenSelectCourse" end
+	if not VOLT26.MusicSelection.UsesPackStep() then return "ScreenSelectMusic" end
 	return "ScreenVOLT26SelectPack"
 end
 
@@ -139,9 +143,12 @@ function Navigation.AfterSelectMusic()
 end
 
 -- Backing out of the song wheel returns to the pack step; backing out of the
--- pack step (or of the course wheel, which has none) leaves music selection.
+-- pack step (or of a wheel with none: courses, the Simply Love layout) leaves
+-- music selection.
 function Navigation.CancelMusicSelection()
-	if not GAMESTATE:IsCourseMode() then return "ScreenVOLT26SelectPack" end
+	if not GAMESTATE:IsCourseMode() and VOLT26.MusicSelection.UsesPackStep() then
+		return "ScreenVOLT26SelectPack"
+	end
 	return Navigation.LeaveMusicSelection()
 end
 

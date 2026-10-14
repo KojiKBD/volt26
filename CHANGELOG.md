@@ -6,6 +6,8 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ### Added
 
+- Two music selection layouts, chosen on the first launch and in VOLT26 Options (Song Selection): **Carousel** (pack carousel plus song wheel, as before) and **Simply Love** (one wheel of songs and packs; packs open and close in place, Back leaves music selection).
+- The song wheel shows `[NO CMOD]` after the title when the subtitle carries the marker; the marker is recognised in any case, with or without brackets, and in spellings such as `NoCMod` or `No-CMod`.
 - The stage evaluation's WANTED page shows the song's name on a white plate under "WANTED" (the owner's `songname.svg`), in Helvetica Bold, with one or two players.
 
 ### Changed

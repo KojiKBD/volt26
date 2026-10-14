@@ -48,7 +48,12 @@ local function rowContent()
 	local selected = wheel and wheel:GetSelectedType() or nil
 	if selected == "WheelItemDataType_Custom" then return "", "", customLabel(), nil end
 	local ok, section = pcall(function() return wheel:GetSelectedSection() end)
-	return "", "", ok and section or "", nil
+	section = ok and section or ""
+	-- A pack row (the Simply Love layout lists them all) counts its songs,
+	-- as the wheel's own rows do (Graphics/VOLT26/SongWheel/Row.lua).
+	local okSongs, songs = pcall(function() return SONGMAN:GetSongsInGroup(section) end)
+	local count = section ~= "" and okSongs and type(songs) == "table" and #songs or 0
+	return count > 0 and ("%d SONGS"):format(count) or "", "", section, nil
 end
 
 return Def.ActorFrame{

@@ -59,7 +59,10 @@ local input = function(event)
 				overlay:queuecommand("DirectInputToEngine")
 				-- The pack step lists this sort's sections: go back to it so
 				-- the players choose one (the overlay's VOLT26SortToPacks).
-				if not GAMESTATE:IsCourseMode() and VOLT26.PackSelection.FollowsSort(focus.sort_by) then
+				-- The Simply Love layout has no pack step; its wheel re-sorts
+				-- in place.
+				if not GAMESTATE:IsCourseMode() and VOLT26.MusicSelection.UsesPackStep()
+					and VOLT26.PackSelection.FollowsSort(focus.sort_by) then
 					overlay:queuecommand("VOLT26SortToPacks")
 				end
 			elseif focus.kind == "PersonalPlaylist" then
