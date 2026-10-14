@@ -45,7 +45,7 @@ if transitionData and transitionData.lightweight then
 	return af
 end
 
-return Def.Sprite{
+local receiver = Def.Sprite{
 	InitCommand=function(self)
 		self:Center():scaletoclipped(_screen.w, _screen.h)
 			:draworder(1000):diffusealpha(0)
@@ -93,3 +93,15 @@ return Def.Sprite{
 		self.Volt26Data = nil
 	end
 }
+
+-- The frames still to play stay loaded (the screen that started the sequence
+-- had them already, so this costs nothing while it is still alive).
+local data = SL.Global.Volt26TransData
+local af = Def.ActorFrame{
+	InitCommand=function(self) self:draworder(1000) end,
+	receiver,
+}
+if data and data.paths and data.next_frame then
+	VOLT26.PreloadTransitionFrames(af, data.paths, data.next_frame)
+end
+return af

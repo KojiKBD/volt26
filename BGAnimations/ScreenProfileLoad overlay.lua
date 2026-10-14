@@ -36,6 +36,8 @@ if covered then
 		Texture=covered,
 		InitCommand=function(self) self:Center():scaletoclipped(_screen.w, _screen.h) end,
 	}
+	-- The frames still to come stay loaded for the screen after this one.
+	VOLT26.PreloadTransitionFrames(af, data.paths, data.next_frame)
 end
 
 return af

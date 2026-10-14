@@ -68,7 +68,17 @@ end
 
 -- queuecommand chains do not count as tween time, so the frame holding the
 -- sprite sleeps for the whole covering half.
-return Def.ActorFrame{
+local af = Def.ActorFrame{
 	OffCommand=function(self) self:sleep(duration) end,
 	transition,
 }
+
+-- The whole sequence is loaded with the screen, by hidden sprites that keep
+-- every frame's texture alive, so the transition's Load calls find them ready
+-- instead of decoding and uploading a full-screen picture every 1/30 s (the
+-- cabinet could not keep up).  The frames are 960x540 for this
+-- (tools/title-menu/shrink_transition_frames.py): 4 MB each.  The next screen
+-- loads while this one still holds them, so the receiver finds them too.
+VOLT26.PreloadTransitionFrames(af, paths, 1)
+
+return af
