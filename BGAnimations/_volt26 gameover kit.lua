@@ -38,6 +38,7 @@ local function file(name) return THEME:GetPathG("", "VOLT26/GameOver/" .. name .
 local FILES = {
 	Bands = "bands", Rank = "rank", JacketFrame = "jacket_frame",
 	ScorePlate = "score_plate", ItgLine = "underline_itg", ExLine = "underline_ex",
+	TwinsTop = "twins_top", TwinsBottom = "twins_bottom", BandArt = "band",
 }
 
 -- Layout ------------------------------------------------------------------
@@ -68,20 +69,44 @@ function G.Root(t)
 	return Def.ActorFrame(t)
 end
 
--- The ground: the artboard's navy, both halves' art and the band.  (`solo`
--- is kept for the callers; a lone player has no panel of its own.)
-function G.Background(solo)
-	return G.Root{
-		Name = "GameOverGround",
-		Def.Sprite{
-			Texture = file("background"),
-			InitCommand = function(self) self:xy(960, 540) end,
-		},
-	}
+-- The ground, in the artboard's layers: the navy, each half's art (the
+-- twins) and the band.  The summary draws its faded cards between the navy
+-- and the art, so it takes the navy alone (`groundOnly`) as its background
+-- and puts G.Layers() among its cards.  (`solo` is kept for the callers; a
+-- lone player has no panel of its own.)
+local LAYERS = { "TwinsTop", "TwinsBottom", "BandArt" }
+
+function G.Layers(order)
+	local list = {}
+	for _, name in ipairs(LAYERS) do
+		local a = Art.Pieces[name]
+		list[#list+1] = Def.Sprite{
+			Name = name,
+			Texture = file(FILES[name]),
+			InitCommand = function(self)
+				self:xy(a.X, a.Y)
+				if order then self:draworder(order) end
+			end,
+		}
+	end
+	return list
 end
 
--- A picture of the card at its place (mirrored pictures for m = -1, except
--- `upright` ones, like RANK, which must still read).
+function G.Background(solo, groundOnly)
+	local root = G.Root{
+		Name = "GameOverGround",
+		Def.Quad{
+			InitCommand = function(self)
+				self:xy(960, 540):zoomto(1920, 1080):diffuse({ Art.Ground[1], Art.Ground[2], Art.Ground[3], 1 })
+			end,
+		},
+	}
+	if not groundOnly then
+		for _, layer in ipairs(G.Layers()) do root[#root+1] = layer end
+	end
+	return root
+end
+
 function G.Piece(name, m, upright)
 	local a = Art.Pieces[name]
 	return Def.Sprite{

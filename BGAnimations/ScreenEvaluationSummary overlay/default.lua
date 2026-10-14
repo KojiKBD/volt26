@@ -29,7 +29,13 @@ if PREFSMAN:GetPreference("OnlyDedicatedMenuButtons") then
 	for _, name in ipairs({ "Left", "Right", "Up", "Down", "DownLeft", "DownRight" }) do STEP[name] = nil end
 end
 
-local function row(player, delay)
+-- Draw orders among the root's children: the faded cards under the halves'
+-- art (as in the artboard), the focused cards over it.
+local UNDER, ART, OVER = 10, 15, 20
+
+-- A player's row: SLOTS cards, children of the root itself (so the art can
+-- go between them), placed from the player's anchor.
+local function row(player, delay, root)
 	local pn = ToEnumShortString(player)
 	local a = G.Anchor(player, solo)
 	local m = a.M
@@ -40,6 +46,8 @@ local function row(player, delay)
 
 	local function wrap(i) return n > 0 and ((i - 1) % n) + 1 or 1 end
 	local function shown(o) return n > 0 and (o == 0 or (o > 0 and o < n) or (o < 0 and n > 1)) end
+	local function xAt(o) return a.X + o * G.Step * m end
+	local function alphaAt(o) return o == 0 and 1 or (o > 0 and G.Art.Card.NeighbourAlpha or 0) end
 
 	-- Puts a card at its offset from the focused one; `jump` places it there
 	-- at once (a card coming round from the other end).
@@ -51,14 +59,12 @@ local function row(player, delay)
 			G.FillCard(card, player, stage)
 		end
 		card:visible(shown(s.o))
-		local x = s.o * G.Step * m
-		local alpha = s.o == 0 and 1 or (s.o > 0 and G.Art.Card.NeighbourAlpha or 0)
-		card:draworder(10 - s.o)
-		if jump then card:stoptweening():x(x):diffusealpha(0) end
-		card:stoptweening():decelerate(MOVE):x(x):diffusealpha(alpha)
+		card:draworder(s.o == 0 and OVER or UNDER - s.o)
+		if jump then card:stoptweening():x(xAt(s.o)):diffusealpha(0) end
+		card:stoptweening():decelerate(MOVE):x(xAt(s.o)):diffusealpha(alphaAt(s.o))
 	end
 
-	local function move(frame, d)
+	local function move(d)
 		if n < 2 then return end
 		focus = wrap(focus + d)
 		for _, s in ipairs(slots) do
@@ -68,43 +74,48 @@ local function row(player, delay)
 			elseif s.o > SLOTS - 2 then s.o, jump = s.o - SLOTS, true end
 			place(s, jump)
 		end
-		frame:SortByDrawOrder()
+		root:SortByDrawOrder()
 	end
 
+	-- The row's clock and input live on an empty frame of its own.
 	local af = Def.ActorFrame{
 		Name = "Row" .. pn,
-		InitCommand = function(self) self:xy(a.X, a.Y) end,
 		OnCommand = function(self)
+			root = self:GetParent()
 			for k = 1, SLOTS do
-				slots[k] = { actor = self:GetChild("Card" .. k), o = k - 2 }
-				local card = slots[k].actor
-				card:x(slots[k].o * G.Step * m)
+				local card = root:GetChild("Card" .. pn .. k)
+				slots[k] = { actor = card, o = k - 2 }
+				card:y(a.Y)
 				place(slots[k], false)
 				card:finishtweening()
+				-- Arrive: slide in from the player's side to the card's place.
+				local x, alpha = card:GetX(), card:GetDiffuseAlpha()
+				card:x(x - 700 * m):diffusealpha(0):sleep(delay)
+					:decelerate(0.32):x(x + 14 * m):diffusealpha(alpha):decelerate(0.08):x(x)
 			end
-			self:SortByDrawOrder()
-			G.Arrive(self, m, delay)
+			root:SortByDrawOrder()
 			local wait, elapsed = AUTO + 1, 0
 			self.rest = function() wait, elapsed = PAUSE, 0 end
-			self:SetUpdateFunction(function(frame, dt)
+			self:SetUpdateFunction(function(_, dt)
 				elapsed = elapsed + (dt or 0)
 				if elapsed >= wait then
 					elapsed, wait = 0, AUTO
-					move(frame, 1)
+					move(1)
 				end
 			end)
 		end,
 		MoveCommand = function(self, p)
 			self.rest()
-			move(self, p.Dir)
+			move(p.Dir)
 		end,
 		OffCommand = function(self)
 			self:SetUpdateFunction(nil)
-			G.Leave(self, m)
+			for _, s in ipairs(slots) do G.Leave(s.actor, m) end
 		end,
 	}
-	for k = 1, SLOTS do af[#af+1] = G.Card("Card" .. k, m) end
-	return af
+	local cards = {}
+	for k = 1, SLOTS do cards[k] = G.Card("Card" .. pn .. k, m) end
+	return af, cards
 end
 
 local t = G.Root{
@@ -123,6 +134,11 @@ local t = G.Root{
 		if r then r:playcommand("Move", { Dir = d }) end
 	end,
 }
-for i, player in ipairs(players) do t[#t+1] = row(player, 0.1 + (i - 1) * 0.08) end
+for i, player in ipairs(players) do
+	local af, cards = row(player, 0.1 + (i - 1) * 0.08)
+	t[#t+1] = af
+	for _, card in ipairs(cards) do t[#t+1] = card end
+end
+for _, layer in ipairs(G.Layers(ART)) do t[#t+1] = layer end
 
 return t

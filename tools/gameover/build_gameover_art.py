@@ -78,13 +78,16 @@ def main():
     board = json.loads((ART / "items.json").read_text(encoding="utf-8"))
     card = ART / "card"
 
-    # The ground: navy, both halves' art and the band, as one opaque picture.
-    ground = stack(ART, [0, 2, 3, 4])
-    flat = Image.new("RGB", ground.size, (0, 0, 0))
-    flat.paste(ground, mask=ground.getchannel("A"))
-    flat.save(OUT / "background.png", optimize=True)
-
+    # The ground in layers, so the screens can slip things between them (the
+    # summary's faded cards go under the halves' art, as in the mockup): the
+    # navy (a flat colour, drawn as a quad), each half's art (64% opaque in
+    # the artboard, kept in the pictures' alpha) and the band.
+    navy = item(ART, 0).getpixel((960, 540))
+    (OUT / "background.png").unlink(missing_ok=True)
     pieces = {
+        "TwinsTop": save_piece("twins_top", item(ART, 2)),
+        "TwinsBottom": save_piece("twins_bottom", item(ART, 3)),
+        "BandArt": save_piece("band", item(ART, 4)),
         "Bands": save_piece("bands", stack(card, [4, 3])),
         "Rank": save_piece("rank", stack(card, [5, 6, 7, 8])),
         "JacketFrame": save_piece("jacket_frame", item(card, 1)),
@@ -102,6 +105,7 @@ def main():
     step = board[1]["bounds"][0] - board[5]["bounds"][0]
     band = bbox(ART, 4)
     art = {
+        "Ground": [round(c / 255, 4) for c in navy[:3]],
         "Card": {"P1": {"X": p1["X"], "Y": p1["Y"]}, "P2": {"X": p2["X"], "Y": p2["Y"]},
                  "Step": step, "NeighbourAlpha": board[1]["opacity"] / 100},
         "Band": band,
