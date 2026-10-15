@@ -74,16 +74,24 @@ end
 -- (ScreenVOLT26SecretReload, OnlyLoadAdditions); a song that changed needs a
 -- full reload (ScreenVOLT26SecretReloadAll).  Either is tried once per run, so
 -- a copy that cannot be loaded never loops.
+--
+-- Right after a copy the file manager's cached listing may not show the new
+-- files yet, so a copy made now counts as being on disk.
 function Secret.AfterWarmup()
 	local ok, copied = pcall(Secret.Install)
-	if not ok then Warn("VOLT26.Secret: " .. tostring(copied)) end
-	local onDisk = FILEMAN:DoesFileExist(targetDir() .. Secret.Files[1])
+	if not ok then
+		Warn("VOLT26.Secret: " .. tostring(copied))
+		copied = false
+	end
+	local onDisk = copied or FILEMAN:DoesFileExist(targetDir() .. Secret.Files[1])
+	local loaded = Secret.Song() ~= nil
+	Trace(("VOLT26.Secret: copied=%s onDisk=%s loaded=%s"):format(tostring(copied), tostring(onDisk), tostring(loaded)))
 	if Secret.reloaded or not onDisk then return "ScreenInit" end
-	if not Secret.Song() then
+	if not loaded then
 		Secret.reloaded = true
 		return "ScreenVOLT26SecretReload"
 	end
-	if ok and copied then
+	if copied then
 		Secret.reloaded = true
 		return "ScreenVOLT26SecretReloadAll"
 	end
