@@ -188,6 +188,24 @@ Rows.Mini = {
 	end,
 }
 
+-- --------------------------------------------------------------- reverse
+
+-- The receptors at the bottom and the arrows rising to them.  Both sides of a
+-- shared-sides style play one note field, so the change lands on both.
+Rows.Reverse = {
+	Label = function() return title("Reverse") end,
+	Value = function(player)
+		return THEME:GetString("ScreenSelectMusic",
+			VOLT26.Options.IsReverse(player) and "QuickModsOn" or "QuickModsOff")
+	end,
+	Change = function(player)
+		local reversed = not VOLT26.Options.IsReverse(player)
+		for peer in ivalues(peers(player)) do
+			VOLT26.Options.SetReverse(peer, reversed)
+		end
+	end,
+}
+
 -- ----------------------------------------------------------- perspective
 
 -- The engine keeps a perspective as a skew and a tilt rather than as a name, so
@@ -357,7 +375,7 @@ Rows.MusicRate = {
 -- the rate and the background filter are not, because neither changes what the
 -- preview beside the menu can show.
 Rows.Default = {
-	"SpeedModType", "SpeedMod", "Mini", "Perspective",
+	"SpeedModType", "SpeedMod", "Mini", "Reverse", "Perspective",
 	"NoteSkin", "NoteSkinVariant",
 	"JudgmentGraphic", "ComboFont", "HoldJudgment",
 }

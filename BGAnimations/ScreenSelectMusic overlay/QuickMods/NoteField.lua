@@ -4,7 +4,9 @@ local player = args.Player
 local shared = args.Sources
 local Sources = args.SourcesModule
 local receptorY = args.ReceptorY
+local reverseY = args.ReverseY
 local bottomY = args.BottomY
+local topY = args.TopY
 local pn = ToEnumShortString(player)
 
 -- The live preview: this player's note field, at the size gameplay draws it,
@@ -62,6 +64,13 @@ local function songCeilingBpm()
 	local ceiling = ok and type(bpms) == "table" and tonumber(bpms[2]) or nil
 	if ceiling and ceiling > 0 then return ceiling end
 	return demoBpm
+end
+
+-- Reverse turns the field upside down without turning the arrows: the
+-- receptors stand where ScreenGameplay puts reversed ones and every note is
+-- measured from them upwards instead of downwards.
+local function reversed()
+	return VOLT26.Options.IsReverse(player)
 end
 
 -- Pixels per demo beat.  An x-mod is a multiple of the 1x beat pitch; an m-mod
@@ -168,14 +177,21 @@ local function draw(self)
 	local zoom = lane/64
 	local pitch = pitchFor(lane)
 
-	local top, bottom = receptorY, bottomY
+	-- Every position below is a distance from the receptors along the scroll;
+	-- `at` turns one into a y on the screen and `reach` is the farthest a note
+	-- can be and still be on it.
+	local rev = reversed()
+	local origin = rev and reverseY or receptorY
+	local direction = rev and -1 or 1
+	local reach = rev and (origin - topY) or (bottomY - origin)
+	local function at(distance) return origin + direction*distance end
 	local laneOrigin = -(columnCount - 1)*lane/2
 	local function laneX(column) return laneOrigin + (column - 1)*lane end
 
 	for column = 1, columnCount do
 		local receptor = self:GetChild("Receptor_"..column)
 		if targetProxy(receptor, Sources.Key(skin, column, "receptor")) then
-			receptor:visible(true):xy(laneX(column), top):zoom(zoom):diffusealpha(0.55)
+			receptor:visible(true):xy(laneX(column), origin):zoom(zoom):diffusealpha(0.55)
 		end
 	end
 
@@ -190,15 +206,15 @@ local function draw(self)
 
 	local used, usedMines = 0, 0
 	for _, note in ipairs(self.notes) do
-		local y = top + relative(note.Beat) * pitch
+		local distance = relative(note.Beat) * pitch
 		local mine = note.Kind == "mine"
 		local index = mine and (usedMines + 1) or (used + 1)
 		local proxy = self:GetChild((mine and "Mine_" or "Tap_")..index)
-		if proxy and y <= bottom then
+		if proxy and distance <= reach then
 			local key = mine and Sources.Key(skin, note.Column, "mine")
 				or Sources.Key(skin, note.Column, "tap", note.Quantization)
 			if targetProxy(proxy, key) then
-				proxy:visible(true):xy(laneX(note.Column), y):zoom(zoom)
+				proxy:visible(true):xy(laneX(note.Column), at(distance)):zoom(zoom)
 			end
 			if mine then usedMines = index else used = index end
 		elseif proxy then
@@ -220,34 +236,36 @@ local function draw(self)
 		if hold then
 			local lengthBeats = hold.EndBeat - hold.Beat
 			local startBeat = relative(hold.Beat)
-			local startY, endY
+			local startD, endD
 			if startBeat > loopBeats - lengthBeats then
 				-- The head has gone past the receptors: the hold is being held,
 				-- so it stands on them the way gameplay draws an active one.
-				startY = top
-				endY = top + (startBeat - loopBeats + lengthBeats) * pitch
+				startD = 0
+				endD = (startBeat - loopBeats + lengthBeats) * pitch
 			else
-				startY = top + startBeat * pitch
-				endY = startY + lengthBeats * pitch
+				startD = startBeat * pitch
+				endD = startD + lengthBeats * pitch
 			end
-			local drawnEnd = math.min(endY, bottom)
-			if drawnEnd > startY and startY <= bottom then
+			local drawnEnd = math.min(endD, reach)
+			if drawnEnd > startD and startD <= reach then
 				local x = laneX(hold.Column)
 				local bodyLoaded = loadTexture(body,
 					holdTexture(skin, hold.Column, "Hold Body Inactive"))
 				if bodyLoaded then
 					local height = textureHeight(body, 128)
-					local repeats = (drawnEnd - startY) / math.max(1, height * zoom)
-					local vertices, lastRow = bodyVertices(lane, startY, drawnEnd, repeats)
+					local repeats = (drawnEnd - startD) / math.max(1, height * zoom)
+					-- Reversed, the head is the lower end: the body's texture
+					-- runs the other way up, as the engine flips it.
+					local vertices, lastRow = bodyVertices(lane, at(startD), at(drawnEnd), repeats)
 					body:visible(true):x(x):SetNumVertices(#vertices):SetVertices(vertices)
 
 					-- The cap closes the hold off, and only when its end is on
 					-- screen: past the bottom there is nothing to close.
 					local capLoaded = loadTexture(cap,
 						holdTexture(skin, hold.Column, "Hold BottomCap Inactive"))
-					local capHeight = math.min(18 * zoom, bottom - endY)
-					if capLoaded and endY <= bottom and capHeight > 0 then
-						local capShape = capVertices(lane, endY, capHeight, lastRow)
+					local capHeight = math.min(18 * zoom, reach - endD)
+					if capLoaded and endD <= reach and capHeight > 0 then
+						local capShape = capVertices(lane, at(endD), direction*capHeight, lastRow)
 						cap:visible(true):x(x):SetNumVertices(#capShape):SetVertices(capShape)
 					end
 				else
@@ -258,7 +276,7 @@ local function draw(self)
 				end
 
 				if targetProxy(head, Sources.Key(skin, hold.Column, "holdhead")) then
-					head:visible(true):xy(x, startY):zoom(zoom)
+					head:visible(true):xy(x, at(startD)):zoom(zoom)
 				end
 			end
 		end
