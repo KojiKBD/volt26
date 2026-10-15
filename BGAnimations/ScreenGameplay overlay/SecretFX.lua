@@ -156,6 +156,9 @@ for b = 1, BARS do
 end
 af[#af+1] = bars
 
+-- The lyrics, over the arrows and the vignette, under the flash and the black.
+af[#af+1] = LoadActor(THEME:GetPathB("ScreenGameplay", "overlay/SecretLyrics.lua"))
+
 af[#af+1] = Def.Quad{
 	Name = "Flash",
 	InitCommand = function(self) self:FullScreen():diffuse(Color.White):diffusealpha(0) end,

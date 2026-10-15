@@ -46,10 +46,13 @@ For LOST the gameplay interface is not built (`ScreenGameplay
 underlay/default.lua` hands over to `ScreenGameplay underlay/Secret.lua`);
 only the arrows remain, over:
 
-* **Blood** rising from the bottom as the music plays (ActorMultiVertex
-  layers with swaying surfaces), churning in the breakdown and surging at
-  each "break down".
-* **Lyrics** from `LosT.lrc` (`VOLT26.Secret.Lyrics`, `LyricsOffset`; the file
+* **Blood** rising from the bottom as the music plays: ActorMultiVertex
+  layers with a lumpy, swaying surface, a clotted texture drifting inside
+  (`Graphics/VOLT26/Secret/blood.png`, `tools/secret/build_blood_texture.py`),
+  a darker crust along the surface and a faint sheen; it churns in the
+  breakdown and surges at each "break down".
+* **Lyrics** (`ScreenGameplay overlay/SecretLyrics.lua`, in the middle of the
+  screen over the arrows, the same with or without Reverse) from `LosT.lrc` (`VOLT26.Secret.Lyrics`, `LyricsOffset`; the file
   already follows the chart's cuts), one line at a time in a heavy condensed
   sans (`Fonts/Secret`, `tools/secret/build_lyrics_font.py`) with a light RGB
   split that jolts on each new line; the chorus and "break down" lines are

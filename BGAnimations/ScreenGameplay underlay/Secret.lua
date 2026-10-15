@@ -1,16 +1,15 @@
 -- The hidden song's gameplay (VOLT26.Secret): nothing but the arrows over its
 -- own scenery.  The gameplay interface is not built for it (ScreenGameplay
 -- underlay/default.lua), and the engine's judgment, combo and lyrics are
--- hidden here.
+-- hidden here.  The lyrics draw over the arrows (ScreenGameplay overlay/
+-- SecretLyrics.lua).
 --
---   * Blood rises from the bottom of a black screen as the song plays and
---     reaches the top as the music ends: a dark liquid whose surface sways in
---     two slow waves, with a lighter sheen on it and a darker layer behind.
---   * The lyrics (VOLT26.Secret.Lyrics, from the song's .lrc) show one line at
---     a time behind the arrows, in a heavy condensed sans (Fonts/Secret
---     Lyrics Fill / Edge, tools/secret/build_lyrics_font.py) with a light RGB
---     split: each new line lands with a jolt and a wider split that settles
---     at once, and the line trembles a little more as the blood rises.
+-- Blood rises from the bottom of a black screen as the song plays and reaches
+-- the top as the music ends: thick, dirty blood -- a clotted texture
+-- (Graphics/VOLT26/Secret/blood.png, tools/secret/build_blood_texture.py)
+-- drifting slowly inside a liquid with a lumpy, swaying surface, a darker
+-- crust along it, a faint sheen on top and a darker layer behind.  The
+-- breakdown churns it and each "break down" makes it surge.
 local song = GAMESTATE:GetCurrentSong()
 local length = song and tonumber(song:MusicLengthSeconds()) or 0
 if not length or length <= 0 then length = 1 end
@@ -18,31 +17,69 @@ if not length or length <= 0 then length = 1 end
 local scale = SCREEN_HEIGHT / 1080
 local W, H, BOTTOM = SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BOTTOM
 
--- Blood ------------------------------------------------------------------------
-local COLUMNS = 48
-local SURFACE = color("#9e0008")      -- at the surface
-local DEPTH = color("#330002")        -- at the bottom
-local BACK = color("#4d0004")         -- the layer behind
-local SHEEN = color("#ff3a3a59")      -- the line along the surface
-local WAVE = { 9, 0.0042, 1.1, 5, 0.011, -1.7 }   -- amp, freq (per unit), speed; twice
+local COLUMNS = 72
+local TILE = 420 * scale              -- the texture's size on screen
+local SURFACE = color("#a3000b")      -- at the surface
+local DEPTH = color("#2e0002")        -- at the bottom
+local BACK = color("#450003")         -- the layer behind
+local CRUST = color("#1c0000b0")      -- the clotted band under the surface
+local CRUST_DEPTH = 34                -- its depth, design pixels
+local SHEEN = color("#ff4a4a40")      -- the line along the surface
+local WAVE = { 8, 0.0042, 1.0, 4, 0.011, -1.6 }   -- amp, freq (per unit), speed; twice
+local LUMPS = 7                       -- design pixels of lumpiness
+
+-- Lumps: a fixed, smoothed random height per column that breathes slowly.
+math.randomseed(26)
+local lumps = {}
+for i = 0, COLUMNS do lumps[i] = math.random() * 2 - 1 end
+for _ = 1, 2 do
+	local smooth = {}
+	for i = 0, COLUMNS do
+		smooth[i] = (lumps[math.max(0, i - 1)] + 2 * lumps[i] + lumps[math.min(COLUMNS, i + 1)]) / 4
+	end
+	lumps = smooth
+end
 
 -- `rough` scales the waves (the breakdown churns the surface).
 local rough = 1
 
-local function surfaceY(x, t, level, phase)
+local function surfaceY(i, x, t, level, phase)
 	local a1, k1, w1, a2, k2, w2 = WAVE[1], WAVE[2], WAVE[3], WAVE[4], WAVE[5], WAVE[6]
 	local wave = a1 * math.sin(x / scale * k1 + t * w1 + phase)
 		+ a2 * rough * math.sin(x / scale * k2 + t * w2 * (0.5 + rough * 0.5) + phase * 2)
-	return level + wave * rough * scale
+	local lump = LUMPS * lumps[i] * (0.75 + 0.25 * math.sin(t * 0.5 + i * 0.9 + phase))
+	return level + (wave * rough + lump) * scale
 end
 
-local function fill(amv, level, t, phase, top, bottom)
+-- The liquid, textured: the texture drifts slowly with time.
+local function fill(amv, level, t, phase, top, bottom, textured)
 	local v = {}
+	local du, dv = t * 0.012, -t * 0.02
 	for i = 0, COLUMNS do
 		local x = W * i / COLUMNS
-		local y = math.min(BOTTOM, surfaceY(x, t, level, phase))
+		local y = math.min(BOTTOM, surfaceY(i, x, t, level, phase))
+		if textured then
+			v[#v+1] = { { x, y, 0 }, top, { x / TILE + du, y / TILE + dv } }
+			v[#v+1] = { { x, BOTTOM, 0 }, bottom, { x / TILE + du, BOTTOM / TILE + dv } }
+		else
+			v[#v+1] = { { x, y, 0 }, top }
+			v[#v+1] = { { x, BOTTOM, 0 }, bottom }
+		end
+	end
+	amv:SetVertices(v)
+	amv:SetDrawState{ Mode = "DrawMode_QuadStrip", First = 1, Num = #v }
+end
+
+-- A band that follows the surface: from it to `depth` below, `top` fading
+-- to transparent.
+local function band(amv, level, t, depth, top)
+	local v = {}
+	local clear = { top[1], top[2], top[3], 0 }
+	for i = 0, COLUMNS do
+		local x = W * i / COLUMNS
+		local y = math.min(BOTTOM, surfaceY(i, x, t, level, 0))
 		v[#v+1] = { { x, y, 0 }, top }
-		v[#v+1] = { { x, BOTTOM, 0 }, bottom }
+		v[#v+1] = { { x, math.min(BOTTOM, y + depth), 0 }, clear }
 	end
 	amv:SetVertices(v)
 	amv:SetDrawState{ Mode = "DrawMode_QuadStrip", First = 1, Num = #v }
@@ -52,40 +89,10 @@ local function sheen(amv, level, t)
 	local v = {}
 	for i = 0, COLUMNS do
 		local x = W * i / COLUMNS
-		v[#v+1] = { { x, math.min(BOTTOM, surfaceY(x, t, level, 0)) + 2 * scale, 0 }, SHEEN }
+		v[#v+1] = { { x, math.min(BOTTOM, surfaceY(i, x, t, level, 0)) + 1.5 * scale, 0 }, SHEEN }
 	end
 	amv:SetVertices(v)
 	amv:SetDrawState{ Mode = "DrawMode_LineStrip", First = 1, Num = #v }
-end
-
--- Lyrics ----------------------------------------------------------------------------
-local LYRIC_Y = 0.72                  -- of the screen height
-local LYRIC_CAP = 56                  -- cap height, in 1920x1080 design pixels
-local FONT_CAP = 78                   -- the font's cap height at zoom 1
-local lyricZoom = LYRIC_CAP * scale / FONT_CAP
-local SPLIT = 1.6                     -- resting RGB split, design pixels
-local SPLIT_HIT = 8                   -- extra split when a line lands
-local SETTLE = 0.12                   -- how fast it settles, seconds
-local TREMBLE = { 0.4, 2.2 }          -- jitter at the start and at the end, design pixels
-local TREMBLE_RATE = 1 / 14           -- seconds between jitter steps
-
--- Lines the song leans on, lettered bigger and in red.
-local EMPHASIS = { "why am i this way", "break down", "terribly lost" }
-local function emphasised(text)
-	local lower = text:lower()
-	for _, key in ipairs(EMPHASIS) do
-		if lower:find(key, 1, true) then return true end
-	end
-	return false
-end
-
-local function lyricText(font, name, tint)
-	return LoadFont(font)..{
-		Name = name,
-		InitCommand = function(self)
-			self:zoom(lyricZoom):maxwidth(W * 0.92 / lyricZoom):diffuse(tint)
-		end,
-	}
 end
 
 local function progress(t)
@@ -110,63 +117,21 @@ return Def.ActorFrame{
 		end
 
 		local blood = self:GetChild("Blood")
-		local lyric = self:GetChild("Lyric")
-		local lines = VOLT26.Secret.Lyrics()
 		local T = VOLT26.Secret.Timeline()
-		local shown, landed, nextJitter = -1, -10, 0
-		local jx, jy = 0, 0
 		self:SetUpdateFunction(function(frame)
 			local music = GAMESTATE:GetCurMusicSeconds()
 			local clock = GetTimeSinceStart()
 			local p = progress(music)
-
-			-- Blood: the breakdown churns it, and each "break down" makes it
-			-- surge up for a moment.
 			local breakdown = VOLT26.Secret.Within(T.Breakdown, music, 0.6)
 			local since = breakdown > 0 and VOLT26.Secret.SinceLast(T.Breaks, music) or nil
 			local surge = since and math.exp(-since / 0.6) or 0
 			rough = 1 + 1.6 * breakdown + 1.5 * surge
 			local level = BOTTOM - H * p - H * 0.05 * surge
-			fill(blood:GetChild("Back"), level - 7 * scale, clock, 1.9, BACK, DEPTH)
-			fill(blood:GetChild("Front"), level, clock, 0, SURFACE, DEPTH)
+			fill(blood:GetChild("Back"), level - 8 * scale, clock, 1.9, BACK, DEPTH, false)
+			fill(blood:GetChild("Front"), level, clock, 0, SURFACE, DEPTH, true)
+			band(blood:GetChild("Crust"), level, clock, CRUST_DEPTH * scale, CRUST)
 			sheen(blood:GetChild("Sheen"), level, clock)
 			blood:visible(p > 0)
-
-			-- Lyrics
-			local index = VOLT26.Secret.LyricIndexAt(music)
-			if index ~= shown then
-				shown = index
-				local line = lines[index]
-				local text = line and line.Text or ""
-				lyric:stoptweening()
-				if text == "" then
-					lyric:linear(0.15):diffusealpha(0)
-				else
-					local strong = emphasised(text)
-					local size = strong and 1.25 or 1
-					text = text:upper()
-					for _, name in ipairs({ "Edge", "Cyan", "Red", "Fill" }) do
-						-- The frame's zoom grows emphasised lines; the width
-						-- limit shrinks to match, so a long one still fits.
-						lyric:GetChild(name):maxwidth(W * 0.92 / (lyricZoom * size)):settext(text)
-					end
-					lyric:GetChild("Fill"):diffuse(strong and color("#ff2a2a") or Color.White)
-					landed = clock
-					lyric:diffusealpha(0):zoom(size * 1.12):decelerate(0.1):diffusealpha(1):zoom(size)
-				end
-			end
-			local since = clock - landed
-			local hit = math.exp(-math.max(0, since) / SETTLE)
-			if clock >= nextJitter then
-				nextJitter = clock + TREMBLE_RATE
-				local amp = (TREMBLE[1] + (TREMBLE[2] - TREMBLE[1]) * p + 10 * hit) * scale
-				jx, jy = (math.random() * 2 - 1) * amp, (math.random() * 2 - 1) * amp * 0.5
-			end
-			local split = (SPLIT + SPLIT_HIT * hit) * scale
-			lyric:GetChild("Cyan"):xy(jx - split, jy)
-			lyric:GetChild("Red"):xy(jx + split, jy + split * 0.3)
-			lyric:GetChild("Fill"):xy(jx, jy)
-			lyric:GetChild("Edge"):xy(jx, jy)
 		end)
 	end,
 	OffCommand=function(self) self:SetUpdateFunction(nil) end,
@@ -179,18 +144,17 @@ return Def.ActorFrame{
 		Name="Blood",
 		InitCommand=function(self) self:visible(false) end,
 		Def.ActorMultiVertex{ Name="Back" },
-		Def.ActorMultiVertex{ Name="Front" },
+		Def.ActorMultiVertex{
+			Name="Front",
+			InitCommand=function(self)
+				self:LoadTexture(THEME:GetPathG("", "VOLT26/Secret/blood.png"))
+				self:texturewrapping(true)
+			end,
+		},
+		Def.ActorMultiVertex{ Name="Crust" },
 		Def.ActorMultiVertex{
 			Name="Sheen",
-			InitCommand=function(self) self:SetLineWidth(3 * scale) end,
+			InitCommand=function(self) self:SetLineWidth(2.5 * scale) end,
 		},
-	},
-	Def.ActorFrame{
-		Name="Lyric",
-		InitCommand=function(self) self:xy(SCREEN_CENTER_X, H * LYRIC_Y):diffusealpha(0) end,
-		lyricText("Secret Lyrics Edge", "Edge", Color.Black),
-		lyricText("Secret Lyrics Fill", "Cyan", color("#00e6ff8c")),
-		lyricText("Secret Lyrics Fill", "Red", color("#ff00288c")),
-		lyricText("Secret Lyrics Fill", "Fill", Color.White),
 	},
 }
