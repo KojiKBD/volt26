@@ -36,8 +36,8 @@ Secret.LyricsOffset = -3
 Secret.Difficulty = "Difficulty_Challenge"
 Secret.Presses = 5          -- left+right presses in a row
 Secret.Window = 2.0         -- longest pause between two of them, in seconds
--- Traces every arrow the song select feeds to the log (for testing).
-Secret.Debug = true
+-- Traces every arrow the song select feeds to the log (set true when testing).
+Secret.Debug = false
 
 -- The arrows that must be down together.
 local ARROWS = { "Left", "Right" }
