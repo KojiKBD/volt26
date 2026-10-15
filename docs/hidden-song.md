@@ -1,8 +1,10 @@
 # Hidden song ("Are you LOST?")
 
-An Event Mode easter egg (`codex/lost-easter-egg`). On the song select, all
-four pad arrows pressed together five times in a row (at most 2 s apart, no
-other button in between, either player) start a song that is not on the
+An Event Mode easter egg (`codex/lost-easter-egg`). On the song select, the
+pad's left and right arrows pressed together five times in a row (at most 2 s
+apart, no other button in between, either player; the first version asked
+for all four arrows, which many keyboards cannot report at once) start a song
+that is not on the
 wheel, for every joined player: `ScreenVOLT26Lost` shows "Are you LOST?" on
 black (LOST? in red, cutout lettering) and the chart begins.
 

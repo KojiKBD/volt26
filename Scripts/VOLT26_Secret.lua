@@ -1,7 +1,9 @@
 -- VOLT26.Secret: the hidden song, "Are you LOST?".
 --
--- In Event Mode, on the song select, all four pad arrows pressed together five
--- times in a row start a song nobody can find on the wheel, for every joined
+-- In Event Mode, on the song select, the pad's left and right arrows pressed
+-- together five times in a row start a song nobody can find on the wheel (with
+-- dedicated menu buttons no other code uses the pair; the four arrows were
+-- dropped because many keyboards cannot report four keys at once), for every joined
 -- player: a black screen says "Are you LOST?" (ScreenVOLT26Lost) and the chart
 -- begins.
 --
@@ -24,13 +26,14 @@ Secret.Group = "VOLT26 Secret"
 Secret.Folder = "LosT"
 Secret.Files = { "LosT.ssc", "LosT.ogg" }
 Secret.Difficulty = "Difficulty_Challenge"
-Secret.Presses = 5          -- four-arrow presses in a row
+Secret.Presses = 5          -- left+right presses in a row
 Secret.Window = 2.0         -- longest pause between two of them, in seconds
 -- Traces every arrow the song select feeds to the log (for testing).
 Secret.Debug = true
 
-local ARROWS = { "Left", "Down", "Up", "Right" }
-local isArrow = { Left = true, Down = true, Up = true, Right = true }
+-- The arrows that must be down together.
+local ARROWS = { "Left", "Right" }
+local isArrow = { Left = true, Right = true }
 
 local function sourceDir()
 	return THEME:GetCurrentThemeDirectory() .. "Other/" .. Secret.Group .. "/" .. Secret.Folder .. "/"
@@ -125,7 +128,7 @@ function Secret.IsAvailable()
 		and Secret.Song() ~= nil
 end
 
--- Feeds one input event of the song select.  Each moment all four arrows of a
+-- Feeds one input event of the song select.  Each moment both arrows of a
 -- player are down counts once; any other button starts the count over.
 -- Answers true when the code is complete.
 function Secret.Feed(event)
@@ -155,7 +158,7 @@ function Secret.Feed(event)
 	last[pn] = now
 	count[pn] = (count[pn] or 0) + 1
 	if Secret.Debug then
-		Trace(("VOLT26.Secret: four arrows, %d of %d"):format(count[pn], Secret.Presses))
+		Trace(("VOLT26.Secret: left+right, %d of %d"):format(count[pn], Secret.Presses))
 	end
 	if count[pn] < Secret.Presses then return false end
 	Secret.ResetInput()

@@ -113,7 +113,7 @@ local function leaveToPacks()
 	screen:Cancel()
 end
 
--- The hidden song (VOLT26.Secret): the four arrows together, five times, in
+-- The hidden song (VOLT26.Secret): left and right together, five times, in
 -- Event Mode.  The screen goes to the stinger, which starts the chart.
 local function startSecret()
 	if leaving or modalOpen then return end
