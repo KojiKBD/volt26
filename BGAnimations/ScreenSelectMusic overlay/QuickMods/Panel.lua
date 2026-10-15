@@ -67,7 +67,7 @@ local boxH = headH + padY*2 + entries*rowH + exitGap
 -- The slab leans like the dock, so its bottom corner reaches further out than
 -- its top one; the margins keep both, and the shadow, on the screen.
 local overhang = math.abs(L.Slant) * boxH/2
-local boxY = L.HalfH - 72 - boxH
+local boxY = L.HalfH - 40 - boxH
 local boxX = (player == PLAYER_1) and (-L.HalfW + 40 + overhang)
 	or (L.HalfW - 40 - overhang - L.SlabShadow[1] - boxW)
 local boxCX, boxCY = boxX + boxW/2, boxY + boxH/2
@@ -498,22 +498,6 @@ slide[#slide+1] = Def.ActorFrame{
 	},
 	L.TagText{Name = "Player", Text = pn, Px = 22, Tint = accent, Align = center, X = badgeW/2},
 	L.TagText{Name = "Name", Px = 26, Tint = L.Black, Align = left, X = badgeW + 13},
-}
-
--- The instruction line, on a strip of its own under the slab.
-local hintY = boxY + boxH + L.SlabEdge + 34
-slide[#slide+1] = Def.ActorFrame{
-	Name = "Hint",
-	InitCommand = function(self) self:xy(boxCX + lean(hintY), hintY) end,
-	OnCommand = function(self)
-		local text = self:GetChild("Text")
-		L.SetLabel(text, THEME:GetString("ScreenSelectMusic", "QuickModsHint"), 11, boxW)
-		L.SlantTo(self:GetChild("Edge"), text:GetZoomedWidth() + 36, 32)
-		L.SlantTo(self:GetChild("Fill"), text:GetZoomedWidth() + 32, 28)
-	end,
-	Def.Quad{Name = "Edge", InitCommand = function(self) self:diffuse(L.White) end},
-	Def.Quad{Name = "Fill", InitCommand = function(self) self:diffuse(L.Black) end},
-	L.LabelText{Name = "Text", Px = 11, Tint = L.White, Align = center},
 }
 
 box[#box+1] = slide
