@@ -125,6 +125,10 @@ local function startSecret()
 end
 
 local function secretInput(event)
+	if VOLT26.Secret.Debug and event and event.type == "InputEventType_FirstPress" then
+		Trace(("VOLT26.Secret: input %s / %s / %s, leaving=%s modal=%s"):format(tostring(event.GameButton),
+			tostring(event.button), tostring(event.PlayerNumber), tostring(leaving), tostring(modalOpen)))
+	end
 	if leaving or modalOpen then return false end
 	if VOLT26.Secret.Feed(event) then startSecret() end
 	return false

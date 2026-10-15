@@ -46,9 +46,14 @@ end
 -- Installing ----------------------------------------------------------------
 
 local function sameFile(a, b)
-	if not FILEMAN:DoesFileExist(b) then return false end
-	if FILEMAN:GetFileSizeBytes(a) ~= FILEMAN:GetFileSizeBytes(b) then return false end
-	return FILEMAN:GetHashForFile(a) == FILEMAN:GetHashForFile(b)
+	local exists = FILEMAN:DoesFileExist(b)
+	local sizeA, sizeB = FILEMAN:GetFileSizeBytes(a), exists and FILEMAN:GetFileSizeBytes(b) or -1
+	local hashA, hashB = FILEMAN:GetHashForFile(a), exists and FILEMAN:GetHashForFile(b) or -1
+	if Secret.Debug then
+		Trace(("VOLT26.Secret: %s exists=%s size %s/%s hash %s/%s"):format(b, tostring(exists),
+			tostring(sizeA), tostring(sizeB), tostring(hashA), tostring(hashB)))
+	end
+	return exists and sizeA == sizeB and hashA == hashB
 end
 
 -- Copies the theme's song into the song folder where it is missing or
