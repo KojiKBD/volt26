@@ -267,10 +267,14 @@ for index, entry in ipairs(extras) do
 end
 
 -- The graph, over the page bodies (on every page but the QR page).  It
--- travels with the body and draws itself in once the body has landed.
+-- travels with the body and draws itself in once the body has landed.  Its
+-- slanted frame (panel_graph, cut out of the page pictures) is here too, not
+-- in the pages, so turning between pages that all have the graph leaves it
+-- still; it fades only on the way to and from the QR page.
 local graphSlide, graphInner = pivotFrame("GraphSlide", BODY_PIVOT[1], BODY_PIVOT[2])
 graphInner[#graphInner+1] = Def.ActorFrame{
 	Name="GraphFade",
+	picture("panel_graph", Art.page),
 	LoadActor("./Graph.lua", {
 		Art = Art, quad = graphQuad(), graph = VOLT26.EvaluationPage.GetGraph(player),
 		colors = { W0 = ROW.W0[1], W1 = ROW.W1[1], W2 = ROW.W2[1], W3 = ROW.W3[1], W4 = ROW.W4[1], W5 = ROW.W5[1] },

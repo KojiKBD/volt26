@@ -11,7 +11,8 @@ artwork.
 | White ground, shaded star pattern, black curve, red top band, black frame, "WANTED" | `Graphics/VOLT26/Wanted/backdrop.png`, drawn by `BGAnimations/ScreenEvaluationStage background.lua`. Shared by both players. The band and the stars come from the owner's own Illustrator export (`bg_wanted.png`), since the SVG loses the band's picture and the stars' shading. The band is a fixed picture, not the song's. |
 | Song background in the frame's spiky window | `overlay/Wanted/Picture.lua`, in the background layer. A textured `ActorMultiVertex` on the window polygon, turned -10.5° and covering the window at the picture's own aspect. The artwork's red overlay (#f11600, hard light, 70 %) is reproduced exactly: picture × (0.377, 0.421, 0.300) plus (0.623, 0, 0) added. Movie backgrounds fall back to the jacket or banner. Without any picture the window is the overlay on black. |
 | Plates (name, level, scores) | `Graphics/VOLT26/Wanted/panel_head.png` |
-| Judgment ladder, holds box, graph frame | `Graphics/VOLT26/Wanted/panel_body.png` |
+| Judgment ladder, holds box | `Graphics/VOLT26/Wanted/panel_body.png` |
+| Graph frame (shared by every page but QR; does not turn with the pages) | `Graphics/VOLT26/Wanted/panel_graph.png` |
 | All text, the level, the scores, the counts | `overlay/Wanted/Side.lua` through `overlay/Wanted/Text.lua`, at the artwork's text anchors (position, rotation, horizontal scale). |
 | Player name, letter grade | Cutout lettering (`VOLT26.Cutout`), styles `EvalName` and `EvalGrade` in `Scripts/VOLT26_CutoutStyles.lua`; warmed at startup. Star grades (Tier00-04) use the grade star picture. |
 | Graph | `overlay/Wanted/Graph.lua` |
@@ -79,7 +80,7 @@ stay on every page.
 | Page | Body | Content |
 | --- | --- | --- |
 | `wanted` | `panel_body.png` | Judgment ladder, holds/mines/rolls, grade (above). |
-| `notes` | `panel_notes.png` (the NOTES artboard's container and graph frame) | `Wanted/Notes.lua`: Simply Love's per-column pane. The player's noteskin arrows (`_modules/NoteSkinPreview.lua`) head the columns; the seven judgments are rows in their colours, each column's counts in the row's colour. The 10/15 ms Fantastic is split per column only with the FA+ window and pane on (that is when gameplay records it); otherwise its row shows a dash. |
+| `notes` | `panel_notes.png` (the NOTES artboard's container) | `Wanted/Notes.lua`: Simply Love's per-column pane. The player's noteskin arrows (`_modules/NoteSkinPreview.lua`) head the columns; the seven judgments are rows in their colours, each column's counts in the row's colour. The 10/15 ms Fantastic is split per column only with the FA+ window and pane on (that is when gameplay records it); otherwise its row shows a dash. |
 | `timing` | `panel_notes.png` | `Wanted/Timing.lua`: Simply Love's offset pane. An offset histogram (early left, late right, bars in their windows' colours, windows' edges marked), early / late / miss counts, mean, standard deviation and largest error. |
 | `qr` | `panel_qr.png` (the QR artboard's boxes and bolt) | `Wanted/Qr.lua`: Simply Love's GrooveStats QR code (`Pane7/GrooveStatsURL.lua`), white on black as drawn. A play GrooveStats would not take shows why; an automatic submission replaces the code with "already submitted". GS BEST is the chart's GrooveStats leaderboard, from the `VOLT26GrooveStatsLeaderboard` message that `Shared/AutoSubmitScore.lua` now sends. MACHINE BEST is the machine's best scores, with this play highlighted. |
 
