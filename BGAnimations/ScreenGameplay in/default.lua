@@ -75,7 +75,7 @@ af[#af+1] = Def.ActorFrame{
 	}
 }
 
-af[#af+1] = LoadFont("Common Bold")..{
+af[#af+1] = LoadFont("Helvetica Bold")..{
 	Text=text,
 	InitCommand=function(self) self:Center():diffusealpha(0):shadowlength(1) end,
 	OnCommand=function(self)
@@ -83,13 +83,8 @@ af[#af+1] = LoadFont("Common Bold")..{
 		if not VOLT26.Gameplay.IsReload() then
 			self:accelerate(0.5):diffusealpha(1):sleep(0.66):accelerate(0.33)
 		end
-		self:zoom(0.4):y(_screen.h-30)
-
-		-- offset "stage i" text to the left or right if only one player is joined, and that player's notefield is centered
-		if #GAMESTATE:GetHumanPlayers() == 1 and GetNotefieldX( GAMESTATE:GetMasterPlayerNumber() ) == _screen.cx then
-			local player = GAMESTATE:GetHumanPlayers()[1]
-			self:x(_screen.cx + (GetNotefieldWidth()*0.5 + self:GetWidth()*0.25) * (player==PLAYER_1 and -1 or 1))
-		end
+		-- always bottom-centre, whatever the number of players or notefield position
+		self:zoom(0.6):maxwidth((_screen.w-40)/0.6):x(_screen.cx):y(_screen.h-30)
 	end,
 	CurrentSongChangedMessageCommand=function(self)
 		if GAMESTATE:IsCourseMode() then
