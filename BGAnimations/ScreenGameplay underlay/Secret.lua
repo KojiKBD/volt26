@@ -1,35 +1,88 @@
 -- The hidden song's gameplay (VOLT26.Secret): nothing but the arrows over its
 -- own scenery.  The gameplay interface is not built for it (ScreenGameplay
--- underlay/default.lua), and the engine's judgment and combo are hidden here.
+-- underlay/default.lua), and the engine's judgment, combo and lyrics are
+-- hidden here.
 --
---   * the ground is black, and red rises from the bottom as the song plays,
---     reaching the top as the music ends;
---   * the lyrics (VOLT26.Secret.Lyrics, from the song's .lrc) show one line at
---     a time in Helvetica Bold, behind the arrows.  The engine finds the .lrc
---     by itself and would print it too, in green (its LyricDisplay); that copy
---     is hidden.
+--   * Blood rises from the bottom of a black screen as the song plays and
+--     reaches the top as the music ends: a dark liquid whose surface sways in
+--     two slow waves, with a lighter sheen on it and a darker layer behind.
+--   * The lyrics (VOLT26.Secret.Lyrics, from the song's .lrc) show one line at
+--     a time behind the arrows, in a heavy condensed sans (Fonts/Secret
+--     Lyrics Fill / Edge, tools/secret/build_lyrics_font.py) with a light RGB
+--     split: each new line lands with a jolt and a wider split that settles
+--     at once, and the line trembles a little more as the blood rises.
 local song = GAMESTATE:GetCurrentSong()
 local length = song and tonumber(song:MusicLengthSeconds()) or 0
 if not length or length <= 0 then length = 1 end
 
-local RED = color("#e40001")
-local EDGE = 70             -- height of the glow above the red, in theme units at 1080
-local LYRIC_Y = 0.72        -- of the screen height
-local LYRIC_CAP = 44        -- cap height of the lyrics, in 1920x1080 design pixels
-local FONT_CAP = 26         -- Helvetica Bold's cap height at zoom 1 (Baseline - Top)
 local scale = SCREEN_HEIGHT / 1080
-local lyricZoom = LYRIC_CAP * scale / FONT_CAP
+local W, H, BOTTOM = SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_BOTTOM
 
-local function progress()
-	local t = GAMESTATE:GetCurMusicSeconds()
+-- Blood ------------------------------------------------------------------------
+local COLUMNS = 48
+local SURFACE = color("#9e0008")      -- at the surface
+local DEPTH = color("#330002")        -- at the bottom
+local BACK = color("#4d0004")         -- the layer behind
+local SHEEN = color("#ff3a3a59")      -- the line along the surface
+local WAVE = { 9, 0.0042, 1.1, 5, 0.011, -1.7 }   -- amp, freq (per unit), speed; twice
+
+local function surfaceY(x, t, level, phase)
+	local a1, k1, w1, a2, k2, w2 = WAVE[1], WAVE[2], WAVE[3], WAVE[4], WAVE[5], WAVE[6]
+	local wave = a1 * math.sin(x / scale * k1 + t * w1 + phase)
+		+ a2 * math.sin(x / scale * k2 + t * w2 + phase * 2)
+	return level + wave * scale
+end
+
+local function fill(amv, level, t, phase, top, bottom)
+	local v = {}
+	for i = 0, COLUMNS do
+		local x = W * i / COLUMNS
+		local y = math.min(BOTTOM, surfaceY(x, t, level, phase))
+		v[#v+1] = { { x, y, 0 }, top }
+		v[#v+1] = { { x, BOTTOM, 0 }, bottom }
+	end
+	amv:SetVertices(v)
+	amv:SetDrawState{ Mode = "DrawMode_QuadStrip", First = 1, Num = #v }
+end
+
+local function sheen(amv, level, t)
+	local v = {}
+	for i = 0, COLUMNS do
+		local x = W * i / COLUMNS
+		v[#v+1] = { { x, math.min(BOTTOM, surfaceY(x, t, level, 0)) + 2 * scale, 0 }, SHEEN }
+	end
+	amv:SetVertices(v)
+	amv:SetDrawState{ Mode = "DrawMode_LineStrip", First = 1, Num = #v }
+end
+
+-- Lyrics ----------------------------------------------------------------------------
+local LYRIC_Y = 0.72                  -- of the screen height
+local LYRIC_CAP = 56                  -- cap height, in 1920x1080 design pixels
+local FONT_CAP = 78                   -- the font's cap height at zoom 1
+local lyricZoom = LYRIC_CAP * scale / FONT_CAP
+local SPLIT = 1.6                     -- resting RGB split, design pixels
+local SPLIT_HIT = 8                   -- extra split when a line lands
+local SETTLE = 0.12                   -- how fast it settles, seconds
+local TREMBLE = { 0.4, 2.2 }          -- jitter at the start and at the end, design pixels
+local TREMBLE_RATE = 1 / 14           -- seconds between jitter steps
+
+local function lyricText(font, name, tint)
+	return LoadFont(font)..{
+		Name = name,
+		InitCommand = function(self)
+			self:zoom(lyricZoom):maxwidth(W * 0.92 / lyricZoom):diffuse(tint)
+		end,
+	}
+end
+
+local function progress(t)
 	return math.max(0, math.min(1, (tonumber(t) or 0) / length))
 end
 
 return Def.ActorFrame{
 	Name="SecretUnderlay",
 	OnCommand=function(self)
-		-- Only the arrows: the engine's judgment and combo go too, and its
-		-- own lyrics.
+		-- Only the arrows: the engine's judgment, combo and its own lyrics go.
 		local screen = SCREENMAN:GetTopScreen()
 		local engineLyrics = screen and screen:GetChild("LyricDisplay")
 		if engineLyrics then engineLyrics:visible(false) end
@@ -42,26 +95,54 @@ return Def.ActorFrame{
 				end
 			end
 		end
-		self.lyric = -1
+
+		local blood = self:GetChild("Blood")
+		local lyric = self:GetChild("Lyric")
+		local lines = VOLT26.Secret.Lyrics()
+		local shown, landed, nextJitter = -1, -10, 0
+		local jx, jy = 0, 0
 		self:SetUpdateFunction(function(frame)
-			local p = progress()
-			local h = SCREEN_HEIGHT * p
-			frame:GetChild("Red"):zoomto(SCREEN_WIDTH, h)
-			frame:GetChild("Edge"):y(SCREEN_BOTTOM - h):visible(p > 0)
-			local index = VOLT26.Secret.LyricIndexAt(GAMESTATE:GetCurMusicSeconds())
-			if index ~= frame.lyric then
-				frame.lyric = index
-				local line = VOLT26.Secret.Lyrics()[index]
+			local music = GAMESTATE:GetCurMusicSeconds()
+			local clock = GetTimeSinceStart()
+			local p = progress(music)
+
+			-- Blood
+			local level = BOTTOM - H * p
+			fill(blood:GetChild("Back"), level - 7 * scale, clock, 1.9, BACK, DEPTH)
+			fill(blood:GetChild("Front"), level, clock, 0, SURFACE, DEPTH)
+			sheen(blood:GetChild("Sheen"), level, clock)
+			blood:visible(p > 0)
+
+			-- Lyrics
+			local index = VOLT26.Secret.LyricIndexAt(music)
+			if index ~= shown then
+				shown = index
+				local line = lines[index]
 				local text = line and line.Text or ""
-				local lyric = frame:GetChild("Lyric")
 				lyric:stoptweening()
 				if text == "" then
 					lyric:linear(0.15):diffusealpha(0)
 				else
-					lyric:GetChild("Text"):settext(text)
-					lyric:diffusealpha(0):zoom(1.08):decelerate(0.12):diffusealpha(1):zoom(1)
+					text = text:upper()
+					for _, name in ipairs({ "Edge", "Cyan", "Red", "Fill" }) do
+						lyric:GetChild(name):settext(text)
+					end
+					landed = clock
+					lyric:diffusealpha(0):zoom(1.12):decelerate(0.1):diffusealpha(1):zoom(1)
 				end
 			end
+			local since = clock - landed
+			local hit = math.exp(-math.max(0, since) / SETTLE)
+			if clock >= nextJitter then
+				nextJitter = clock + TREMBLE_RATE
+				local amp = (TREMBLE[1] + (TREMBLE[2] - TREMBLE[1]) * p + 10 * hit) * scale
+				jx, jy = (math.random() * 2 - 1) * amp, (math.random() * 2 - 1) * amp * 0.5
+			end
+			local split = (SPLIT + SPLIT_HIT * hit) * scale
+			lyric:GetChild("Cyan"):xy(jx - split, jy)
+			lyric:GetChild("Red"):xy(jx + split, jy + split * 0.3)
+			lyric:GetChild("Fill"):xy(jx, jy)
+			lyric:GetChild("Edge"):xy(jx, jy)
 		end)
 	end,
 	OffCommand=function(self) self:SetUpdateFunction(nil) end,
@@ -70,31 +151,22 @@ return Def.ActorFrame{
 		Name="Ground",
 		InitCommand=function(self) self:FullScreen():diffuse(Color.Black) end,
 	},
-	Def.Quad{
-		Name="Red",
-		InitCommand=function(self)
-			self:halign(0.5):valign(1):xy(SCREEN_CENTER_X, SCREEN_BOTTOM)
-				:zoomto(SCREEN_WIDTH, 0):diffuse(RED)
-		end,
-	},
-	-- A soft glow on the rising edge.
-	Def.Quad{
-		Name="Edge",
-		InitCommand=function(self)
-			self:halign(0.5):valign(1):xy(SCREEN_CENTER_X, SCREEN_BOTTOM)
-				:zoomto(SCREEN_WIDTH, EDGE * scale):diffuse(RED)
-				:diffusetopedge(color("#e4000100")):visible(false)
-		end,
+	Def.ActorFrame{
+		Name="Blood",
+		InitCommand=function(self) self:visible(false) end,
+		Def.ActorMultiVertex{ Name="Back" },
+		Def.ActorMultiVertex{ Name="Front" },
+		Def.ActorMultiVertex{
+			Name="Sheen",
+			InitCommand=function(self) self:SetLineWidth(3 * scale) end,
+		},
 	},
 	Def.ActorFrame{
 		Name="Lyric",
-		InitCommand=function(self) self:xy(SCREEN_CENTER_X, SCREEN_HEIGHT * LYRIC_Y):diffusealpha(0) end,
-		LoadFont("Helvetica Bold")..{
-			Name="Text",
-			InitCommand=function(self)
-				self:zoom(lyricZoom):maxwidth(SCREEN_WIDTH * 0.92 / lyricZoom)
-					:diffuse(Color.White):shadowlength(2 * scale)
-			end,
-		},
+		InitCommand=function(self) self:xy(SCREEN_CENTER_X, H * LYRIC_Y):diffusealpha(0) end,
+		lyricText("Secret Lyrics Edge", "Edge", Color.Black),
+		lyricText("Secret Lyrics Fill", "Cyan", color("#00e6ff8c")),
+		lyricText("Secret Lyrics Fill", "Red", color("#ff00288c")),
+		lyricText("Secret Lyrics Fill", "Fill", Color.White),
 	},
 }
