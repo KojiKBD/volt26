@@ -58,6 +58,10 @@ Cutout.StyleDesign = {
 	CreditCentre = { Scale="Theme", MaxW=300, MaxH=50, Base=26, MaxChars=24 },
 	-- ScreenTitleJoin (Free Play / Pay title screen): the join prompt.
 	TitleJoinPrompt = { Scale="Theme", MaxW=440, MaxH=56, Base=28, Tilt=-3, MaxChars=32 },
+	-- ScreenSystemLayer: LOADING over the startup song reloads (ScreenSystemLayer
+	-- loading.lua).  At the regular fonts' em on a 1080p display, so it stays
+	-- sharp.
+	Loading      = { Scale="Fit", MaxW=600, MaxH=110, Base=56, Tilt=-4, MaxChars=12 },
 	-- ScreenSystemLayer: the menu timer's number, top right (ScreenSystemLayer
 	-- timer.lua).  Digits only, up to three.
 	MenuTimer    = { Scale="Theme", MaxW=90, MaxH=40, Base=26, Tilt=-4, MaxChars=3 },

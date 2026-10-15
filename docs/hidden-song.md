@@ -23,7 +23,8 @@ first arrow (about 4 s in). The song's title is LOST.
   `VOLT26.Secret.AfterWarmup`) the theme copies it to `Songs/VOLT26 Secret/LosT`
   with `FILEMAN:Copy` when it is missing or differs (size and hash), then
   reloads the songs once: `ScreenVOLT26SecretReload` (`OnlyLoadAdditions`) for
-  a new song, `ScreenVOLT26SecretReloadAll` for a changed one. Removing the
+  a new song, `ScreenVOLT26SecretReloadAll` for a changed one. The reload is covered by LOADING in cutout lettering on black
+  (`BGAnimations/ScreenSystemLayer loading.lua`, style `Loading`). Removing the
   theme leaves the folder in `Songs`; it is harmless (not selectable).
 * **Hidden:** the engine keeps unselectable songs off the wheel; the theme's
   own lists leave the `VOLT26 Secret` pack out (`VOLT26.PackSelection`

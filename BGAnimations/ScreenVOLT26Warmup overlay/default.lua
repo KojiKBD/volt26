@@ -38,13 +38,6 @@ af[#af+1] = Def.Quad{
 	end,
 }
 
-af[#af+1] = LoadFont("Common Bold")..{
-	Text="VOLT26",
-	InitCommand=function(self)
-		self:y(-36):zoom(0.82):diffuse(Color.White):shadowlength(2)
-	end,
-}
-
 af[#af+1] = VOLT26.Warmup.CreateActor("Core", {
 	Interval=0.08,
 	ShowProgress=true,

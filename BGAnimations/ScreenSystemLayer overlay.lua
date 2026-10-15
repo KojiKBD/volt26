@@ -7,6 +7,10 @@ local t = Def.ActorFrame{}
 -- top of it. See Scripts/VOLT26_Glitch.lua for where it is allowed to appear.
 t[#t+1] = VOLT26.Glitch.CreateLayer()
 
+-- LOADING on black over the song reloads the theme starts by itself (the
+-- hidden song's install); under the credit line.
+t[#t+1] = LoadActor(THEME:GetPathB("ScreenSystemLayer", "loading"))
+
 -- Cutout lettering (Scripts/VOLT26_Cutout.lua) for the credit line: the
 -- player names and the centre text (EVENT MODE, credits, free play).
 --
