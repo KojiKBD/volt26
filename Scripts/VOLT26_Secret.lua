@@ -31,8 +31,8 @@ Secret.Folder = "LosT"
 Secret.Files = { "LosT.ssc", "LosT.ogg", "LosT.lrc" }
 Secret.LyricsFile = "LosT.lrc"
 -- Seconds added to every lyrics time (the .lrc follows the released track;
--- the chart's music is cut from it: owner's sync, every line 3.1 s earlier).
-Secret.LyricsOffset = -3.1
+-- the chart's music; LosT.lrc already follows the chart's cuts: owner's sync, 3 s earlier).
+Secret.LyricsOffset = -3
 Secret.Difficulty = "Difficulty_Challenge"
 Secret.Presses = 5          -- left+right presses in a row
 Secret.Window = 2.0         -- longest pause between two of them, in seconds
