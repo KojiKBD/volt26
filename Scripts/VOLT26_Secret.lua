@@ -284,7 +284,8 @@ end
 -- ScreenGameplay overlay/SecretFX.lua), in song seconds.  The moments are
 -- taken from the lyrics, so they follow the lyrics' sync (LyricsOffset):
 --   Drunk      {from, to}  the first verse (the ketamine line), notes wobble
---   Moons      {from, to}  "Red crescent moons all over my hands", red arrows
+--   Red        {{from, to}...}  blood-red arrows: "Red crescent moons all over
+--              my hands" and every "Why am I this way?"
 --   Chorus     {{from, to}...}  zoom punches on the beat
 --   Breakdown  {from, to}  "If I keep this up" .. the last chorus: the modchart
 --   Whoa       the second half of the breakdown, harder
@@ -312,8 +313,13 @@ function Secret.Timeline()
 
 	local cut = find("i used to go")
 	if lines[1] and cut then T.Drunk = { lines[1].Time - 0.5, at(cut) } end
-	local moons = find("red crescent")
-	if moons then T.Moons = { at(moons) - 0.2, at(moons + 1) or at(moons) + 3 } end
+	T.Red = {}
+	for i, line in ipairs(lines) do
+		local text = line.Text:lower()
+		if text:find("red crescent", 1, true) or text:find("why am i this way", 1, true) then
+			T.Red[#T.Red+1] = { line.Time - 0.2, at(i + 1) or line.Time + 3 }
+		end
+	end
 	local tell1 = find("someone, tell me")
 	local keep = find("if i keep this up")
 	local tell2 = keep and find("someone, tell me", keep)

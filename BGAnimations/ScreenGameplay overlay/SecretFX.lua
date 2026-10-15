@@ -4,7 +4,8 @@
 -- (taken from the lyrics), the rhythm from the song's beat (185 BPM).
 --
 --   first verse   the notes wobble (Drunk, Tipsy), as if drugged
---   red moons     the arrows turn blood red for the line (a modulating red
+--   red lines     "Red crescent moons..." and every "Why am I this way?": the
+--                 arrows turn blood red for the line (a modulating red
 --                 filter over the field: the notefield ignores the player
 --                 frame's diffuse)
 --   choruses      zoom punches and a small shake on every beat
@@ -82,7 +83,8 @@ local af = Def.ActorFrame{
 			local pulse = math.exp(-frac * 4)            -- 1 on the beat, falling
 
 			local drunk = S.Within(T.Drunk, t, 1.2)
-			local moons = S.Within(T.Moons, t, 0.4)
+			local moons = 0
+			for _, range in ipairs(T.Red) do moons = math.max(moons, S.Within(range, t, 0.4)) end
 			local chorus = 0
 			for _, range in ipairs(T.Chorus) do chorus = math.max(chorus, S.Within(range, t, 0.3)) end
 			local breakdown = S.Within(T.Breakdown, t, 0.6)
