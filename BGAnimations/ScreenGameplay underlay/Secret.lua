@@ -26,11 +26,14 @@ local BACK = color("#4d0004")         -- the layer behind
 local SHEEN = color("#ff3a3a59")      -- the line along the surface
 local WAVE = { 9, 0.0042, 1.1, 5, 0.011, -1.7 }   -- amp, freq (per unit), speed; twice
 
+-- `rough` scales the waves (the breakdown churns the surface).
+local rough = 1
+
 local function surfaceY(x, t, level, phase)
 	local a1, k1, w1, a2, k2, w2 = WAVE[1], WAVE[2], WAVE[3], WAVE[4], WAVE[5], WAVE[6]
 	local wave = a1 * math.sin(x / scale * k1 + t * w1 + phase)
-		+ a2 * math.sin(x / scale * k2 + t * w2 + phase * 2)
-	return level + wave * scale
+		+ a2 * rough * math.sin(x / scale * k2 + t * w2 * (0.5 + rough * 0.5) + phase * 2)
+	return level + wave * rough * scale
 end
 
 local function fill(amv, level, t, phase, top, bottom)
@@ -66,6 +69,16 @@ local SETTLE = 0.12                   -- how fast it settles, seconds
 local TREMBLE = { 0.4, 2.2 }          -- jitter at the start and at the end, design pixels
 local TREMBLE_RATE = 1 / 14           -- seconds between jitter steps
 
+-- Lines the song leans on, lettered bigger and in red.
+local EMPHASIS = { "why am i this way", "break down", "terribly lost" }
+local function emphasised(text)
+	local lower = text:lower()
+	for _, key in ipairs(EMPHASIS) do
+		if lower:find(key, 1, true) then return true end
+	end
+	return false
+end
+
 local function lyricText(font, name, tint)
 	return LoadFont(font)..{
 		Name = name,
@@ -99,6 +112,7 @@ return Def.ActorFrame{
 		local blood = self:GetChild("Blood")
 		local lyric = self:GetChild("Lyric")
 		local lines = VOLT26.Secret.Lyrics()
+		local T = VOLT26.Secret.Timeline()
 		local shown, landed, nextJitter = -1, -10, 0
 		local jx, jy = 0, 0
 		self:SetUpdateFunction(function(frame)
@@ -106,8 +120,13 @@ return Def.ActorFrame{
 			local clock = GetTimeSinceStart()
 			local p = progress(music)
 
-			-- Blood
-			local level = BOTTOM - H * p
+			-- Blood: the breakdown churns it, and each "break down" makes it
+			-- surge up for a moment.
+			local breakdown = VOLT26.Secret.Within(T.Breakdown, music, 0.6)
+			local since = breakdown > 0 and VOLT26.Secret.SinceLast(T.Breaks, music) or nil
+			local surge = since and math.exp(-since / 0.6) or 0
+			rough = 1 + 1.6 * breakdown + 1.5 * surge
+			local level = BOTTOM - H * p - H * 0.05 * surge
 			fill(blood:GetChild("Back"), level - 7 * scale, clock, 1.9, BACK, DEPTH)
 			fill(blood:GetChild("Front"), level, clock, 0, SURFACE, DEPTH)
 			sheen(blood:GetChild("Sheen"), level, clock)
@@ -123,12 +142,17 @@ return Def.ActorFrame{
 				if text == "" then
 					lyric:linear(0.15):diffusealpha(0)
 				else
+					local strong = emphasised(text)
+					local size = strong and 1.25 or 1
 					text = text:upper()
 					for _, name in ipairs({ "Edge", "Cyan", "Red", "Fill" }) do
-						lyric:GetChild(name):settext(text)
+						-- The frame's zoom grows emphasised lines; the width
+						-- limit shrinks to match, so a long one still fits.
+						lyric:GetChild(name):maxwidth(W * 0.92 / (lyricZoom * size)):settext(text)
 					end
+					lyric:GetChild("Fill"):diffuse(strong and color("#ff2a2a") or Color.White)
 					landed = clock
-					lyric:diffusealpha(0):zoom(1.12):decelerate(0.1):diffusealpha(1):zoom(1)
+					lyric:diffusealpha(0):zoom(size * 1.12):decelerate(0.1):diffusealpha(1):zoom(size)
 				end
 			end
 			local since = clock - landed

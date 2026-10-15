@@ -45,9 +45,10 @@ for player in ivalues( GAMESTATE:GetHumanPlayers() ) do
 	af[#af+1] = LoadActor("./PerColumnJudgmentTracking.lua", player)
 end
 
--- The hidden song's "Are you LOST?" over its silent opening (VOLT26.Secret).
--- It draws, unlike the rest of this folder, because it must cover the
--- notefield.
+-- The hidden song's effects and its "Are you LOST?" over the silent opening
+-- (VOLT26.Secret).  They draw, unlike the rest of this folder, because they
+-- must cover the notefield.
+af[#af+1] = LoadActor("./SecretFX.lua")
 af[#af+1] = LoadActor("./SecretStinger.lua")
 
 return af

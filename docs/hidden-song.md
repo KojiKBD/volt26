@@ -39,3 +39,27 @@ Verification: Lua syntax, and an offline run of the code counter (five quick
 presses trigger; a long pause or another button starts over). Not yet run in
 ITGmania: the copy into `Songs`, the reload screens, the stinger and the
 return to the song select are untested.
+
+## The song's own gameplay
+
+For LOST the gameplay interface is not built (`ScreenGameplay
+underlay/default.lua` hands over to `ScreenGameplay underlay/Secret.lua`);
+only the arrows remain, over:
+
+* **Blood** rising from the bottom as the music plays (ActorMultiVertex
+  layers with swaying surfaces), churning in the breakdown and surging at
+  each "break down".
+* **Lyrics** from `LosT.lrc` (`VOLT26.Secret.Lyrics`, `LyricsOffset`; the file
+  already follows the chart's cuts), one line at a time in a heavy condensed
+  sans (`Fonts/Secret`, `tools/secret/build_lyrics_font.py`) with a light RGB
+  split that jolts on each new line; the chorus and "break down" lines are
+  bigger and red.
+* **Effects** (`ScreenGameplay overlay/SecretFX.lua`), timed by
+  `VOLT26.Secret.Timeline` from the lyrics and by the beat: Drunk/Tipsy in the
+  first verse, red arrows on "Red crescent moons", zoom punches in the
+  choruses, a hard breakdown (sway, tilt, Drunk/Tipsy/Beat, hits on each
+  "break down", glitch bars), dimming arrows, one white flash on the last
+  line, a fade to black; a vignette breathes on the beat. No strobes.
+
+The engine's judgment, combo and its own lyrics display (which finds the
+`.lrc` by itself) are hidden for this song.

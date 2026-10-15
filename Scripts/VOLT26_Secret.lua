@@ -277,3 +277,80 @@ function Secret.LyricIndexAt(t)
 	end
 	return index
 end
+
+-- Timeline ----------------------------------------------------------------------
+--
+-- When the hidden song's effects happen (ScreenGameplay underlay/Secret.lua,
+-- ScreenGameplay overlay/SecretFX.lua), in song seconds.  The moments are
+-- taken from the lyrics, so they follow the lyrics' sync (LyricsOffset):
+--   Drunk      {from, to}  the first verse (the ketamine line), notes wobble
+--   Moons      {from, to}  "Red crescent moons all over my hands", red arrows
+--   Chorus     {{from, to}...}  zoom punches on the beat
+--   Breakdown  {from, to}  "If I keep this up" .. the last chorus: the modchart
+--   Whoa       the second half of the breakdown, harder
+--   Breaks     {times}  every "break down": a hit
+--   Darken     the arrows dim from here
+--   Flash      the last line: one white flash
+--   Black      the screen fades to black
+-- A part whose line cannot be found is left out (nil).
+
+local timelineCache = nil
+
+function Secret.Timeline()
+	if timelineCache then return timelineCache end
+	local lines = Secret.Lyrics()
+	local song = Secret.Song()
+	local length = song and tonumber(song:MusicLengthSeconds()) or 120
+	local T = { Breaks = {}, Chorus = {} }
+	local function find(text, from)
+		for i = from or 1, #lines do
+			if lines[i].Text:lower():find(text, 1, true) then return i end
+		end
+		return nil
+	end
+	local function at(i) return i and lines[i] and lines[i].Time or nil end
+
+	local cut = find("i used to go")
+	if lines[1] and cut then T.Drunk = { lines[1].Time - 0.5, at(cut) } end
+	local moons = find("red crescent")
+	if moons then T.Moons = { at(moons) - 0.2, at(moons + 1) or at(moons) + 3 } end
+	local tell1 = find("someone, tell me")
+	local keep = find("if i keep this up")
+	local tell2 = keep and find("someone, tell me", keep)
+	if tell1 and keep then T.Chorus[#T.Chorus+1] = { at(tell1), at(keep) } end
+	if keep and tell2 then T.Breakdown = { at(keep), at(tell2) } end
+	local whoa = find("whoa")
+	T.Whoa = at(whoa)
+	for i, line in ipairs(lines) do
+		if line.Text:lower():find("break down", 1, true) then T.Breaks[#T.Breaks+1] = line.Time end
+	end
+	if tell2 then
+		T.Chorus[#T.Chorus+1] = { at(tell2), length }
+		T.Darken = at(tell2 + 1)
+	end
+	for i = #lines, 1, -1 do
+		if lines[i].Text ~= "" then T.Flash = lines[i].Time break end
+	end
+	T.Black = length - 0.8
+	T.Length = length
+	timelineCache = T
+	return T
+end
+
+-- 0..1: how far `t` is inside `range` {from, to}, eased at both ends over
+-- `edge` seconds; 0 outside or without a range.
+function Secret.Within(range, t, edge)
+	if not range or not range[1] or not range[2] then return 0 end
+	edge = edge or 0.5
+	if t < range[1] or t > range[2] then return 0 end
+	return math.min(1, (t - range[1]) / edge, (range[2] - t) / edge)
+end
+
+-- Seconds since the last of `times` at or before `t`, or nil.
+function Secret.SinceLast(times, t)
+	local since = nil
+	for _, at in ipairs(times or {}) do
+		if at <= t then since = t - at end
+	end
+	return since
+end
