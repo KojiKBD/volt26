@@ -3168,6 +3168,25 @@ function VOLT26.Options.SetPerspective(player, name)
 		PlayerNumber:Reverse()[player] + 1)
 end
 
+-- Reverse.
+--
+-- The engine keeps the scroll direction as a percentage on PlayerOptions, and
+-- the options screen's Scroll row writes 1 for Reverse.  Anything past one half
+-- is read as reversed, which is the side the receptors settle on.
+local function preferredOptions(player)
+	return GAMESTATE:GetPlayerState(player):GetPlayerOptions("ModsLevel_Preferred")
+end
+
+function VOLT26.Options.IsReverse(player)
+	-- The getter answers with the value and its rate of approach.
+	local ok, value = pcall(function() return tonumber((preferredOptions(player):Reverse())) or 0 end)
+	return ok and value > 0.5
+end
+
+function VOLT26.Options.SetReverse(player, reversed)
+	preferredOptions(player):Reverse(reversed and 1 or 0)
+end
+
 function VOLT26.Options.CanReturnToMusic()
 	return VOLT26.State.Global.MenuTimer.ScreenSelectMusic > 1
 		and VOLT26.State.Global.MusicWheelLocked ~= true

@@ -13,6 +13,7 @@ return {
 	"SpeedModType",
 	"SpeedMod",
 	"Mini",
+	"Reverse",
 	"Perspective",
 	"NoteSkin",
 	"NoteSkinVariant",
@@ -26,6 +27,7 @@ return {
 --   SpeedModType      x-mod, c-mod or m-mod
 --   SpeedMod          the speed itself, in the unit the type above selects
 --   Mini              note size
+--   Reverse           receptors at the bottom, arrows scrolling upwards
 --   Perspective       overhead, hallway, distant, incoming, space
 --   NoteSkin          the arrows themselves
 --   NoteSkinVariant   a skin's own variants, greyed out when it has none
