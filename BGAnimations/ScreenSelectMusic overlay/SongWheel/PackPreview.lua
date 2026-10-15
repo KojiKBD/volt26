@@ -138,6 +138,8 @@ local af = Def.ActorFrame{
 	-- follow at once; the list waits for the wheel to rest (FillCommand).
 	RefreshCommand = function(self)
 		local name, parent = S.HoveredSection()
+		-- Never show even the heading of the secret pack in a preview.
+		if VOLT26.Secret.IsHiddenGroup(name) then name = nil end
 		local key = name and (tostring(parent) .. "|" .. name) or nil
 		local wanted = key ~= nil
 		if wanted ~= self.shown then

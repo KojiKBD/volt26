@@ -4,6 +4,12 @@ All notable VOLT26 changes are documented here. Versions follow Semantic Version
 
 ## Unreleased
 
+## 1.1.1 - 2026-10-15
+
+### Fixed
+
+- Enable the engine HiddenSongs preference before music selection builds its wheel, so VOLT26 Secret stays out of Group and Series/Collection lists even when HiddenSongs was off. The pack preview also rejects the secret heading instead of showing an empty zero-song panel. Other songs marked #SELECTABLE:NO are hidden as well.
+
 ## 1.1.0 - 2026-10-15
 
 ### Added

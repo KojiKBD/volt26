@@ -26,7 +26,16 @@ first arrow (about 4 s in). The song's title is LOST.
   a new song, `ScreenVOLT26SecretReloadAll` for a changed one. The reload is covered by LOADING in cutout lettering on black
   (`BGAnimations/ScreenSystemLayer loading.lua`, style `Loading`). Removing the
   theme leaves the folder in `Songs`; it is harmless (not selectable).
-* **Hidden:** the engine keeps unselectable songs off the wheel; the theme's
+* **Hidden:** `VOLT26.MusicSelection.PrepareScreen` enables the engine's
+  `HiddenSongs` preference during the song-select overlay InitCommand,
+  before the wheel builds its data. ITGmania ignores `#SELECTABLE:NO`
+  when this preference is false: the secret then appears as a pack in
+  Group and Series/Collection sorts, even though the theme filters its
+  contents out (the old preview displayed a heading with zero songs).
+  This also hides other songs marked `#SELECTABLE:NO`; the secret code
+  still finds and starts LOST directly through SONGMAN/GAMESTATE.
+  PackPreview also rejects the secret pack before drawing its heading.
+  The engine keeps unselectable songs off the wheel; the theme's
   own lists leave the `VOLT26 Secret` pack out (`VOLT26.PackSelection`
   pack list, sections, previews and series; song search; Sort Menu counts).
 * **Stinger:** `BGAnimations/ScreenGameplay overlay/SecretStinger.lua` (an

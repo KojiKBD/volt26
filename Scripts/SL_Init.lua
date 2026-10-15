@@ -1331,6 +1331,10 @@ function VOLT26.MusicSelection.NormalizeMusicRate(value)
 end
 
 function VOLT26.MusicSelection.PrepareScreen()
+	-- The engine ignores #SELECTABLE:NO when HiddenSongs is off.
+	-- Called by the overlay InitCommand, before MusicWheel:BeginScreen
+	-- builds its song and section lists (including Series/Collection).
+	PREFSMAN:SetPreference("HiddenSongs", true)
 	VOLT26.State.Global.GameplayReloadCheck = false
 	VOLT26.Tournament.RestoreAllPlayers()
 	VOLT26.Favorites.LoadAll()
