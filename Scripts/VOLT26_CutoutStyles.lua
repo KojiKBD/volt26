@@ -36,17 +36,17 @@ Cutout.StyleDesign = {
 	-- White with one player; with two, each player's grade in their colour
 	-- (P5.lua's P.Flag and P.Blue).
 	SongGrade    = { Scale="Fit", MaxW=124, MaxH=92, Base=70, Tilt=-6, MaxChars=2,
-		Opts={ upperChance=1 } },
+		Opts={ grade=true, upperChance=1 } },
 	SongGradeP1  = { Scale="Fit", MaxW=124, MaxH=92, Base=70, Tilt=-6, MaxChars=2,
-		Opts={ upperChance=1, fg=color("#fe0003") } },
+		Opts={ grade=true, upperChance=1, fg=color("#fe0003") } },
 	SongGradeP2  = { Scale="Fit", MaxW=124, MaxH=92, Base=70, Tilt=-6, MaxChars=2,
-		Opts={ upperChance=1, fg=color("#00b1ff") } },
+		Opts={ grade=true, upperChance=1, fg=color("#00b1ff") } },
 	-- ScreenEvaluationStage, the WANTED page (overlay/Wanted/Side.lua): the
 	-- player's name on the top-left plate and the letter grade beside the
 	-- judgment ladder.  Player 2's are the same, mirrored in place.
 	EvalName     = { Scale="Fit", MaxW=360, MaxH=118, Base=62, Tilt=3, MaxChars=16 },
 	EvalGrade    = { Scale="Fit", MaxW=250, MaxH=170, Base=120, Tilt=-10, MaxChars=2,
-		Opts={ upperChance=1 } },
+		Opts={ grade=true, upperChance=1 } },
 	-- The titles of the WANTED page's other pages (NOTES, TIMING, Qr).
 	EvalLabel    = { Scale="Fit", MaxW=250, MaxH=100, Base=70, Tilt=-5, MaxChars=8 },
 	-- The end-of-session screens' title on the band between the two halves

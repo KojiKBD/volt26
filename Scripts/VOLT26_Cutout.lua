@@ -16,7 +16,8 @@
 --   * VOLT26.Cutout.CreateSlot(params) is the presentation.
 --
 -- The grade letters also exist in "Cutout Large Back" / "Cutout Large Ink"
--- (same looks, a larger em), used when a slot draws them big.
+-- and "Cutout XL Back" / "Cutout XL Ink" (same looks, larger ems), used when
+-- a slot draws them big.
 
 VOLT26.Cutout = VOLT26.Cutout or {}
 local Cutout = VOLT26.Cutout
@@ -150,9 +151,18 @@ end
 -- ---------------------------------------------------------------------------
 -- Presentation
 
--- The large fonts are used once a letter would be drawn bigger than this
--- many times the regular fonts' em in display pixels.
-local LARGE_FROM = 1.3
+-- The grade letters also come in two bigger sizes, the large fonts (160 px
+-- em) and the extra-large ones (320 px em).  A slot whose letters would be
+-- drawn bigger than the regular 56 px em on the display takes the large
+-- fonts, and once they pass XL_FROM times the large em the extra-large ones,
+-- so big grades are always drawn from bigger pixels rather than enlarged
+-- (shrinking the bold letters up to about twofold keeps them crisp).  Only
+-- grade slots (opts.grade, set by the grade styles in VOLT26_CutoutStyles.lua)
+-- take the extra-large fonts, so no other screen loads their 16 MB page.  Letters
+-- are baked up to 1.22 em (tools/cutout-fonts/generate.py SIZE_MAX), hence
+-- the headroom on the drawn size.
+local HEADROOM = 1.2
+local XL_FROM = 0.85
 
 -- params:
 --   maxW, maxH   the space the lettering must fit, in theme units
@@ -180,7 +190,14 @@ function Cutout.CreateSlot(params)
 	local maxW, maxH = params.maxW or 240, params.maxH or opts.base * 2
 	local halign, valign = params.halign or 0.5, params.valign or 0.5
 	local maxChars = params.maxChars or 16
-	local useLarge = M.emLarge and opts.base * Cutout.DisplayScale() > M.em * LARGE_FROM
+	local drawnEm = opts.base * Cutout.DisplayScale() * HEADROOM
+	local bigFonts, bigEm
+	if opts.grade and M.emXL and M.fontXL and drawnEm > M.emLarge * XL_FROM then
+		bigFonts, bigEm = M.fontXL, M.emXL
+	elseif M.emLarge and drawnEm > M.em then
+		bigFonts, bigEm = M.fontLarge, M.emLarge
+	end
+	local useLarge = bigFonts ~= nil
 
 	local state = { text = nil, held = params.held == true, ready = false, plainShown = false }
 
@@ -294,7 +311,7 @@ function Cutout.CreateSlot(params)
 		},
 	}
 	if useLarge then
-		frame[#frame+1] = lettering("Large", M.fontLarge, M.emLarge)
+		frame[#frame+1] = lettering("Large", bigFonts, bigEm)
 	end
 	return frame
 end

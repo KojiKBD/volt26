@@ -33,9 +33,16 @@ Slot sizes live in `VOLT26.Cutout.StyleDesign` (`Scripts/VOLT26_CutoutStyles.lua
   cell (`DrawExtraPixelsLeft/Right` = half a cell), and the advance is the
   letter's own spacing.
 * **Large fonts.** `Cutout Large Back` / `Cutout Large Ink` carry the grade
-  letters (S A B C D F Q + -) at a 160 px em with the same looks; a slot uses
-  them when its letters would be drawn more than 1.3 times the regular 56 px em
-  on the display and the string only has those characters.
+  letters (S A B C D F Q + -) at a 160 px em, and `Cutout XL Back` / `Cutout
+  XL Ink` at a 320 px em, with the same looks. A slot whose string only has
+  those characters takes the large fonts once its letters (with 1.2x headroom
+  for the baked letter sizes) would be drawn bigger than the regular 56 px em
+  on the display, and a grade slot (option `grade`) the extra-large fonts past
+  0.85 times the large em, so
+  grades are drawn from bigger pixels and shrunk rather than enlarged (the
+  song wheel's grade used to be the regular font enlarged about 1.3x, and the
+  evaluation grade the large font enlarged above 1080p). A slot loads only
+  the size it needs.
 * **Layout.** `VOLT26.Cutout.Layout(text, opts)` is pure data from the baked
   metrics (`Scripts/VOLT26_CutoutMetrics.lua`): the drawn string (case
   applied), its advance width and its bounds with the block's tilt. Callers use
@@ -54,6 +61,7 @@ Slot sizes live in `VOLT26.Cutout.StyleDesign` (`Scripts/VOLT26_CutoutStyles.lua
 | `upperChance` | 0.5 | 1: every letter upper case (grades), 0: lower case, otherwise the case as typed |
 | `tiltDeg` | -5 | rotation of the whole block |
 | `fg`, `bk` | white, black | letter and backing colours (BitmapText diffuse; a box takes `fg`) |
+| `grade` | false | a grade slot: may use the extra-large fonts (set by the grade styles) |
 
 The per-letter look (faces, size range, box chance, tilts, outline) is set in
 `tools/cutout-fonts/generate.py` and needs the fonts regenerated; `SEED` there
@@ -78,7 +86,8 @@ numpy and scipy. It writes the pages and inis in `Fonts/Cutout`, the four
 Video memory: the regular fonts are three pages of about 1020x928 each per
 layer, the large ones one 940x416 page per layer, about 28 MB in all once
 padded to powers of two (the six old per-face pages were 24 MB, plus the
-render caches).
+render caches). The extra-large fonts add one 1840x820 page per layer (16 MB
+padded to 2048x1024), loaded only by the screens whose grades need them.
 
 ## Leftovers from the runtime renderer
 
