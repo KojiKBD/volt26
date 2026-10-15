@@ -4,11 +4,14 @@
 -- (taken from the lyrics), the rhythm from the song's beat (185 BPM).
 --
 --   first verse   the notes wobble (Drunk, Tipsy), as if drugged
---   red moons     the arrows turn red for the line
+--   red moons     the arrows turn blood red for the line (a modulating red
+--                 filter over the field: the notefield ignores the player
+--                 frame's diffuse)
 --   choruses      zoom punches and a small shake on every beat
---   breakdown     the field sways and tilts, Drunk/Tipsy/Beat rise; each
+--   breakdown     the field sways and tilts, Drunk/Tipsy/Beat rise (kept
+--                 readable: the first version was unplayable); each
 --                 "break down" hits it (tilt, zoom, shake) and glitch bars
---                 tear across the screen; the second half is harder
+--                 tear across the screen; the second half is a little harder
 --   end           the arrows dim, one white flash on the last line, black
 -- A vignette breathes on the beat throughout.  No strobes: the only flash is
 -- single.  Any other song gets an empty actor.
@@ -64,6 +67,7 @@ local af = Def.ActorFrame{
 			if field then players[#players+1] = { pn = player, af = field } end
 		end
 		local vignette = self:GetChild("Vignette")
+		local tint = self:GetChild("Tint")
 		local bars = self:GetChild("Bars")
 		local flash, black = self:GetChild("Flash"), self:GetChild("Black")
 		local lastBeat, flashed, blacked = -1, false, false
@@ -87,25 +91,29 @@ local af = Def.ActorFrame{
 			local dim = T.Darken and math.max(0, math.min(1, (t - T.Darken) / 6)) or 0
 
 			-- The field --------------------------------------------------
-			local zoom = 1 + 0.05 * pulse * chorus + 0.035 * pulse * breakdown + 0.12 * hit
-			local sway = math.sin(beat * math.pi / 2) * (6 * breakdown + 5 * hard)
+			local zoom = 1 + 0.05 * pulse * chorus + 0.025 * pulse * breakdown + 0.07 * hit
+			local sway = math.sin(beat * math.pi / 2) * (3 * breakdown + 2.5 * hard)
 			local side = (math.floor(beat) % 2 == 0) and 1 or -1
-			local rot = sway + 12 * hit * side
-			local shakeAmp = (3 * pulse * chorus + 10 * hit + 2 * hard) * scale
-			local g = 1 - 0.7 * moons
-			local light = 1 - 0.45 * dim
+			local rot = sway + 7 * hit * side
+			local shakeAmp = (3 * pulse * chorus + 6 * hit + 1 * hard) * scale
 			for i, p in ipairs(players) do
 				if not p.base then p.base = { x = p.af:GetX(), y = p.af:GetY(), zoom = p.af:GetZoom() } end
 				local dx = (math.random() * 2 - 1) * shakeAmp
 				local dy = (math.random() * 2 - 1) * shakeAmp * 0.6
 				p.af:x(p.base.x + dx):y(p.base.y + dy):zoom(p.base.zoom * zoom):rotationz(rot * (i == 2 and -1 or 1))
-					:diffuse(light, g * light, g * light, 1)
 				setMods(p.pn, {
-					Drunk = (drunk > 0 and 0.5 or 0) + (breakdown > 0 and 0.8 or 0) + (hard > 0 and 0.5 or 0),
-					Tipsy = (drunk > 0 and 0.3 or 0) + (breakdown > 0 and 0.6 or 0) + (hard > 0 and 0.4 or 0),
-					Beat = (breakdown > 0 and 0.6 or 0) + (hard > 0 and 0.6 or 0),
+					Drunk = (drunk > 0 and 0.5 or 0) + (breakdown > 0 and 0.35 or 0) + (hard > 0 and 0.15 or 0),
+					Tipsy = (drunk > 0 and 0.3 or 0) + (breakdown > 0 and 0.25 or 0) + (hard > 0 and 0.1 or 0),
+					Beat = (breakdown > 0 and 0.3 or 0) + (hard > 0 and 0.25 or 0),
 				})
 			end
+
+			-- Blood-red arrows on the moons line, and the dimming at the end:
+			-- a filter that multiplies what is under it (the field and the
+			-- blood), white when idle.
+			local light = 1 - 0.45 * dim
+			tint:visible(moons > 0 or dim > 0)
+			tint:diffuse(light * (1 - 0.25 * moons), light * (1 - 0.95 * moons), light * (1 - 0.93 * moons), 1)
 
 			-- The vignette breathes on the beat -------------------------------
 			vignette:diffusealpha(0.55 + 0.25 * pulse * math.max(chorus, breakdown, 0.4) + 0.3 * dim)
@@ -139,6 +147,12 @@ local af = Def.ActorFrame{
 		end)
 	end,
 	OffCommand = function(self) self:SetUpdateFunction(nil) end,
+}
+
+-- The filter for the red arrows and the dimming: multiplies what is under it.
+af[#af+1] = Def.Quad{
+	Name = "Tint",
+	InitCommand = function(self) self:FullScreen():blend("BlendMode_Modulate"):visible(false) end,
 }
 
 -- A frame of black that darkens towards the edges.
