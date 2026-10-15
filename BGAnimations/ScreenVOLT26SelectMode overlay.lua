@@ -14,10 +14,12 @@
 -- Each play-mode choice is a pre-rendered state from the artboard
 -- (Graphics/VOLT26/ModeSelect, rendered from charter_card.ai "MODES" and its
 -- state column), placed so its white plate sits where the artboard's plate
--- is.  The layout row has no artwork yet: its states are drawn as plain white
--- plates with the layout's title and subtitle (placeholder() below) until the
--- owner's graphics arrive.  Coordinates are design pixels on the 1920x1080
--- artboard.
+-- is.  The layout row's states are the owner's SIMPLY WHEEL / CAROUSEL plates
+-- (tools/mode-select/simplycarousel.svg, rendered at 1.5x into
+-- layout_carousel.png and layout_simplywheel.png), placed so the plate is
+-- centred on the row; a state without a file falls back to a plain white
+-- plate with the layout's title and subtitle.  Coordinates are design pixels
+-- on the 1920x1080 artboard.
 
 local scale = SCREEN_HEIGHT / 1080
 local originX = (SCREEN_WIDTH - 1920 * scale) / 2
@@ -29,10 +31,17 @@ local function art(name) return THEME:GetPathG("", "VOLT26/ModeSelect/" .. name 
 -- column than on the artboard).  The layout row takes the place of the former
 -- rules row (ITG / FA+, removed on 2026-10-14).
 local layouts = VOLT26.MusicSelection.Layouts
+-- Top-left corners and zoom of the rendered plates (see the header).
+local layoutArt = {
+	Carousel   = { file = "layout_carousel",    x = 598.3, y = 560.3, k = 1 / 1.5 },
+	SimplyLove = { file = "layout_simplywheel", x = 596.9, y = 574.8, k = 1 / 1.5 },
+}
 local layoutStates = {}
 local layoutChoice = 1
 for index, layout in ipairs(layouts) do
-	layoutStates[index] = { title = layout.Title, subtitle = layout.Subtitle, value = layout.Value }
+	local a = layoutArt[layout.Value] or {}
+	layoutStates[index] = { title = layout.Title, subtitle = layout.Subtitle, value = layout.Value,
+		file = a.file, x = a.x, y = a.y, k = a.k }
 	if layout.Value == VOLT26.MusicSelection.GetLayout() then layoutChoice = index end
 end
 
