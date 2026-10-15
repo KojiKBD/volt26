@@ -36,7 +36,7 @@ local function groups()
 	local ok, names = pcall(function() return SONGMAN:GetSongGroupNames() end)
 	if ok and names then
 		for _, name in ipairs(names) do
-			groupCache[#groupCache+1] = name
+			if not VOLT26.Secret.IsHiddenGroup(name) then groupCache[#groupCache+1] = name end
 		end
 	end
 	return groupCache
@@ -49,7 +49,7 @@ local function genres()
 	local ok, songs = pcall(function() return SONGMAN:GetAllSongs() end)
 	if ok and songs then
 		for _, song in ipairs(songs) do
-			local genre = song.GetGenre and song:GetGenre() or ""
+			local genre = (not VOLT26.Secret.IsHiddenSong(song)) and song.GetGenre and song:GetGenre() or ""
 			if genre ~= "" and not seen[genre] then
 				seen[genre] = true
 				genreCache[#genreCache+1] = genre

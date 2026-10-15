@@ -1452,7 +1452,8 @@ function VOLT26.SongBrowsing.Search(input)
 	local candidates = {}
 
 	for song in ivalues(SONGMAN:GetAllSongs()) do
-		local matches = song:HasStepsType(stepsType)
+		-- The hidden song (VOLT26.Secret) is never found by searching.
+		local matches = song:HasStepsType(stepsType) and not VOLT26.Secret.IsHiddenSong(song)
 		if matches and query.songName then
 			local displayTitle = song:GetDisplayFullTitle():lower()
 			local translitTitle = song:GetTranslitFullTitle():lower()

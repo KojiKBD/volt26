@@ -113,6 +113,23 @@ local function leaveToPacks()
 	screen:Cancel()
 end
 
+-- The hidden song (VOLT26.Secret): the four arrows together, five times, in
+-- Event Mode.  The screen goes to the stinger, which starts the chart.
+local function startSecret()
+	if leaving or modalOpen then return end
+	local screen = SCREENMAN:GetTopScreen()
+	if not screen or not VOLT26.Secret.Start() then return end
+	leaving = true
+	screen:SetNextScreenName("ScreenVOLT26Lost")
+	screen:StartTransitioningScreen("SM_GoToNextScreen")
+end
+
+local function secretInput(event)
+	if leaving or modalOpen then return false end
+	if VOLT26.Secret.Feed(event) then startSecret() end
+	return false
+end
+
 -- Back is taken here rather than left to the engine so the motion and the
 -- screen change start together.  Whichever of the two reaches Cancel first
 -- wins; the other is ignored by the screen.
@@ -133,6 +150,8 @@ end
 local af = Def.ActorFrame{
 	InitCommand=function(self)
 		overlay = self
+		-- Back from the hidden song: the wheel cannot show it.
+		VOLT26.Secret.RestoreSong()
 		VOLT26.MusicSelection.PrepareScreen()
 	end,
 	OnCommand=function(self)
@@ -156,12 +175,19 @@ local af = Def.ActorFrame{
 			wheel:xy(K.Left, K.Top):zoom(K.Scale)
 		end
 		if handoff == "ToSongWheel" then enterFromPacks() else enterFresh() end
-		if not GAMESTATE:IsCourseMode() then SCREENMAN:GetTopScreen():AddInputCallback(input) end
+		if not GAMESTATE:IsCourseMode() then
+			SCREENMAN:GetTopScreen():AddInputCallback(input)
+			VOLT26.Secret.ResetInput()
+			SCREENMAN:GetTopScreen():AddInputCallback(secretInput)
+		end
 	end,
 	OffCommand=function(self)
 		leaving = true
 		local screen = SCREENMAN:GetTopScreen()
-		if screen then screen:RemoveInputCallback(input) end
+		if screen then
+			screen:RemoveInputCallback(input)
+			screen:RemoveInputCallback(secretInput)
+		end
 	end,
 	-- The selection is final: Back no longer means "back to the packs".
 	SongChosenMessageCommand=function(self) leaving = true end,

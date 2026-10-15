@@ -52,7 +52,10 @@ local function usablePath(path)
 	return type(path) == "string" and path ~= "" and not isMovie(path)
 end
 
+-- The hidden song's pack (VOLT26.Secret) holds no songs as far as music
+-- selection is concerned, so it is never listed, previewed or counted.
 local function songsInGroup(group)
+	if VOLT26.Secret and VOLT26.Secret.IsHiddenGroup(group) then return {} end
 	local ok, songs = pcall(function() return SONGMAN:GetSongsInGroup(group) end)
 	if ok and type(songs) == "table" then return songs end
 	return {}
@@ -473,7 +476,7 @@ local function buildSections(mode, stepsType)
 	local ok, songs = pcall(function() return SONGMAN:GetAllSongs() end)
 	if not ok or type(songs) ~= "table" then return result end
 	for _, song in ipairs(songs) do
-		if isPlayable(song, stepsType) then
+		if isPlayable(song, stepsType) and not (VOLT26.Secret and VOLT26.Secret.IsHiddenSong(song)) then
 			for _, section in ipairs(sectionsOf(mode, song, stepsType)) do
 				local entry = result.byKey[section.Key]
 				if not entry then

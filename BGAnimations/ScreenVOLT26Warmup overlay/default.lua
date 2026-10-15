@@ -24,7 +24,9 @@ local af = Def.ActorFrame{
 		or self.TransitionStarted then return end
 		self.TransitionStarted = true
 		local screen = SCREENMAN:GetTopScreen()
-		screen:SetNextScreenName("ScreenInit")
+		-- Through a one-time song reload when the hidden song was just
+		-- installed (VOLT26.Secret).
+		screen:SetNextScreenName(VOLT26.Secret.AfterWarmup())
 		screen:StartTransitioningScreen("SM_GoToNextScreen")
 	end,
 }
