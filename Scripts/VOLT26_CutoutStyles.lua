@@ -62,9 +62,6 @@ Cutout.StyleDesign = {
 	-- loading.lua).  At the regular fonts' em on a 1080p display, so it stays
 	-- sharp.
 	Loading      = { Scale="Fit", MaxW=600, MaxH=110, Base=56, Tilt=-4, MaxChars=12 },
-	-- The hidden song's lyrics, one line at a time behind the arrows
-	-- (ScreenGameplay underlay/Secret.lua).
-	SecretLyric  = { Scale="Fit", MaxW=1760, MaxH=120, Base=56, Tilt=-3, MaxChars=96 },
 	-- ScreenSystemLayer: the menu timer's number, top right (ScreenSystemLayer
 	-- timer.lua).  Digits only, up to three.
 	MenuTimer    = { Scale="Theme", MaxW=90, MaxH=40, Base=26, Tilt=-4, MaxChars=3 },

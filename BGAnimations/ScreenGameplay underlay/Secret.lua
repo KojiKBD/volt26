@@ -5,7 +5,9 @@
 --   * the ground is black, and red rises from the bottom as the song plays,
 --     reaching the top as the music ends;
 --   * the lyrics (VOLT26.Secret.Lyrics, from the song's .lrc) show one line at
---     a time in the cutout lettering, behind the arrows.
+--     a time in Helvetica Bold, behind the arrows.  The engine finds the .lrc
+--     by itself and would print it too, in green (its LyricDisplay); that copy
+--     is hidden.
 local song = GAMESTATE:GetCurrentSong()
 local length = song and tonumber(song:MusicLengthSeconds()) or 0
 if not length or length <= 0 then length = 1 end
@@ -13,8 +15,10 @@ if not length or length <= 0 then length = 1 end
 local RED = color("#e40001")
 local EDGE = 70             -- height of the glow above the red, in theme units at 1080
 local LYRIC_Y = 0.72        -- of the screen height
+local LYRIC_CAP = 44        -- cap height of the lyrics, in 1920x1080 design pixels
+local FONT_CAP = 26         -- Helvetica Bold's cap height at zoom 1 (Baseline - Top)
 local scale = SCREEN_HEIGHT / 1080
-local style = VOLT26.Cutout.Style("SecretLyric")
+local lyricZoom = LYRIC_CAP * scale / FONT_CAP
 
 local function progress()
 	local t = GAMESTATE:GetCurMusicSeconds()
@@ -24,8 +28,11 @@ end
 return Def.ActorFrame{
 	Name="SecretUnderlay",
 	OnCommand=function(self)
-		-- Only the arrows: the engine's judgment and combo go too.
+		-- Only the arrows: the engine's judgment and combo go too, and its
+		-- own lyrics.
 		local screen = SCREENMAN:GetTopScreen()
+		local engineLyrics = screen and screen:GetChild("LyricDisplay")
+		if engineLyrics then engineLyrics:visible(false) end
 		for _, player in ipairs(GAMESTATE:GetHumanPlayers()) do
 			local af = screen and screen:GetChild("Player" .. ToEnumShortString(player))
 			if af then
@@ -51,7 +58,7 @@ return Def.ActorFrame{
 				if text == "" then
 					lyric:linear(0.15):diffusealpha(0)
 				else
-					lyric:GetChild("Slot"):playcommand("CutoutSet", { text = text })
+					lyric:GetChild("Text"):settext(text)
 					lyric:diffusealpha(0):zoom(1.08):decelerate(0.12):diffusealpha(1):zoom(1)
 				end
 			end
@@ -82,9 +89,12 @@ return Def.ActorFrame{
 	Def.ActorFrame{
 		Name="Lyric",
 		InitCommand=function(self) self:xy(SCREEN_CENTER_X, SCREEN_HEIGHT * LYRIC_Y):diffusealpha(0) end,
-		VOLT26.Cutout.CreateSlot{
-			maxW = style.maxW, maxH = style.maxH, maxChars = style.maxChars,
-			halign = 0.5, valign = 0.5, opts = style.opts,
-		}..{ Name="Slot" },
+		LoadFont("Helvetica Bold")..{
+			Name="Text",
+			InitCommand=function(self)
+				self:zoom(lyricZoom):maxwidth(SCREEN_WIDTH * 0.92 / lyricZoom)
+					:diffuse(Color.White):shadowlength(2 * scale)
+			end,
+		},
 	},
 }
