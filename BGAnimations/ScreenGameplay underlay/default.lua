@@ -50,6 +50,17 @@ if GAMESTATE:GetCurrentStyle():GetStyleType() == "StyleType_TwoPlayersSharedSide
 
 end
 
+-- The hidden song (VOLT26.Secret) shows nothing but the arrows, over its own
+-- scenery and lyrics (./Secret.lua), instead of the gameplay interface.
+if not GAMESTATE:IsCourseMode() and VOLT26.Secret.IsHiddenSong(GAMESTATE:GetCurrentSong()) then
+	local secret = Def.ActorFrame{ Name="GameplayUnderlay" }
+	for player in ivalues(Players) do
+		secret[#secret+1] = LoadActor("./PerPlayer/TournamentMode.lua", player)
+	end
+	secret[#secret+1] = LoadActor("./Secret.lua")
+	return secret
+end
+
 local t = Def.ActorFrame{
 	Name="GameplayUnderlay",
 	OnCommand=function(self)

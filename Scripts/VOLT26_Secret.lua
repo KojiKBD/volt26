@@ -26,7 +26,13 @@ local Secret = VOLT26.Secret
 
 Secret.Group = "VOLT26 Secret"
 Secret.Folder = "LosT"
-Secret.Files = { "LosT.ssc", "LosT.ogg" }
+-- The song and, beside it, its synced lyrics (shown by ScreenGameplay
+-- underlay/Secret.lua).  A missing lyrics file is simply not shown.
+Secret.Files = { "LosT.ssc", "LosT.ogg", "LosT.lrc" }
+Secret.LyricsFile = "LosT.lrc"
+-- Seconds added to every lyrics time (the .lrc follows the released track;
+-- the chart's music may start elsewhere).
+Secret.LyricsOffset = 0
 Secret.Difficulty = "Difficulty_Challenge"
 Secret.Presses = 5          -- left+right presses in a row
 Secret.Window = 2.0         -- longest pause between two of them, in seconds
@@ -72,14 +78,15 @@ local function sameFile(a, b)
 end
 
 -- Copies the theme's song into the song folder where it is missing or
--- different.  Answers whether anything was copied.
+-- different.  Answers whether a file the engine loads (the simfile or the
+-- music, not the lyrics the theme reads itself) was copied.
 function Secret.Install()
 	local copied = false
 	for _, name in ipairs(Secret.Files) do
 		local from, to = sourceDir() .. name, targetDir() .. name
 		if FILEMAN:DoesFileExist(from) and not sameFile(from, to) then
 			if FILEMAN:Copy(from, to) then
-				copied = true
+				if name ~= Secret.LyricsFile then copied = true end
 			else
 				Warn("VOLT26.Secret: could not copy " .. from .. " to " .. to)
 			end
@@ -233,4 +240,40 @@ function Secret.RestoreSong()
 	local song = Secret.returnSong
 	GAMESTATE:SetCurrentSong(song)
 	if song then GAMESTATE:SetPreferredSong(song) end
+end
+
+-- Lyrics ------------------------------------------------------------------------
+
+local lyricsCache = nil
+
+-- The hidden song's lyrics from its .lrc ("[mm:ss.xx]line" per line; an
+-- empty line clears the screen): a list of {Time=<song seconds>, Text=} in
+-- time order, or an empty list when there is no file.  Read once.
+function Secret.Lyrics()
+	if lyricsCache then return lyricsCache end
+	lyricsCache = {}
+	local song = Secret.Song()
+	local dir = song and song:GetSongDir() or targetDir()
+	local data = contents(dir .. Secret.LyricsFile)
+	if not data then return lyricsCache end
+	for line in (data .. "\n"):gmatch("([^\r\n]*)\r?\n") do
+		local m, sec, text = line:match("^%[(%d+):(%d+%.?%d*)%](.*)$")
+		if m then
+			lyricsCache[#lyricsCache+1] = {
+				Time = tonumber(m) * 60 + tonumber(sec) + Secret.LyricsOffset,
+				Text = (text:gsub("^%s+", ""):gsub("%s+$", "")),
+			}
+		end
+	end
+	table.sort(lyricsCache, function(a, b) return a.Time < b.Time end)
+	return lyricsCache
+end
+
+-- The index of the line on screen at song time `t` (0 before the first).
+function Secret.LyricIndexAt(t)
+	local lines, index = Secret.Lyrics(), 0
+	for i, line in ipairs(lines) do
+		if line.Time <= t then index = i else break end
+	end
+	return index
 end
