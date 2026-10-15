@@ -30,8 +30,8 @@ Secret.Folder = "LosT"
 -- underlay/Secret.lua).  A missing lyrics file is simply not shown.
 Secret.Files = { "LosT.ssc", "LosT.ogg", "LosT.lrc" }
 Secret.LyricsFile = "LosT.lrc"
--- Seconds added to every lyrics time (the .lrc follows the released track;
--- the chart's music; LosT.lrc already follows the chart's cuts: owner's sync, 3 s earlier).
+-- Seconds added to every lyrics time.  LosT.lrc already follows the cuts in
+-- the chart's music; this is the owner's fine sync (every line 3 s earlier).
 Secret.LyricsOffset = -3
 Secret.Difficulty = "Difficulty_Challenge"
 Secret.Presses = 5          -- left+right presses in a row
