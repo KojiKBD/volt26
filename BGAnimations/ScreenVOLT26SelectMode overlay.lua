@@ -16,7 +16,9 @@
 -- state column), placed so its white plate sits where the artboard's plate
 -- is.  The layout row's states are the owner's SIMPLY WHEEL / CAROUSEL plates
 -- (tools/mode-select/simplycarousel.svg, rendered at 1.5x into
--- layout_carousel.png and layout_simplywheel.png), placed so the plate is
+-- layout_carousel.png and layout_simplywheel.png with a 40 unit margin
+-- around the artboard, whose edge cuts the letters' white outlines), placed
+-- so the plate is
 -- centred on the row; a state without a file falls back to a plain white
 -- plate with the layout's title and subtitle.  Coordinates are design pixels
 -- on the 1920x1080 artboard.
@@ -34,7 +36,7 @@ local layouts = VOLT26.MusicSelection.Layouts
 -- Top-left corners and zoom of the rendered plates (see the header).
 local layoutArt = {
 	Carousel   = { file = "layout_carousel",    x = 598.3, y = 560.3, k = 1 / 1.5 },
-	SimplyLove = { file = "layout_simplywheel", x = 596.9, y = 574.8, k = 1 / 1.5 },
+	SimplyLove = { file = "layout_simplywheel", x = 582.9, y = 564.8, k = 1 / 1.5 },
 }
 local layoutStates = {}
 local layoutChoice = 1
