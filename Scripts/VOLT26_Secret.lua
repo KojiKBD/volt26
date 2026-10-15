@@ -45,15 +45,28 @@ end
 
 -- Installing ----------------------------------------------------------------
 
+-- The whole file, or nil.
+local function contents(path)
+	local f = RageFileUtil.CreateRageFile()
+	local data = nil
+	if f:Open(path, 1) then data = f:Read() end
+	f:Close()
+	f:destroy()
+	return data
+end
+
+-- Whether the installed copy matches the theme's.  FILEMAN:GetHashForFile
+-- differs between identical files in two places, so small files (the
+-- simfile, where an edit may keep the size) are compared whole and the
+-- music by size.
+local SMALL = 256 * 1024
 local function sameFile(a, b)
-	local exists = FILEMAN:DoesFileExist(b)
-	local sizeA, sizeB = FILEMAN:GetFileSizeBytes(a), exists and FILEMAN:GetFileSizeBytes(b) or -1
-	local hashA, hashB = FILEMAN:GetHashForFile(a), exists and FILEMAN:GetHashForFile(b) or -1
-	if Secret.Debug then
-		Trace(("VOLT26.Secret: %s exists=%s size %s/%s hash %s/%s"):format(b, tostring(exists),
-			tostring(sizeA), tostring(sizeB), tostring(hashA), tostring(hashB)))
-	end
-	return exists and sizeA == sizeB and hashA == hashB
+	if not FILEMAN:DoesFileExist(b) then return false end
+	local size = FILEMAN:GetFileSizeBytes(a)
+	if size ~= FILEMAN:GetFileSizeBytes(b) then return false end
+	if size > SMALL then return true end
+	local data = contents(a)
+	return data ~= nil and data == contents(b)
 end
 
 -- Copies the theme's song into the song folder where it is missing or
@@ -138,7 +151,11 @@ end
 -- Answers true when the code is complete.
 function Secret.Feed(event)
 	if not event or not event.PlayerNumber then return false end
-	local pn, button = event.PlayerNumber, event.GameButton
+	-- ITGmania names the pad arrow in `button` ("Left", "Right"); GameButton
+	-- can come empty.
+	local button = event.button
+	if not isArrow[button] and event.GameButton and event.GameButton ~= "" then button = event.GameButton end
+	local pn = event.PlayerNumber
 	held[pn] = held[pn] or {}
 	if event.type == "InputEventType_Release" then
 		if isArrow[button] then held[pn][button] = nil end
