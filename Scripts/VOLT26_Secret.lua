@@ -26,6 +26,8 @@ Secret.Files = { "LosT.ssc", "LosT.ogg" }
 Secret.Difficulty = "Difficulty_Challenge"
 Secret.Presses = 5          -- four-arrow presses in a row
 Secret.Window = 2.0         -- longest pause between two of them, in seconds
+-- Traces every arrow the song select feeds to the log (for testing).
+Secret.Debug = true
 
 local ARROWS = { "Left", "Down", "Up", "Right" }
 local isArrow = { Left = true, Down = true, Up = true, Right = true }
@@ -140,16 +142,27 @@ function Secret.Feed(event)
 		return false
 	end
 	held[pn][button] = true
+	local down = {}
 	for _, arrow in ipairs(ARROWS) do
-		if not held[pn][arrow] then return false end
+		if held[pn][arrow] then down[#down+1] = arrow end
 	end
+	if Secret.Debug then
+		Trace(("VOLT26.Secret: %s %s, held %s"):format(ToEnumShortString(pn), button, table.concat(down, "+")))
+	end
+	if #down < #ARROWS then return false end
 	local now = GetTimeSinceStart()
 	if last[pn] and now - last[pn] > Secret.Window then count[pn] = 0 end
 	last[pn] = now
 	count[pn] = (count[pn] or 0) + 1
+	if Secret.Debug then
+		Trace(("VOLT26.Secret: four arrows, %d of %d"):format(count[pn], Secret.Presses))
+	end
 	if count[pn] < Secret.Presses then return false end
 	Secret.ResetInput()
-	return Secret.IsAvailable()
+	local available = Secret.IsAvailable()
+	Trace(("VOLT26.Secret: code entered, eventMode=%s song=%s"):format(
+		tostring(PREFSMAN:GetPreference("EventMode")), tostring(Secret.Song() ~= nil)))
+	return available
 end
 
 -- Starting --------------------------------------------------------------------
@@ -172,7 +185,10 @@ function Secret.Start()
 	local song = Secret.Song()
 	if not song then return false end
 	local steps = chartFor(song)
-	if not steps then return false end
+	if not steps then
+		Trace("VOLT26.Secret: no chart of the hidden song for the current style")
+		return false
+	end
 	local current = GAMESTATE:GetCurrentSong()
 	if current and not Secret.IsHiddenSong(current) then Secret.returnSong = current end
 	GAMESTATE:SetCurrentSong(song)
