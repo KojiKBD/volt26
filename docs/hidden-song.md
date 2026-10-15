@@ -5,8 +5,11 @@ pad's left and right arrows pressed together five times in a row (at most 2 s
 apart, no other button in between, either player; the first version asked
 for all four arrows, which many keyboards cannot report at once) start a song
 that is not on the
-wheel, for every joined player: `ScreenVOLT26Lost` shows "Are you LOST?" on
-black (LOST? in red, cutout lettering) and the chart begins.
+wheel, for every joined player. Gameplay starts at once, without the usual lead-in
+naming the pack (`ScreenGameplay in` returns an empty frame for this song),
+and "Are you LOST?" (LOST? in red, cutout lettering) covers the screen on
+black while the music plays its first seconds; it clears at 3 s, before the
+first arrow (about 4 s in). The song's title is LOST.
 
 * **Behaviour:** `VOLT26.Secret` (`Scripts/VOLT26_Secret.lua`): installing the
   song, hiding its pack, counting the code (`Feed`), starting the chart
@@ -25,7 +28,8 @@ black (LOST? in red, cutout lettering) and the chart begins.
 * **Hidden:** the engine keeps unselectable songs off the wheel; the theme's
   own lists leave the `VOLT26 Secret` pack out (`VOLT26.PackSelection`
   pack list, sections, previews and series; song search; Sort Menu counts).
-* **Stinger:** `BGAnimations/ScreenVOLT26Lost overlay.lua`; the title picture
+* **Stinger:** `BGAnimations/ScreenGameplay overlay/SecretStinger.lua` (an
+  empty actor for any other song); the title picture
   `Graphics/VOLT26/Secret/lost_title.png` is baked by
   `tools/secret/build_lost_title.py` from the cutout fonts' letters at a 220 px
   em (`--src` as for `tools/cutout-fonts/generate.py`).

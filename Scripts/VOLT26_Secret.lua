@@ -4,8 +4,10 @@
 -- together five times in a row start a song nobody can find on the wheel (with
 -- dedicated menu buttons no other code uses the pair; the four arrows were
 -- dropped because many keyboards cannot report four keys at once), for every joined
--- player: a black screen says "Are you LOST?" (ScreenVOLT26Lost) and the chart
--- begins.
+-- player.  Gameplay starts at once, without the usual lead-in naming the pack
+-- (ScreenGameplay in), and "Are you LOST?" covers the screen on black while
+-- the music plays its first seconds, before the first arrow (ScreenGameplay
+-- overlay/SecretStinger.lua).
 --
 -- The song ships inside the theme (Other/VOLT26 Secret/LosT: the simfile with
 -- #SELECTABLE:NO, so the engine never lists it, and its music).  ITGmania only
@@ -17,7 +19,7 @@
 -- the group out through IsHiddenGroup / IsHiddenSong.
 --
 -- Behaviour only: the song select overlay feeds its input to Feed and calls
--- Start; ScreenVOLT26Lost presents the stinger.
+-- Start; ScreenGameplay's in and overlay present the stinger.
 
 VOLT26.Secret = VOLT26.Secret or {}
 local Secret = VOLT26.Secret

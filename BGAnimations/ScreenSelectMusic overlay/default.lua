@@ -114,13 +114,14 @@ local function leaveToPacks()
 end
 
 -- The hidden song (VOLT26.Secret): left and right together, five times, in
--- Event Mode.  The screen goes to the stinger, which starts the chart.
+-- Event Mode.  The screen goes straight to gameplay, where the music starts
+-- under the "Are you LOST?" stinger (ScreenGameplay overlay/SecretStinger.lua).
 local function startSecret()
 	if leaving or modalOpen then return end
 	local screen = SCREENMAN:GetTopScreen()
 	if not screen or not VOLT26.Secret.Start() then return end
 	leaving = true
-	screen:SetNextScreenName("ScreenVOLT26Lost")
+	screen:SetNextScreenName(Branch.GameplayScreen())
 	screen:StartTransitioningScreen("SM_GoToNextScreen")
 end
 

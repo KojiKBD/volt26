@@ -23,6 +23,16 @@ end
 
 InitializeMeasureCounterAndModsLevel(SongNumberInCourse)
 
+-- The hidden song (VOLT26.Secret) has no lead-in naming the pack: its music
+-- starts at once, under the "Are you LOST?" stinger (ScreenGameplay overlay/
+-- SecretStinger.lua).
+if not GAMESTATE:IsCourseMode() and VOLT26.Secret.IsHiddenSong(GAMESTATE:GetCurrentSong()) then
+	return Def.ActorFrame{
+		OnCommand=function(self) VOLT26.Gameplay.MarkIntroComplete() end,
+		OffCommand=function(self) VOLT26.Gameplay.LeaveScreen() end,
+	}
+end
+
 -------------------------------------------------------------------------
 
 local af = Def.ActorFrame{}
